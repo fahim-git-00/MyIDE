@@ -15,46 +15,48 @@ Extracting AAR libraries...
 Linking resources (aapt2 link)...
 $ aapt2 link -I /data/user/0/com.fahim.myide/files/android.jar --manifest /data/user/0/com.fahim.myide/files/build_area/AndroidManifest.xml --java /data/user/0/com.fahim.myide/files/build_area/gen --min-sdk-version 24 --target-sdk-version 29 --auto-add-overlay --no-version-vectors -o /data/user/0/com.fahim.myide/files/build_area/app-unsigned.apk /data/user/0/com.fahim.myide/files/build_area/app_res_flat/res_2012824352/drawable_ic_launcher.xml.flat /data/user/0/com.fahim.myide/files/build_area/app_res_flat/res_2012824352/layout_main.xml.flat /data/user/0/com.fahim.myide/files/build_area/app_res_flat/res_2012824352/values_strings.arsc.flat
 Kotlin files detected (mode=local)
-Kotlin stdlib: kotlin-stdlib.jar (616319 bytes)
-kotlinc: kotlin-compiler-embeddable.jar (17027473 bytes)
+Kotlin stdlib: kotlin-stdlib.jar (2151603 bytes)
+kotlinc: kotlin-compiler-embeddable.jar (71777360 bytes)
 Loading kotlinc (embeddable)...
 Compiling 1 Kotlin file(s)...
 kotlin-home: /data/user/0/com.fahim.myide/files/kotlin-home
 kotlinc error:
 InvocationTargetException: null
-ExceptionInInitializerError: null
-IllegalStateException: No BuiltInsLoader implementation was found. Please ensure that the META-INF/services/ is not stripped from your application and that the Java virtual machine is not running under a security manager
+Error: java.lang.NoSuchMethodException: getAndAddInt [class java.lang.Object, long, int]
+NoSuchMethodException: getAndAddInt [class java.lang.Object, long, int]
 
 Kotlin LOCAL compile failed: RuntimeException: kotlinc: InvocationTargetException: null
-ExceptionInInitializerError: null
-IllegalStateException: No BuiltInsLoader implementation was found. Please ensure that the META-INF/services/ is not stripped from your application and that the Java virtual machine is not running under a security manager
+Error: java.lang.NoSuchMethodException: getAndAddInt [class java.lang.Object, long, int]
+NoSuchMethodException: getAndAddInt [class java.lang.Object, long, int]
 
 InvocationTargetException: null
-ExceptionInInitializerError: null
-IllegalStateException: No BuiltInsLoader implementation was found. Please ensure that the META-INF/services/ is not stripped from your application and that the Java virtual machine is not running under a security manager
+Error: java.lang.NoSuchMethodException: getAndAddInt [class java.lang.Object, long, int]
+NoSuchMethodException: getAndAddInt [class java.lang.Object, long, int]
 
 Compiling Java (ECJ)...
 Dexing (D8)...
 D8 error: InvocationTargetException: null
-RuntimeException: com.android.tools.r8.CompilationFailedException: Compilation failed to complete
-CompilationFailedException: Compilation failed to complete
-jf: Dex file with version '38' cannot be used with min sdk level 'N'.
+RuntimeException: com.android.tools.r8.CompilationFailedException: Compilation failed to complete, origin: /data/user/0/com.fahim.myide/files/kotlin-v5-1.7.22/kotlin-stdlib.jar
+CompilationFailedException: Compilation failed to complete, origin: /data/user/0/com.fahim.myide/files/kotlin-v5-1.7.22/kotlin-stdlib.jar
+jf: Cannot create android app from an archive '/data/user/0/com.fahim.myide/files/kotlin-v5-1.7.22/kotlin-stdlib.jar' containing both DEX and Java-bytecode content
 
 --- stdout ---
 
 --- stderr ---
-Error: com.android.tools.r8.internal.jf: Dex file with version '38' cannot be used with min sdk level 'N'.
+Error in /data/user/0/com.fahim.myide/files/kotlin-v5-1.7.22/kotlin-stdlib.jar:
+com.android.tools.r8.internal.jf: Cannot create android app from an archive '/data/user/0/com.fahim.myide/files/kotlin-v5-1.7.22/kotlin-stdlib.jar' containing both DEX and Java-bytecode content
 Compilation failed
 
 ERROR: RuntimeException: D8 error: InvocationTargetException: null
-RuntimeException: com.android.tools.r8.CompilationFailedException: Compilation failed to complete
-CompilationFailedException: Compilation failed to complete
-jf: Dex file with version '38' cannot be used with min sdk level 'N'.
+RuntimeException: com.android.tools.r8.CompilationFailedException: Compilation failed to complete, origin: /data/user/0/com.fahim.myide/files/kotlin-v5-1.7.22/kotlin-stdlib.jar
+CompilationFailedException: Compilation failed to complete, origin: /data/user/0/com.fahim.myide/files/kotlin-v5-1.7.22/kotlin-stdlib.jar
+jf: Cannot create android app from an archive '/data/user/0/com.fahim.myide/files/kotlin-v5-1.7.22/kotlin-stdlib.jar' containing both DEX and Java-bytecode content
 
 --- stdout ---
 
 --- stderr ---
-Error: com.android.tools.r8.internal.jf: Dex file with version '38' cannot be used with min sdk level 'N'.
+Error in /data/user/0/com.fahim.myide/files/kotlin-v5-1.7.22/kotlin-stdlib.jar:
+com.android.tools.r8.internal.jf: Cannot create android app from an archive '/data/user/0/com.fahim.myide/files/kotlin-v5-1.7.22/kotlin-stdlib.jar' containing both DEX and Java-bytecode content
 Compilation failed
 
 

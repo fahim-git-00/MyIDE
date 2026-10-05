@@ -226,88 +226,21 @@ public class ApkBuilder {
             File classesDir = new File(workDir, "classes");
             classesDir.mkdirs();
 
-            // Kotlin support
+            // Kotlin support via embedded Alpine + OpenJDK + kotlinc
             boolean hasKt = false;
             for (File src : sourceRoots) if (hasKtFiles(src)) { hasKt = true; break; }
             if (hasKt) {
-                String mode = ThemeHelper.getKotlinMode(ctx);
-                say("Kotlin files detected (mode=" + mode + ")");
-
-                // 1) stdlib jar so runtime linkage works
-                File kStdlib = null;
                 try {
-                    kStdlib = ensureKotlinStdlib();
-                    say("Kotlin stdlib: " + kStdlib.getName()
-                            + " (" + kStdlib.length() + " bytes)");
-                    jarDeps.add(kStdlib);
+                    say("Kotlin detected — compiling via embedded Linux…");
+                    KotlinCompiler kc = new KotlinCompiler(ctx,
+                            new KotlinCompiler.Progress() {
+                                @Override public void onProgress(String m) { say(m); }
+                            });
+                    kc.compile(sourceRoots, classesDir, androidJar);
                 } catch (Throwable t) {
-                    say("Kotlin stdlib unavailable: " + t.getMessage());
+                    say("Kotlin compile failed: " + causeChain(t));
+                    throw new RuntimeException("Kotlin compile failed", t);
                 }
-
-                // 2) compile .kt -> classesDir (local or remote)
-                if ("local".equals(mode)) {
-                    try {
-                        File compilerJar = KotlinCompiler.ensureCompilerJar(ctx);
-                        File stdlibJar   = kStdlib != null
-                                ? kStdlib : KotlinCompiler.ensureStdlibJar(ctx);
-                        say("kotlinc: " + compilerJar.getName()
-                                + " (" + compilerJar.length() + " bytes)");
-                        KotlinCompiler kc = new KotlinCompiler(ctx,
-                                new KotlinCompiler.Progress() {
-                                    @Override public void onProgress(String m) { say(m); }
-                                });
-                        kc.compile(compilerJar, stdlibJar, androidJar,
-                                sourceRoots, genDir, classesDir, jarDeps);
-                    } catch (Throwable t) {
-                        say("Kotlin LOCAL compile failed: " + causeChain(t));
-                    }
-                } else if ("remote".equals(mode)) {
-                    try {
-                        RemoteKotlinCompiler rkc = new RemoteKotlinCompiler(ctx,
-                                new RemoteKotlinCompiler.Progress() {
-                                    @Override public void onProgress(String m) { say(m); }
-                                });
-                        rkc.compile(sourceRoots, classesDir);
-                    } catch (Throwable t) {
-                        say("Kotlin REMOTE compile failed: " + causeChain(t));
-                    }
-                } else {
-                    // auto: try local, fall back to remote
-                    boolean ok = false;
-                    try {
-                        File compilerJar = KotlinCompiler.ensureCompilerJar(ctx);
-                        File stdlibJar   = kStdlib != null
-                                ? kStdlib : KotlinCompiler.ensureStdlibJar(ctx);
-                        say("[auto] trying LOCAL kotlinc");
-                        KotlinCompiler kc = new KotlinCompiler(ctx,
-                                new KotlinCompiler.Progress() {
-                                    @Override public void onProgress(String m) { say(m); }
-                                });
-                        kc.compile(compilerJar, stdlibJar, androidJar,
-                                sourceRoots, genDir, classesDir, jarDeps);
-                        ok = true;
-                    } catch (Throwable t) {
-                        say("[auto] local failed: " + causeChain(t));
-                    }
-                    if (!ok) {
-                        try {
-                            say("[auto] falling back to REMOTE");
-                            RemoteKotlinCompiler rkc = new RemoteKotlinCompiler(ctx,
-                                    new RemoteKotlinCompiler.Progress() {
-                                        @Override public void onProgress(String m) { say(m); }
-                                    });
-                            rkc.compile(sourceRoots, classesDir);
-                        } catch (Throwable t) {
-                            say("[auto] remote failed too: " + causeChain(t));
-                        }
-                    }
-                }
-
-                // 3) put classesDir on the Java classpath so Java can see Kotlin types
-                File marker = new File(classesDir, ".kotlin_interop");
-                try {
-                    if (!marker.exists()) marker.createNewFile();
-                } catch (IOException ignored) {}
             }
 
             jarDeps.add(lambdaStubs);
