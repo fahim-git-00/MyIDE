@@ -4,14 +4,11 @@ import android.text.Spannable;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Regex-based syntax highlighting for Java / Kotlin / XML / JSON / Gradle / Markdown.
- * Applies ForegroundColorSpans over the whole buffer. Callers should debounce
- * before invoking highlight() on every keystroke.
- */
 public final class SyntaxHighlighter {
 
     public static final int LANG_JAVA = 0;
@@ -21,7 +18,6 @@ public final class SyntaxHighlighter {
     public static final int LANG_MARKDOWN = 4;
     public static final int LANG_KOTLIN = 5;
 
-    // Dark theme palette
     private static final int C_KEYWORD    = 0xFF569CD6;
     private static final int C_STRING     = 0xFFCE9178;
     private static final int C_COMMENT    = 0xFF6A9955;
@@ -44,6 +40,14 @@ public final class SyntaxHighlighter {
         if (p.endsWith(".md") || p.endsWith(".markdown")) return LANG_MARKDOWN;
         if (p.endsWith(".kt") || p.endsWith(".kts")) return LANG_KOTLIN;
         return LANG_JAVA;
+    }
+
+    // ============ SPAN MODEL ============
+
+    /** A foreground color span range: {start, end, color}. */
+    public static class Range {
+        public final int start, end, color;
+        public Range(int s, int e, int c) { start = s; end = e; color = c; }
     }
 
     // ============ KEYWORD TABLES ============
@@ -90,66 +94,34 @@ public final class SyntaxHighlighter {
 
     private static final Pattern P_COMMENT =
         Pattern.compile("//[^\\n]*|/\\*[\\s\\S]*?\\*/");
-
     private static final Pattern P_STRING =
         Pattern.compile("\"\"\"[\\s\\S]*?\"\"\"|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'");
-
     private static final Pattern P_NUMBER =
         Pattern.compile("\\b\\d+(\\.\\d+)?[fFdDlL]?\\b|\\b0[xX][0-9a-fA-F]+\\b|\\b0[bB][01]+\\b");
-
     private static final Pattern P_ANNOT =
         Pattern.compile("@[A-Za-z_][A-Za-z0-9_]*");
-
     private static final Pattern P_TYPE =
         Pattern.compile("\\b[A-Z][A-Za-z0-9_]*\\b");
-
     private static final Pattern P_FUNC =
         Pattern.compile("\\b[a-z_][A-Za-z0-9_]*(?=\\s*\\()");
 
-    private static final Pattern P_XML_COMMENT =
-        Pattern.compile("<!--[\\s\\S]*?-->");
+    private static final Pattern P_XML_COMMENT = Pattern.compile("<!--[\\s\\S]*?-->");
+    private static final Pattern P_XML_DECL    = Pattern.compile("<\\?[\\s\\S]*?\\?>");
+    private static final Pattern P_XML_TAG     = Pattern.compile("</?[A-Za-z_][A-Za-z0-9_.:-]*");
+    private static final Pattern P_XML_CLOSE   = Pattern.compile("/?>");
+    private static final Pattern P_XML_ATTR    = Pattern.compile("\\b[A-Za-z_][A-Za-z0-9_.:-]*(?=\\s*=)");
+    private static final Pattern P_XML_STRING  = Pattern.compile("\"[^\"]*\"");
 
-    private static final Pattern P_XML_DECL =
-        Pattern.compile("<\\?[\\s\\S]*?\\?>");
+    private static final Pattern P_JSON_STRING = Pattern.compile("\"(?:\\\\.|[^\"\\\\])*\"");
+    private static final Pattern P_JSON_NUMBER = Pattern.compile("\\b-?\\d+(\\.\\d+)?([eE][-+]?\\d+)?\\b");
+    private static final Pattern P_JSON_KW     = Pattern.compile("\\b(?:true|false|null)\\b");
 
-    private static final Pattern P_XML_TAG =
-        Pattern.compile("</?[A-Za-z_][A-Za-z0-9_.:-]*");
-
-    private static final Pattern P_XML_CLOSE =
-        Pattern.compile("/?>");
-
-    private static final Pattern P_XML_ATTR =
-        Pattern.compile("\\b[A-Za-z_][A-Za-z0-9_.:-]*(?=\\s*=)");
-
-    private static final Pattern P_XML_STRING =
-        Pattern.compile("\"[^\"]*\"");
-
-    private static final Pattern P_JSON_STRING =
-        Pattern.compile("\"(?:\\\\.|[^\"\\\\])*\"");
-
-    private static final Pattern P_JSON_NUMBER =
-        Pattern.compile("\\b-?\\d+(\\.\\d+)?([eE][-+]?\\d+)?\\b");
-
-    private static final Pattern P_JSON_KW =
-        Pattern.compile("\\b(?:true|false|null)\\b");
-
-    private static final Pattern P_MD_HEADER =
-        Pattern.compile("^#{1,6} .*$", Pattern.MULTILINE);
-
-    private static final Pattern P_MD_CODE =
-        Pattern.compile("```[\\s\\S]*?```|`[^`\\n]+`");
-
-    private static final Pattern P_MD_BOLD =
-        Pattern.compile("\\*\\*[^*\\n]+\\*\\*|__[^_\\n]+__");
-
-    private static final Pattern P_MD_ITALIC =
-        Pattern.compile("(?<![*_])\\*[^*\\n]+\\*(?![*_])|(?<![_])_[^_\\n]+_(?![_])");
-
-    private static final Pattern P_MD_LINK =
-        Pattern.compile("\\[[^\\]]+\\]\\([^)]+\\)");
-
-    private static final Pattern P_MD_LIST =
-        Pattern.compile("^\\s*[-*+]\\s.*$", Pattern.MULTILINE);
+    private static final Pattern P_MD_HEADER = Pattern.compile("^#{1,6} .*$", Pattern.MULTILINE);
+    private static final Pattern P_MD_CODE   = Pattern.compile("```[\\s\\S]*?```|`[^`\\n]+`");
+    private static final Pattern P_MD_BOLD   = Pattern.compile("\\*\\*[^*\\n]+\\*\\*|__[^_\\n]+__");
+    private static final Pattern P_MD_ITALIC = Pattern.compile("(?<![*_])\\*[^*\\n]+\\*(?![*_])|(?<![_])_[^_\\n]+_(?![_])");
+    private static final Pattern P_MD_LINK   = Pattern.compile("\\[[^\\]]+\\]\\([^)]+\\)");
+    private static final Pattern P_MD_LIST   = Pattern.compile("^\\s*[-*+]\\s.*$", Pattern.MULTILINE);
 
     private static final Pattern P_JAVA_KW_RE;
     private static final Pattern P_KOTLIN_KW_RE;
@@ -171,102 +143,110 @@ public final class SyntaxHighlighter {
         return Pattern.compile(sb.toString());
     }
 
-    // ============ PUBLIC ENTRY ============
+    // ============ PUBLIC API ============
 
-    public static void highlight(Spannable text) {
-        highlight(text, LANG_JAVA);
-    }
-
-    public static void highlight(Spannable text, int lang) {
-        clearSpans(text);
-        String s = text.toString();
+    /** Compute color spans off the main thread. Returns a list of ranges. */
+    public static List<Range> computeSpans(String text, int lang) {
+        List<Range> out = new ArrayList<Range>();
+        if (text == null || text.isEmpty()) return out;
 
         switch (lang) {
-            case LANG_XML:      highlightXml(text, s); break;
-            case LANG_JSON:     highlightJson(text, s); break;
-            case LANG_GRADLE:   highlightGradle(text, s); break;
-            case LANG_MARKDOWN: highlightMarkdown(text, s); break;
-            case LANG_KOTLIN:   highlightKotlin(text, s); break;
-            default:            highlightJava(text, s); break;
+            case LANG_XML:      xml(out, text); break;
+            case LANG_JSON:     json(out, text); break;
+            case LANG_GRADLE:   gradle(out, text); break;
+            case LANG_MARKDOWN: markdown(out, text); break;
+            case LANG_KOTLIN:   kotlin(out, text); break;
+            default:            java(out, text); break;
+        }
+        return out;
+    }
+
+    /** Apply precomputed ranges on the main thread. */
+    public static void applySpans(Spannable text, List<Range> spans) {
+        clearSpans(text);
+        for (Range r : spans) {
+            if (r.start < 0 || r.end > text.length() || r.start >= r.end) continue;
+            text.setSpan(new ForegroundColorSpan(r.color), r.start, r.end,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
     }
 
+    /** Legacy synchronous API — kept for compatibility. */
+    public static void highlight(Spannable text, int lang) {
+        applySpans(text, computeSpans(text.toString(), lang));
+    }
+
     public static void clearSpans(Spannable text) {
-        ForegroundColorSpan[] old = text.getSpans(
-                0, text.length(), ForegroundColorSpan.class);
+        ForegroundColorSpan[] old = text.getSpans(0, text.length(), ForegroundColorSpan.class);
         for (ForegroundColorSpan sp : old) text.removeSpan(sp);
     }
 
     // ============ PER-LANGUAGE ============
 
-    private static void highlightJava(Spannable t, String s) {
-        apply(t, s, P_COMMENT, C_COMMENT);
-        apply(t, s, P_STRING,  C_STRING);
-        apply(t, s, P_ANNOT,   C_ANNOTATION);
-        apply(t, s, P_NUMBER,  C_NUMBER);
-        apply(t, s, P_TYPE,    C_TYPE);
-        apply(t, s, P_JAVA_KW_RE, C_KEYWORD);
-        // re-apply comments/strings to keep them topmost
-        apply(t, s, P_COMMENT, C_COMMENT);
-        apply(t, s, P_STRING,  C_STRING);
+    private static void java(List<Range> out, String s) {
+        add(out, s, P_COMMENT, C_COMMENT);
+        add(out, s, P_STRING,  C_STRING);
+        add(out, s, P_ANNOT,   C_ANNOTATION);
+        add(out, s, P_NUMBER,  C_NUMBER);
+        add(out, s, P_TYPE,    C_TYPE);
+        add(out, s, P_JAVA_KW_RE, C_KEYWORD);
+        add(out, s, P_COMMENT, C_COMMENT);
+        add(out, s, P_STRING,  C_STRING);
     }
 
-    private static void highlightKotlin(Spannable t, String s) {
-        apply(t, s, P_COMMENT, C_COMMENT);
-        apply(t, s, P_STRING,  C_STRING);
-        apply(t, s, P_ANNOT,   C_ANNOTATION);
-        apply(t, s, P_NUMBER,  C_NUMBER);
-        apply(t, s, P_TYPE,    C_TYPE);
-        apply(t, s, P_KOTLIN_KW_RE, C_KEYWORD);
-        apply(t, s, P_FUNC,    C_FUNC);
-        apply(t, s, P_COMMENT, C_COMMENT);
-        apply(t, s, P_STRING,  C_STRING);
+    private static void kotlin(List<Range> out, String s) {
+        add(out, s, P_COMMENT, C_COMMENT);
+        add(out, s, P_STRING,  C_STRING);
+        add(out, s, P_ANNOT,   C_ANNOTATION);
+        add(out, s, P_NUMBER,  C_NUMBER);
+        add(out, s, P_TYPE,    C_TYPE);
+        add(out, s, P_KOTLIN_KW_RE, C_KEYWORD);
+        add(out, s, P_FUNC,    C_FUNC);
+        add(out, s, P_COMMENT, C_COMMENT);
+        add(out, s, P_STRING,  C_STRING);
     }
 
-    private static void highlightXml(Spannable t, String s) {
-        apply(t, s, P_XML_COMMENT, C_COMMENT);
-        apply(t, s, P_XML_DECL,    C_KEYWORD);
-        apply(t, s, P_XML_TAG,     C_XML_TAG);
-        apply(t, s, P_XML_CLOSE,   C_XML_TAG);
-        apply(t, s, P_XML_ATTR,    C_XML_ATTR);
-        apply(t, s, P_XML_STRING,  C_XML_STR);
-        apply(t, s, P_XML_COMMENT, C_COMMENT);
+    private static void xml(List<Range> out, String s) {
+        add(out, s, P_XML_COMMENT, C_COMMENT);
+        add(out, s, P_XML_DECL,    C_KEYWORD);
+        add(out, s, P_XML_TAG,     C_XML_TAG);
+        add(out, s, P_XML_CLOSE,   C_XML_TAG);
+        add(out, s, P_XML_ATTR,    C_XML_ATTR);
+        add(out, s, P_XML_STRING,  C_XML_STR);
+        add(out, s, P_XML_COMMENT, C_COMMENT);
     }
 
-    private static void highlightJson(Spannable t, String s) {
-        apply(t, s, P_JSON_STRING, C_STRING);
-        apply(t, s, P_JSON_NUMBER, C_NUMBER);
-        apply(t, s, P_JSON_KW,     C_KEYWORD);
-        apply(t, s, P_JSON_STRING, C_STRING);
+    private static void json(List<Range> out, String s) {
+        add(out, s, P_JSON_STRING, C_STRING);
+        add(out, s, P_JSON_NUMBER, C_NUMBER);
+        add(out, s, P_JSON_KW,     C_KEYWORD);
+        add(out, s, P_JSON_STRING, C_STRING);
     }
 
-    private static void highlightGradle(Spannable t, String s) {
-        apply(t, s, P_COMMENT, C_COMMENT);
-        apply(t, s, P_STRING,  C_STRING);
-        apply(t, s, P_NUMBER,  C_NUMBER);
-        apply(t, s, P_GRADLE_KW_RE, C_KEYWORD);
-        apply(t, s, P_FUNC,    C_FUNC);
-        apply(t, s, P_COMMENT, C_COMMENT);
-        apply(t, s, P_STRING,  C_STRING);
+    private static void gradle(List<Range> out, String s) {
+        add(out, s, P_COMMENT, C_COMMENT);
+        add(out, s, P_STRING,  C_STRING);
+        add(out, s, P_NUMBER,  C_NUMBER);
+        add(out, s, P_GRADLE_KW_RE, C_KEYWORD);
+        add(out, s, P_FUNC,    C_FUNC);
+        add(out, s, P_COMMENT, C_COMMENT);
+        add(out, s, P_STRING,  C_STRING);
     }
 
-    private static void highlightMarkdown(Spannable t, String s) {
-        apply(t, s, P_MD_HEADER, C_KEYWORD);
-        apply(t, s, P_MD_CODE,   C_STRING);
-        apply(t, s, P_MD_BOLD,   C_ANNOTATION);
-        apply(t, s, P_MD_ITALIC, C_TYPE);
-        apply(t, s, P_MD_LINK,   C_XML_ATTR);
-        apply(t, s, P_MD_LIST,   C_FUNC);
+    private static void markdown(List<Range> out, String s) {
+        add(out, s, P_MD_HEADER, C_KEYWORD);
+        add(out, s, P_MD_CODE,   C_STRING);
+        add(out, s, P_MD_BOLD,   C_ANNOTATION);
+        add(out, s, P_MD_ITALIC, C_TYPE);
+        add(out, s, P_MD_LINK,   C_XML_ATTR);
+        add(out, s, P_MD_LIST,   C_FUNC);
     }
 
-    private static void apply(Spannable text, String source, Pattern p, int color) {
+    private static void add(List<Range> out, String source, Pattern p, int color) {
         Matcher m = p.matcher(source);
         while (m.find()) {
             if (m.start() == m.end()) continue;
-            text.setSpan(
-                    new ForegroundColorSpan(color),
-                    m.start(), m.end(),
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            out.add(new Range(m.start(), m.end(), color));
         }
     }
 }

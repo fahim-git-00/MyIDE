@@ -118,6 +118,9 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private Runnable highlightDebounce;
+    private final java.util.concurrent.ExecutorService highlightExec =
+            java.util.concurrent.Executors.newSingleThreadExecutor();
+    private volatile long highlightToken = 0L;
 
     // ================================================================
     // LIFECYCLE
@@ -575,8 +578,9 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
 
         isHighlighting = true;
         editor.setText(t.text);
-        applyHighlight(currentLang);
         updateLineNumbers(t.text);
+        // highlight after text is set, off-thread
+        applyHighlight(currentLang);
         int s = Math.max(0, Math.min(t.selStart, t.text.length()));
         int e = Math.max(0, Math.min(t.selEnd, t.text.length()));
         editor.setSelection(s, e);
@@ -864,16 +868,31 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                 }
             }
         };
-        ui.postDelayed(highlightDebounce, 180);
+        ui.postDelayed(highlightDebounce, 250);
     }
 
-    private void applyHighlight(int lang) {
-        isHighlighting = true;
-        try {
-            SyntaxHighlighter.highlight(editor.getText(), lang);
-        } finally {
-            isHighlighting = false;
-        }
+    private void applyHighlight(final int lang) {
+        final long myToken = ++highlightToken;
+        final Editable editable = editor.getText();
+        final String snapshot = editable.toString();
+
+        highlightExec.submit(new Runnable() {
+            @Override public void run() {
+                // compute spans off-thread
+                final java.util.List<int[]> spans = SyntaxHighlighter.computeSpans(snapshot, lang);
+                ui.post(new Runnable() {
+                    @Override public void run() {
+                        if (myToken != highlightToken) return;   // stale
+                        isHighlighting = true;
+                        try {
+                            SyntaxHighlighter.applySpans(editor.getText(), spans);
+                        } finally {
+                            isHighlighting = false;
+                        }
+                    }
+                });
+            }
+        });
     }
 
     private void updateLineNumbers(String text) {
