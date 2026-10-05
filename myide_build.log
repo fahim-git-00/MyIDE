@@ -15,78 +15,23 @@ Extracting AAR libraries...
 Linking resources (aapt2 link)...
 $ aapt2 link -I /data/user/0/com.fahim.myide/files/android.jar --manifest /data/user/0/com.fahim.myide/files/build_area/AndroidManifest.xml --java /data/user/0/com.fahim.myide/files/build_area/gen --min-sdk-version 24 --target-sdk-version 29 --auto-add-overlay --no-version-vectors -o /data/user/0/com.fahim.myide/files/build_area/app-unsigned.apk /data/user/0/com.fahim.myide/files/build_area/app_res_flat/res_2012824352/drawable_ic_launcher.xml.flat /data/user/0/com.fahim.myide/files/build_area/app_res_flat/res_2012824352/layout_main.xml.flat /data/user/0/com.fahim.myide/files/build_area/app_res_flat/res_2012824352/values_strings.arsc.flat
 Kotlin files detected (mode=local)
-Kotlin stdlib: kotlin-stdlib.jar (1718956 bytes)
-kotlinc: kotlin-compiler-embeddable.jar (18370767 bytes)
+Kotlin stdlib: kotlin-stdlib.jar (1536429 bytes)
+kotlinc: kotlin-compiler-embeddable.jar (16509193 bytes)
 Loading kotlinc (embeddable)...
 Compiling 1 Kotlin file(s)...
 kotlin-home: /data/user/0/com.fahim.myide/files/kotlin-home
-exception: java.lang.Error: java.lang.NoSuchMethodException: getAndAddInt [class java.lang.Object, long, int]
-	at org.jetbrains.kotlin.com.intellij.util.containers.ConcurrentLongObjectHashMap.<clinit>(ConcurrentLongObjectHashMap.java:2805)
-	at org.jetbrains.kotlin.com.intellij.util.containers.ContainerUtil.createConcurrentLongObjectMap(ContainerUtil.java:2466)
-	at org.jetbrains.kotlin.com.intellij.openapi.progress.impl.CoreProgressManager.<clinit>(CoreProgressManager.java:56)
-	at org.jetbrains.kotlin.com.intellij.core.CoreApplicationEnvironment.createProgressIndicatorProvider(CoreApplicationEnvironment.java:174)
-	at org.jetbrains.kotlin.com.intellij.core.CoreApplicationEnvironment.<init>(CoreApplicationEnvironment.java:114)
-	at org.jetbrains.kotlin.com.intellij.core.JavaCoreApplicationEnvironment.<init>(JavaCoreApplicationEnvironment.java:48)
-	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreApplicationEnvironment.<init>(KotlinCoreApplicationEnvironment.kt:29)
-	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreApplicationEnvironment.<init>(KotlinCoreApplicationEnvironment.kt:0)
-	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreApplicationEnvironment$Companion.create(KotlinCoreApplicationEnvironment.kt:86)
-	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment$Companion.createApplicationEnvironment(KotlinCoreEnvironment.kt:606)
-	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment$Companion.getOrCreateApplicationEnvironment(KotlinCoreEnvironment.kt:520)
-	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment$Companion.getOrCreateApplicationEnvironmentForProduction(KotlinCoreEnvironment.kt:507)
-	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment$Companion.createForProduction(KotlinCoreEnvironment.kt:444)
-	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.createCoreEnvironment(K2JVMCompiler.kt:199)
-	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecute(K2JVMCompiler.kt:150)
-	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecute(K2JVMCompiler.kt:50)
-	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:104)
-	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:48)
-	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:101)
-	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:79)
-	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:40)
-	at java.lang.reflect.Method.invoke(Native Method)
-	at com.fahim.myide.KotlinCompiler.compile(KotlinCompiler.java:179)
-	at com.fahim.myide.ApkBuilder.build(ApkBuilder.java:259)
-	at com.fahim.myide.MainActivity$66.run(MainActivity.java:1499)
-	at java.lang.Thread.run(Thread.java:1571)
-Caused by: java.lang.NoSuchMethodException: getAndAddInt [class java.lang.Object, long, int]
-	at java.lang.invoke.MethodHandles$Lookup.findVirtual(MethodHandles.java:991)
-	at org.jetbrains.kotlin.com.intellij.util.containers.ConcurrentLongObjectHashMap.<clinit>(ConcurrentLongObjectHashMap.java:2800)
-	... 25 more
+kotlinc error:
+InvocationTargetException: null
+NoClassDefFoundError: Failed resolution of: Lkotlin/reflect/full/KClasses;
+ClassNotFoundException: Didn't find class "kotlin.reflect.full.KClasses" on path: DexPathList[[zip file "/data/user/0/com.fahim.myide/files/kotlin/kotlin-compiler-embeddable.jar"],nativeLibraryDirectories=[/system/lib64, /system_ext/lib64]]
 
+Kotlin LOCAL compile failed: RuntimeException: kotlinc: InvocationTargetException: null
+NoClassDefFoundError: Failed resolution of: Lkotlin/reflect/full/KClasses;
+ClassNotFoundException: Didn't find class "kotlin.reflect.full.KClasses" on path: DexPathList[[zip file "/data/user/0/com.fahim.myide/files/kotlin/kotlin-compiler-embeddable.jar"],nativeLibraryDirectories=[/system/lib64, /system_ext/lib64]]
 
-Kotlin LOCAL compile failed: RuntimeException: Kotlin compile failed (exit 2):
-exception: java.lang.Error: java.lang.NoSuchMethodException: getAndAddInt [class java.lang.Object, long, int]
-	at org.jetbrains.kotlin.com.intellij.util.containers.ConcurrentLongObjectHashMap.<clinit>(ConcurrentLongObjectHashMap.java:2805)
-	at org.jetbrains.kotlin.com.intellij.util.containers.ContainerUtil.createConcurrentLongObjectMap(ContainerUtil.java:2466)
-	at org.jetbrains.kotlin.com.intellij.openapi.progress.impl.CoreProgressManager.<clinit>(CoreProgressManager.java:56)
-	at org.jetbrains.kotlin.com.intellij.core.CoreApplicationEnvironment.createProgressIndicatorProvider(CoreApplicationEnvironment.java:174)
-	at org.jetbrains.kotlin.com.intellij.core.CoreApplicationEnvironment.<init>(CoreApplicationEnvironment.java:114)
-	at org.jetbrains.kotlin.com.intellij.core.JavaCoreApplicationEnvironment.<init>(JavaCoreApplicationEnvironment.java:48)
-	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreApplicationEnvironment.<init>(KotlinCoreApplicationEnvironment.kt:29)
-	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreApplicationEnvironment.<init>(KotlinCoreApplicationEnvironment.kt:0)
-	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreApplicationEnvironment$Companion.create(KotlinCoreApplicationEnvironment.kt:86)
-	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment$Companion.createApplicationEnvironment(KotlinCoreEnvironment.kt:606)
-	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment$Companion.getOrCreateApplicationEnvironment(KotlinCoreEnvironment.kt:520)
-	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment$Companion.getOrCreateApplicationEnvironmentForProduction(KotlinCoreEnvironment.kt:507)
-	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment$Companion.createForProduction(KotlinCoreEnvironment.kt:444)
-	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.createCoreEnvironment(K2JVMCompiler.kt:199)
-	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecute(K2JVMCompiler.kt:150)
-	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecute(K2JVMCompiler.kt:50)
-	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:104)
-	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:48)
-	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:101)
-	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:79)
-	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:40)
-	at java.lang.reflect.Method.invoke(Native Method)
-	at com.fahim.myide.KotlinCompiler.compile(KotlinCompiler.java:179)
-	at com.fahim.myide.ApkBuilder.build(ApkBuilder.java:259)
-	at com.fahim.myide.MainActivity$66.run(MainActivity.java:1499)
-	at java.lang.Thread.run(Thread.java:1571)
-Caused by: java.lang.NoSuchMethodException: getAndAddInt [class java.lang.Object, long, int]
-	at java.lang.invoke.MethodHandles$Lookup.findVirtual(MethodHandles.java:991)
-	at org.jetbrains.kotlin.com.intellij.util.containers.ConcurrentLongObjectHashMap.<clinit>(ConcurrentLongObjectHashMap.java:2800)
-	... 25 more
-
-
+InvocationTargetException: null
+NoClassDefFoundError: Failed resolution of: Lkotlin/reflect/full/KClasses;
+ClassNotFoundException: Didn't find class "kotlin.reflect.full.KClasses" on path: DexPathList[[zip file "/data/user/0/com.fahim.myide/files/kotlin/kotlin-compiler-embeddable.jar"],nativeLibraryDirectories=[/system/lib64, /system_ext/lib64]]
 
 Compiling Java (ECJ)...
 Dexing (D8)...
