@@ -1325,10 +1325,16 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     private void runBuild() {
         if (projectRoot == null) { toast(getString(R.string.toast_pick_project)); return; }
         flushActiveTab();
-        showPanel(PANEL_BUILD);
-        final int min = ThemeHelper.getMinSdk(this);
-        final int target = ThemeHelper.getTargetSdk(this);
-        doBuild(min, target);
+        final int defMin = ThemeHelper.getMinSdk(this);
+        final int defTarget = ThemeHelper.getTargetSdk(this);
+        BuildDialog.show(this, defMin, defTarget, new BuildDialog.Handler() {
+            @Override public void onBuild(int minSdk, int targetSdk, boolean release) {
+                ThemeHelper.setMinSdk(MainActivity.this, minSdk);
+                ThemeHelper.setTargetSdk(MainActivity.this, targetSdk);
+                showPanel(PANEL_BUILD);
+                doBuild(minSdk, targetSdk);
+            }
+        });
     }
 
     private void doBuild(final int minSdk, final int targetSdk) {
@@ -1407,13 +1413,54 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
 
     private void askInstallOrClose(final File apk) {
         new AlertDialog.Builder(this, R.style.AppDialogTheme)
-            .setTitle("✅ " + getString(R.string.build_succeeded))
+            .setTitle("\u2705 " + getString(R.string.build_succeeded))
             .setMessage(apk.getAbsolutePath())
             .setPositiveButton(getString(R.string.dlg_install), new DialogInterface.OnClickListener() {
                 @Override public void onClick(DialogInterface d, int w) { installApk(apk); }
             })
-            .setNeutralButton(getString(R.string.dlg_close), null)
+            .setNeutralButton("Save As\u2026", new DialogInterface.OnClickListener() {
+                @Override public void onClick(DialogInterface d, int w) { saveApkAs(apk); }
+            })
+            .setNegativeButton(getString(R.string.dlg_close), null)
             .show();
+    }
+
+    private void saveApkAs(final File apk) {
+        File start = Environment.getExternalStorageDirectory();
+        FolderPicker.pick(this, start, "Save APK to\u2026", true, new FolderPicker.Callback() {
+            @Override public void onChosen(File folder) {
+                try {
+                    String base = "app.apk";
+                    if (projectRoot != null) {
+                        File mf = new File(projectRoot, "AndroidManifest.xml");
+                        if (mf.exists()) {
+                            String xml = readTextFile(mf);
+                            int i = xml.indexOf("package=\"");
+                            if (i >= 0) {
+                                int s = i + 9;
+                                int e = xml.indexOf('"', s);
+                                if (e > s) base = xml.substring(s, e) + ".apk";
+                            }
+                        }
+                    }
+                    File dst = new File(folder, base);
+                    int n = 1;
+                    while (dst.exists()) {
+                        dst = new File(folder, base.replace(".apk", "_" + n + ".apk"));
+                        n++;
+                    }
+                    FileInputStream in = new FileInputStream(apk);
+                    FileOutputStream out = new FileOutputStream(dst);
+                    byte[] buf = new byte[8192];
+                    int r;
+                    while ((r = in.read(buf)) > 0) out.write(buf, 0, r);
+                    in.close(); out.close();
+                    toast("Saved: " + dst.getAbsolutePath());
+                } catch (Exception e) {
+                    toast("Save failed: " + e.getMessage());
+                }
+            }
+        });
     }
 
     private void installApk(File apk) {
