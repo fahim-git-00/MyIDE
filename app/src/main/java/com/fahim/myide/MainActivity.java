@@ -58,7 +58,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     private static final int PANEL_LOGCAT   = 2;
     private static final int PANEL_TERMINAL = 3;
 
-    // Global load flag so watchers skip during bulk setText
     private static volatile boolean LOADING_TAB = false;
     public static boolean isLoadingTab() { return LOADING_TAB; }
 
@@ -107,6 +106,9 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     private int currentPanel = PANEL_BUILD;
     private int currentLang = SyntaxHighlighter.LANG_JAVA;
     private int lastLineCount = -1;
+
+    // Line-start index cache (fast line/col + goto)
+    private int[] lineStarts = null;
 
     // Panels
     private View panelBuildView, panelProblemsView, panelLogcatView, panelTerminalView;
@@ -441,18 +443,18 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                 markCurrentTabDirty();
                 scheduleHighlight();
                 updateLineNumbers(s.toString());
-                updateStatusBar();
+                updateStatusBarFast();
                 updateBreadcrumb();
             }
         };
         editor.addTextChangedListener(editorWatcher);
 
         editor.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) { updateStatusBar(); }
+            @Override public void onClick(View v) { updateStatusBarFast(); }
         });
         editor.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override public void onFocusChange(View v, boolean hasFocus) {
-                if (hasFocus) updateStatusBar();
+                if (hasFocus) updateStatusBarFast();
             }
         });
     }
@@ -546,7 +548,44 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     }
 
     // ================================================================
-    // TAB MANAGEMENT  (optimized)
+    // LINE-START INDEX (fast line/col + goto)
+    // ================================================================
+
+    private void rebuildLineStarts(String text) {
+        int n = text.length();
+        int count = 1;
+        for (int i = 0; i < n; i++) if (text.charAt(i) == '\n') count++;
+        int[] arr = new int[count];
+        arr[0] = 0;
+        int k = 1;
+        for (int i = 0; i < n; i++) {
+            if (text.charAt(i) == '\n') {
+                if (k < count) arr[k++] = i + 1;
+            }
+        }
+        lineStarts = arr;
+        lastLineCount = count;
+    }
+
+    private int lineOf(int pos) {
+        if (lineStarts == null) return 1;
+        int lo = 0, hi = lineStarts.length - 1, best = 0;
+        while (lo <= hi) {
+            int mid = (lo + hi) >>> 1;
+            if (lineStarts[mid] <= pos) { best = mid; lo = mid + 1; }
+            else hi = mid - 1;
+        }
+        return best + 1;
+    }
+
+    private int colOf(int pos) {
+        if (lineStarts == null) return 1;
+        int line = lineOf(pos) - 1;
+        return pos - lineStarts[line] + 1;
+    }
+
+    // ================================================================
+    // TAB MANAGEMENT  (fast)
     // ================================================================
 
     private void openFile(final File f) {
@@ -567,6 +606,8 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                 ui.post(new Runnable() {
                     @Override public void run() {
                         EditorTab t = new EditorTab(f, fText);
+                        // Precompute line starts for this tab
+                        rebuildLineStartsForTab(t);
                         tabs.add(t);
                         renderTabs();
                         selectTab(tabs.size() - 1);
@@ -574,6 +615,20 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                 });
             }
         }).start();
+    }
+
+    private void rebuildLineStartsForTab(EditorTab t) {
+        String text = t.text;
+        int n = text.length();
+        int count = 1;
+        for (int i = 0; i < n; i++) if (text.charAt(i) == '\n') count++;
+        int[] arr = new int[count];
+        arr[0] = 0;
+        int k = 1;
+        for (int i = 0; i < n; i++) {
+            if (text.charAt(i) == '\n' && k < count) arr[k++] = i + 1;
+        }
+        t.lineStarts = arr;
     }
 
     private void selectTab(int idx) {
@@ -584,7 +639,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         EditorTab t = tabs.get(idx);
         currentLang = t.lang();
 
-        // Suspend every watcher during bulk setText
         LOADING_TAB = true;
         if (undoMgr != null) undoMgr.setSuspended(true);
         if (enhancer != null) enhancer.setSuspended(true);
@@ -596,6 +650,15 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             LOADING_TAB = false;
             if (undoMgr != null) undoMgr.setSuspended(false);
             if (enhancer != null) enhancer.setSuspended(false);
+        }
+
+        // Line-start index either reuse tab's or rebuild
+        if (t.lineStarts != null) {
+            lineStarts = t.lineStarts;
+            lastLineCount = t.lineStarts.length;
+        } else {
+            rebuildLineStartsForTab(t);
+            lineStarts = t.lineStarts;
         }
 
         int s = Math.max(0, Math.min(t.selStart, t.text.length()));
@@ -614,7 +677,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         updateTitleBar();
         updateEditorPlaceholder();
 
-        // Reuse cached spans if present
+        // Apply cached spans synchronously — no thread hop
         if (t.cachedSpans != null && t.cachedLangHash == t.text.hashCode()) {
             isHighlighting = true;
             try {
@@ -622,16 +685,19 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             } finally {
                 isHighlighting = false;
             }
+        } else {
+            // Defer highlight computation to after frame
+            editor.post(new Runnable() {
+                @Override public void run() { scheduleHighlight(); }
+            });
         }
 
+        // Gutter + status + breadcrumb — all fast now
         editor.post(new Runnable() {
             @Override public void run() {
                 updateLineNumbers(t.text);
-                updateStatusBar();
+                updateStatusBarFast();
                 updateBreadcrumb();
-                if (t.cachedSpans == null || t.cachedLangHash != t.text.hashCode()) {
-                    scheduleHighlight();
-                }
             }
         });
     }
@@ -658,8 +724,9 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             SyntaxHighlighter.clearSpans(editor.getText());
             isHighlighting = false;
             lastLineCount = -1;
+            lineStarts = null;
             updateLineNumbers("");
-            updateStatusBar();
+            updateStatusBarFast();
             updateTitleBar();
             updateBreadcrumb();
             updateEditorPlaceholder();
@@ -692,59 +759,64 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
 
     private void flushTab(EditorTab t) {
         if (t == null || t != lastLoaded) return;
-        String now = editor.getText().toString();
-        if (!now.equals(t.text)) { t.text = now; t.dirty = true; }
+        CharSequence now = editor.getText();
+        if (!now.toString().equals(t.text)) {
+            t.text = now.toString();
+            t.dirty = true;
+            t.cachedSpans = null;
+            t.cachedLangHash = 0;
+            rebuildLineStartsForTab(t);
+        }
         t.selStart = editor.getSelectionStart();
         t.selEnd   = editor.getSelectionEnd();
         t.scrollY  = editor.getScrollY();
     }
 
     private void renderTabs() {
-        if (tabRow.getChildCount() == tabs.size()) {
-            for (int i = 0; i < tabs.size(); i++) {
+        int count = tabs.size();
+        if (tabRow.getChildCount() == count) {
+            for (int i = 0; i < count; i++) {
                 View cell = tabRow.getChildAt(i);
                 EditorTab t = tabs.get(i);
                 boolean active = (i == activeTab);
-                Object tag = cell.getTag();
-                if (tag != null && ((Boolean) tag).booleanValue() == active
-                        && ((TextView) cell.findViewById(R.id.tabTitle)).getText()
-                            .toString().equals(t.title())) {
-                    continue;
-                }
-                cell.setTag(Boolean.valueOf(active));
+                TabHolder h = (TabHolder) cell.getTag();
+                if (h == null) continue;
+                if (h.active == active && t.title().equals(h.lastTitle)) continue;
+
+                h.active = active;
                 cell.setBackgroundColor(active ? 0xFF1E1E1E : 0xFF2D2D30);
-                TextView title = cell.findViewById(R.id.tabTitle);
-                if (title != null) {
-                    title.setText(t.title());
-                    title.setTextColor(active ? 0xFFFFFFFF : 0xFF969696);
-                    title.setTypeface(active ? Typeface.DEFAULT_BOLD : Typeface.MONOSPACE);
+                if (h.title != null) {
+                    h.title.setText(t.title());
+                    h.lastTitle = t.title().toString();
+                    h.title.setTextColor(active ? 0xFFFFFFFF : 0xFF969696);
+                    h.title.setTypeface(active ? Typeface.DEFAULT_BOLD : Typeface.MONOSPACE);
                 }
-                TextView close = cell.findViewById(R.id.tabClose);
-                if (close != null) close.setTextColor(active ? 0xFFFFFFFF : 0xFF969696);
+                if (h.close != null) h.close.setTextColor(active ? 0xFFFFFFFF : 0xFF969696);
             }
             return;
         }
         tabRow.removeAllViews();
-        for (int i = 0; i < tabs.size(); i++) {
+        for (int i = 0; i < count; i++) {
             final int idx = i;
             EditorTab t = tabs.get(i);
             View cell = getLayoutInflater().inflate(R.layout.item_tab, tabRow, false);
 
-            boolean active = (i == activeTab);
-            cell.setTag(Boolean.valueOf(active));
+            TabHolder h = new TabHolder();
+            h.icon = cell.findViewById(R.id.tabIcon);
+            h.title = cell.findViewById(R.id.tabTitle);
+            h.close = cell.findViewById(R.id.tabClose);
+            h.active = (i == activeTab);
+            h.lastTitle = t.title().toString();
+            cell.setTag(h);
+
+            boolean active = h.active;
             cell.setBackgroundColor(active ? 0xFF1E1E1E : 0xFF2D2D30);
-
-            TextView icon = cell.findViewById(R.id.tabIcon);
-            icon.setText(t.icon());
-
-            TextView title = cell.findViewById(R.id.tabTitle);
-            title.setText(t.title());
-            title.setTextColor(active ? 0xFFFFFFFF : 0xFF969696);
-            title.setTypeface(active ? Typeface.DEFAULT_BOLD : Typeface.MONOSPACE);
-
-            TextView close = cell.findViewById(R.id.tabClose);
-            close.setTextColor(active ? 0xFFFFFFFF : 0xFF969696);
-            close.setOnClickListener(new View.OnClickListener() {
+            h.icon.setText(t.icon());
+            h.title.setText(h.lastTitle);
+            h.title.setTextColor(active ? 0xFFFFFFFF : 0xFF969696);
+            h.title.setTypeface(active ? Typeface.DEFAULT_BOLD : Typeface.MONOSPACE);
+            h.close.setTextColor(active ? 0xFFFFFFFF : 0xFF969696);
+            h.close.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { closeTab(idx); }
             });
 
@@ -762,41 +834,45 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     }
 
     private void updateBreadcrumb() {
-        breadcrumb.removeAllViews();
         if (tabs.isEmpty() || activeTab < 0) return;
         File f = tabs.get(activeTab).file;
-        if (projectRoot != null) {
-            try {
-                String rel = f.getCanonicalPath().substring(projectRoot.getCanonicalPath().length());
-                if (rel.startsWith("/")) rel = rel.substring(1);
-                String[] parts = rel.split("/");
-                for (int i = 0; i < parts.length; i++) {
-                    TextView seg = new TextView(this);
-                    seg.setText(parts[i]);
-                    seg.setTextColor(0xFF9CDCFE);
-                    seg.setTextSize(11f);
-                    seg.setTypeface(Typeface.MONOSPACE);
-                    breadcrumb.addView(seg);
-                    if (i < parts.length - 1) {
-                        TextView sep = new TextView(this);
-                        sep.setText("  ›  ");
-                        sep.setTextColor(0xFF6A6A6A);
-                        sep.setTextSize(11f);
-                        breadcrumb.addView(sep);
-                    }
-                }
-            } catch (Exception e) {
-                TextView tv = new TextView(this);
-                tv.setText(f.getName());
-                tv.setTextColor(0xFFD4D4D4);
-                tv.setTextSize(11f);
-                breadcrumb.addView(tv);
+        if (projectRoot == null) return;
+
+        String rel;
+        try {
+            rel = f.getCanonicalPath().substring(projectRoot.getCanonicalPath().length());
+        } catch (Exception e) {
+            rel = f.getName();
+        }
+        if (rel.startsWith("/")) rel = rel.substring(1);
+        String[] parts = rel.split("/");
+
+        // Reuse child views — no inflation
+        int have = breadcrumb.getChildCount();
+        int need = parts.length * 2 - 1;
+        while (breadcrumb.getChildCount() > need) {
+            breadcrumb.removeViewAt(breadcrumb.getChildCount() - 1);
+        }
+        while (breadcrumb.getChildCount() < need) {
+            TextView tv = new TextView(this);
+            tv.setTextSize(11f);
+            tv.setTypeface(Typeface.MONOSPACE);
+            breadcrumb.addView(tv);
+        }
+        for (int i = 0; i < parts.length; i++) {
+            TextView seg = (TextView) breadcrumb.getChildAt(i * 2);
+            seg.setText(parts[i]);
+            seg.setTextColor(0xFF9CDCFE);
+            if (i < parts.length - 1) {
+                TextView sep = (TextView) breadcrumb.getChildAt(i * 2 + 1);
+                sep.setText("  ›  ");
+                sep.setTextColor(0xFF6A6A6A);
             }
         }
     }
 
     // ================================================================
-    // SIDEBAR / FILE TREE  (optimized)
+    // SIDEBAR / FILE TREE
     // ================================================================
 
     private void toggleSidebar() {
@@ -845,7 +921,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             fileAdapter.notifyDataSetChanged();
             return;
         }
-        // Walk synchronously — it's fast now (single stat per file)
         visibleNodes.clear();
         walk(root, 0);
         fileAdapter.notifyDataSetChanged();
@@ -854,11 +929,9 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     private void walk(File dir, int depth) {
         File[] kids = dir.listFiles();
         if (kids == null) return;
-
         int n = kids.length;
         if (n == 0) return;
 
-        // Single isDirectory() call per entry
         String[] names = new String[n];
         boolean[] isDir = new boolean[n];
         for (int i = 0; i < n; i++) {
@@ -867,7 +940,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             isDir[i] = f.isDirectory();
         }
 
-        // Sort indices (no boxing per comparison)
         int[] idx = new int[n];
         for (int i = 0; i < n; i++) idx[i] = i;
         sortIndices(idx, names, isDir, 0, n - 1);
@@ -991,7 +1063,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                         } finally {
                             isHighlighting = false;
                         }
-                        // Cache on the active tab
                         if (activeTab >= 0 && activeTab < tabs.size()) {
                             EditorTab t = tabs.get(activeTab);
                             if (t.text.hashCode() == snapHash) {
@@ -1007,13 +1078,14 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
 
     private void updateLineNumbers(String text) {
         if (!ThemeHelper.isLineNumbers(this)) return;
-        int lines = 1;
-        for (int i = 0, n = text.length(); i < n; i++) {
-            if (text.charAt(i) == '\n') lines++;
+        int lines = lastLineCount;
+        if (lines <= 0) {
+            lines = 1;
+            for (int i = 0, n = text.length(); i < n; i++) {
+                if (text.charAt(i) == '\n') lines++;
+            }
+            lastLineCount = lines;
         }
-        if (lines == lastLineCount) return;
-        lastLineCount = lines;
-
         StringBuilder sb = new StringBuilder(lines * 3);
         for (int i = 1; i <= lines; i++) {
             sb.append(i);
@@ -1022,16 +1094,14 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         lineNumbers.setText(sb.toString());
     }
 
-    private void updateStatusBar() {
+    private void updateStatusBarFast() {
         int sel = editor.getSelectionStart();
         if (sel < 0) sel = 0;
-        String text = editor.getText().toString();
-        if (sel > text.length()) sel = text.length();
+        int len = editor.getText().length();
+        if (sel > len) sel = len;
 
-        int line = 1, col = 1;
-        for (int i = 0; i < sel; i++) {
-            if (text.charAt(i) == '\n') { line++; col = 1; } else col++;
-        }
+        int line = lineOf(sel);
+        int col = colOf(sel);
 
         int selStart = editor.getSelectionStart();
         int selEnd = editor.getSelectionEnd();
@@ -1052,6 +1122,8 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         statusProblems.setText(pcount == 0 ? "0  ⚠" : pcount + "  ⚠");
     }
 
+    private void updateStatusBar() { updateStatusBarFast(); }
+
     private String langName(int lang) {
         switch (lang) {
             case SyntaxHighlighter.LANG_XML:      return "XML";
@@ -1066,9 +1138,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     private void markCurrentTabDirty() {
         if (lastLoaded != null && !lastLoaded.dirty) {
             lastLoaded.dirty = true;
-            for (int i = 0; i < tabs.size(); i++) {
-                if (tabs.get(i) == lastLoaded) { renderTabs(); break; }
-            }
+            renderTabs();
         }
     }
 
@@ -1093,7 +1163,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         } else {
             toast(getString(R.string.toast_save_failed, t.name()));
         }
-        updateStatusBar();
+        updateStatusBarFast();
     }
 
     private boolean writeFile(File f, String text) {
@@ -1179,15 +1249,13 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     }
 
     private void gotoLine(int lineIndex) {
-        String text = editor.getText().toString();
-        int pos = 0, line = 0;
-        while (pos < text.length() && line < lineIndex) {
-            if (text.charAt(pos) == '\n') line++;
-            pos++;
-        }
+        if (lineStarts == null) rebuildLineStarts(editor.getText().toString());
+        int pos = (lineIndex >= 0 && lineIndex < lineStarts.length)
+                ? lineStarts[lineIndex]
+                : editor.getText().length();
         editor.requestFocus();
-        editor.setSelection(Math.min(pos, text.length()));
-        updateStatusBar();
+        editor.setSelection(Math.min(pos, editor.getText().length()));
+        updateStatusBarFast();
     }
 
     // ================================================================
@@ -1223,8 +1291,10 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         undoMgr.undo();
         if (lastLoaded != null) lastLoaded.dirty = true;
         renderTabs();
+        if (lastLoaded != null) rebuildLineStartsForTab(lastLoaded);
+        lineStarts = lastLoaded != null ? lastLoaded.lineStarts : null;
         updateLineNumbers(editor.getText().toString());
-        updateStatusBar();
+        updateStatusBarFast();
     }
 
     private void doRedo() {
@@ -1232,8 +1302,10 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         undoMgr.redo();
         if (lastLoaded != null) lastLoaded.dirty = true;
         renderTabs();
+        if (lastLoaded != null) rebuildLineStartsForTab(lastLoaded);
+        lineStarts = lastLoaded != null ? lastLoaded.lineStarts : null;
         updateLineNumbers(editor.getText().toString());
-        updateStatusBar();
+        updateStatusBarFast();
     }
 
     // ================================================================
@@ -1540,7 +1612,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         }
         probAdapter.notifyDataSetChanged();
         updateProblemsEmptyState();
-        updateStatusBar();
+        updateStatusBarFast();
     }
 
     private void updateProblemsEmptyState() {
@@ -1813,7 +1885,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                     lastLoaded.cachedLangHash = 0;
                     applyHighlight(lastLoaded.lang());
                 }
-                updateStatusBar();
+                updateStatusBarFast();
             }
         });
     }

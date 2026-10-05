@@ -17,6 +17,9 @@ public class EditorTab {
     public List<SyntaxHighlighter.Range> cachedSpans;
     public int cachedLangHash;
 
+    // Line-start index
+    public int[] lineStarts;
+
     public EditorTab(File f, String initial) {
         this.file = f;
         this.text = initial != null ? initial : "";
@@ -27,6 +30,7 @@ public class EditorTab {
         this.loaded = false;
         this.cachedSpans = null;
         this.cachedLangHash = 0;
+        this.lineStarts = null;
     }
 
     public String title() {
