@@ -57,15 +57,30 @@ public final class LinuxEnv {
         extractAsset(ctx, "rootfs/alpine-rootfs.tgz", tar);
 
         if (cb != null) cb.onProgress("Extracting Alpine Linux…");
-        TarGzExtractor.extract(tar, root, new TarGzExtractor.Progress() {
+        int n = TarGzExtractor.extract(tar, root, new TarGzExtractor.Progress() {
             @Override public void onProgress(String p) {}
         });
         tar.delete();
+        if (cb != null) cb.onProgress("Extracted " + n + " entries");
 
-        // Sanity: /bin/sh must exist
-        if (!new File(root, "bin/sh").exists()) {
-            throw new RuntimeException("rootfs extract failed: /bin/sh missing");
+        File binSh = new File(root, "bin/sh");
+        File binBb = new File(root, "bin/busybox");
+        if (cb != null) cb.onProgress("bin/sh exists=" + binSh.exists()
+                + " bin/busybox exists=" + binBb.exists());
+        if (!binSh.exists() && !binBb.exists()) {
+            throw new RuntimeException("rootfs extract failed: no /bin/sh or /bin/busybox");
         }
+
+        // Make all files under /bin, /usr readable/executable
+        try {
+            ProcessBuilder chmod = new ProcessBuilder(
+                    "/system/bin/sh", "-c",
+                    "chmod -R 755 " + new File(root, "bin").getAbsolutePath()
+                    + " " + new File(root, "usr").getAbsolutePath()
+                    + " " + new File(root, "sbin").getAbsolutePath());
+            chmod.redirectErrorStream(true);
+            chmod.start().waitFor();
+        } catch (Throwable ignored) {}
 
         // Point apk at repositories
         File apkRepo = new File(root, "etc/apk/repositories");

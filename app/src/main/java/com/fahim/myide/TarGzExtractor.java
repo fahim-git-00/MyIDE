@@ -1,5 +1,8 @@
 package com.fahim.myide;
 
+import android.system.Os;
+import android.system.OsConstants;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -8,16 +11,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.zip.GZIPInputStream;
 
-/**
- * Minimal tar.gz extractor. Handles USTAR + GNU longname/longlink + symlinks.
- */
 public final class TarGzExtractor {
 
     private TarGzExtractor() {}
 
     public interface Progress { void onProgress(String path); }
 
-    public static void extract(File targz, File dest, Progress cb) throws IOException {
+    public static int extract(File targz, File dest, Progress cb) throws IOException {
         if (!dest.exists()) dest.mkdirs();
         String destCanon = dest.getCanonicalPath();
 
@@ -29,6 +29,7 @@ public final class TarGzExtractor {
         byte[] buf = new byte[32768];
         String longName = null;
         String longLink = null;
+        int count = 0;
 
         while (true) {
             int read = readFully(in, header, 512);
@@ -46,14 +47,8 @@ public final class TarGzExtractor {
             char type = (char) header[156];
             String linkName = readString(header, 157, 100);
 
-            if (type == 'L') { // GNU long name
-                longName = readStringBytes(in, (int) size);
-                continue;
-            }
-            if (type == 'K') { // GNU long link
-                longLink = readStringBytes(in, (int) size);
-                continue;
-            }
+            if (type == 'L') { longName = readStringBytes(in, (int) size); continue; }
+            if (type == 'K') { longLink = readStringBytes(in, (int) size); continue; }
             if (longName != null) { name = longName; longName = null; }
             if (longLink != null) { linkName = longLink; longLink = null; }
 
@@ -61,28 +56,37 @@ public final class TarGzExtractor {
             String outCanon = out.getCanonicalPath();
             if (!outCanon.startsWith(destCanon + File.separator) && !outCanon.equals(destCanon)) {
                 skip(in, size);
+                long pad0 = (512 - (size % 512)) % 512;
+                skip(in, pad0);
                 continue;
             }
 
             switch (type) {
-                case '5': // directory
+                case '5':
                     out.mkdirs();
+                    count++;
                     break;
-                case '2': // symlink
+                case '2':
                     out.getParentFile().mkdirs();
+                    try { if (out.exists()) out.delete(); } catch (Throwable ignored) {}
                     try {
-                        if (out.exists()) out.delete();
-                        Runtime.getRuntime().exec(new String[]{
-                                "ln", "-sf", linkName, out.getAbsolutePath()
-                        }).waitFor();
-                    } catch (Exception e) {
-                        // fallback: write a plain file with link target
-                        FileOutputStream fos = new FileOutputStream(out);
-                        fos.write(linkName.getBytes("UTF-8"));
-                        fos.close();
+                        Os.symlink(linkName, outCanon);
+                    } catch (Throwable t) {
+                        // Fallback: resolve to a real file when possible
+                        File target = new File(dest, linkName);
+                        try {
+                            if (target.isFile()) {
+                                copy(target, out);
+                            } else {
+                                FileOutputStream fos = new FileOutputStream(out);
+                                fos.write(linkName.getBytes("UTF-8"));
+                                fos.close();
+                            }
+                        } catch (IOException ignored) {}
                     }
+                    count++;
                     break;
-                case '0': case '\0': case '7': // regular
+                case '0': case '\0': case '7':
                     out.getParentFile().mkdirs();
                     FileOutputStream fos = new FileOutputStream(out);
                     long remaining = size;
@@ -94,9 +98,12 @@ public final class TarGzExtractor {
                         remaining -= got;
                     }
                     fos.close();
-                    // preserve executable bit
-                    if ((readOctal(header, 100, 8) & 0100) != 0) out.setExecutable(true, false);
+                    try {
+                        long mode = readOctal(header, 100, 8);
+                        if ((mode & 0100) != 0) out.setExecutable(true, false);
+                    } catch (Throwable ignored) {}
                     if (cb != null) cb.onProgress(name);
+                    count++;
                     break;
                 default:
                     skip(in, size);
@@ -106,6 +113,17 @@ public final class TarGzExtractor {
             long pad = (512 - (size % 512)) % 512;
             skip(in, pad);
         }
+        in.close();
+        return count;
+    }
+
+    private static void copy(File src, File dst) throws IOException {
+        InputStream in = new FileInputStream(src);
+        FileOutputStream out = new FileOutputStream(dst);
+        byte[] b = new byte[32768];
+        int n;
+        while ((n = in.read(b)) > 0) out.write(b, 0, n);
+        out.close();
         in.close();
     }
 
