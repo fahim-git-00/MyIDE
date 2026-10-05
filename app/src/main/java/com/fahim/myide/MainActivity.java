@@ -1566,35 +1566,35 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
 
     private boolean handleMenu(int id) {
         // FILE
-        if (id == R.id.menu_new_project || id == R.id.action_new_project) { showNewProjectDialog(); return true; }
-        if (id == R.id.menu_open_project || id == R.id.action_open)       { pickProjectFolder(); return true; }
+        if (id == R.id.menu_new_project || id == R.id.menu_about) { showNewProjectDialog(); return true; }
+        if (id == R.id.menu_open_project || id == R.id.menu_about)       { pickProjectFolder(); return true; }
         if (id == R.id.menu_open_recent)                                  { showRecentProjects(); return true; }
-        if (id == R.id.menu_new_file || id == R.id.action_new_file) {
+        if (id == R.id.menu_new_file || id == R.id.menu_about) {
             if (projectRoot != null) showNewFileMenu(projectRoot);
             return true;
         }
-        if (id == R.id.menu_new_folder || id == R.id.action_new_folder) {
+        if (id == R.id.menu_new_folder || id == R.id.menu_about) {
             if (projectRoot != null) FileTreeOps.newFolder(this, projectRoot, afterTree());
             return true;
         }
-        if (id == R.id.menu_save || id == R.id.action_save)               { saveCurrentFile(); return true; }
-        if (id == R.id.menu_save_as || id == R.id.action_save_as)         { saveAs(); return true; }
-        if (id == R.id.menu_save_all || id == R.id.action_save_all)       { saveAll(); return true; }
-        if (id == R.id.menu_close_tab || id == R.id.action_close_tab)     { if (activeTab >= 0) closeTab(activeTab); return true; }
-        if (id == R.id.menu_close_all || id == R.id.action_close_all)     { closeAllTabs(); return true; }
-        if (id == R.id.menu_refresh || id == R.id.action_refresh)         { rebuildFileTree(); return true; }
-        if (id == R.id.menu_settings || id == R.id.action_settings)       { showSettings(); return true; }
+        if (id == R.id.menu_save || id == R.id.menu_about)               { saveCurrentFile(); return true; }
+        if (id == R.id.menu_save_as || id == R.id.menu_about)         { saveAs(); return true; }
+        if (id == R.id.menu_save_all || id == R.id.menu_about)       { saveAll(); return true; }
+        if (id == R.id.menu_close_tab || id == R.id.menu_about)     { if (activeTab >= 0) closeTab(activeTab); return true; }
+        if (id == R.id.menu_close_all || id == R.id.menu_about)     { closeAllTabs(); return true; }
+        if (id == R.id.menu_refresh || id == R.id.menu_about)         { rebuildFileTree(); return true; }
+        if (id == R.id.menu_settings || id == R.id.menu_about)       { showSettings(); return true; }
         if (id == R.id.menu_exit)                                          { finish(); return true; }
-        if (id == id == R.id.menu_about)             { showAbout(); return true; }
+        if (id == R.id.menu_about)             { showAbout(); return true; }
 
         // EDIT
-        if (id == R.id.menu_undo || id == R.id.action_undo)               { doUndo(); return true; }
-        if (id == R.id.menu_redo || id == R.id.action_redo)               { doRedo(); return true; }
+        if (id == R.id.menu_undo || id == R.id.menu_about)               { doUndo(); return true; }
+        if (id == R.id.menu_redo || id == R.id.menu_about)               { doRedo(); return true; }
         if (id == R.id.menu_cut)                                           { editor.onTextContextMenuItem(android.R.id.cut); return true; }
         if (id == R.id.menu_copy)                                          { editor.onTextContextMenuItem(android.R.id.copy); return true; }
         if (id == R.id.menu_paste)                                         { editor.onTextContextMenuItem(android.R.id.paste); return true; }
         if (id == R.id.menu_select_all)                                    { editor.selectAll(); return true; }
-        if (id == R.id.menu_find || id == R.id.action_find)                { openFindReplace(); return true; }
+        if (id == R.id.menu_find || id == R.id.menu_about)                { openFindReplace(); return true; }
         if (id == R.id.menu_replace)                                       { openFindReplace(); return true; }
         if (id == R.id.menu_find_in_files)                                 { showFindInFiles(); return true; }
         if (id == R.id.menu_goto_line)                                     { showGotoLine(); return true; }
@@ -1603,34 +1603,34 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         if (id == R.id.menu_toggle_comment)                                { enhancer.toggleLineComment(); return true; }
 
         // VIEW
-        if (id == R.id.menu_toggle_sidebar || id == R.id.action_toggle_drawer) { toggleSidebar(); return true; }
+        if (id == R.id.menu_toggle_sidebar || id == R.id.menu_about) { toggleSidebar(); return true; }
         if (id == R.id.menu_toggle_bottom)                                 { if (bottomPanelOpen) closePanel(); else showPanel(PANEL_BUILD); return true; }
         if (id == R.id.menu_word_wrap)                                     { toggleWordWrap(); return true; }
         if (id == R.id.menu_line_numbers)                                  { toggleLineNumbers(); return true; }
         if (id == R.id.menu_zoom_in)                                       { zoomIn(); return true; }
         if (id == R.id.menu_zoom_out)                                      { zoomOut(); return true; }
         if (id == R.id.menu_zoom_reset)                                    { zoomReset(); return true; }
-        if (id == R.id.menu_theme_dark || id == R.id.action_theme)         { applyThemeMode(ThemeHelper.THEME_DARK); return true; }
+        if (id == R.id.menu_theme_dark || id == R.id.menu_about)         { applyThemeMode(ThemeHelper.THEME_DARK); return true; }
         if (id == R.id.menu_theme_light)                                   { applyThemeMode(ThemeHelper.THEME_LIGHT); return true; }
         if (id == R.id.menu_theme_system)                                  { applyThemeMode(ThemeHelper.THEME_SYSTEM); return true; }
         if (id == R.id.menu_fullscreen)                                    { toggleFullscreen(); return true; }
 
         // BUILD
-        if (id == R.id.menu_build_apk || id == R.id.action_build)          { runBuild(); return true; }
-        if (id == R.id.menu_gradle_build || id == R.id.action_gradle_build) { runGradleBuild(); return true; }
-        if (id == R.id.menu_clean || id == R.id.action_clean)              { cleanProject(); return true; }
-        if (id == R.id.menu_rebuild || id == R.id.action_rebuild)          { runBuild(); return true; }
-        if (id == R.id.menu_libraries || id == R.id.action_libraries)      { showLibraries(); return true; }
-        if (id == R.id.menu_kotlin_mode || id == R.id.action_kotlin_mode)  { showKotlinMode(); return true; }
+        if (id == R.id.menu_build_apk || id == R.id.menu_about)          { runBuild(); return true; }
+        if (id == R.id.menu_gradle_build || id == R.id.menu_about) { runGradleBuild(); return true; }
+        if (id == R.id.menu_clean || id == R.id.menu_about)              { cleanProject(); return true; }
+        if (id == R.id.menu_rebuild || id == R.id.menu_about)          { runBuild(); return true; }
+        if (id == R.id.menu_libraries || id == R.id.menu_about)      { showLibraries(); return true; }
+        if (id == R.id.menu_kotlin_mode || id == R.id.menu_about)  { showKotlinMode(); return true; }
         if (id == R.id.menu_build_settings)                                { showBuildSettings(); return true; }
 
         // TOOLS
-        if (id == R.id.menu_logcat || id == R.id.action_logcat)            { showPanel(PANEL_LOGCAT); return true; }
-        if (id == R.id.menu_terminal || id == R.id.action_terminal)        { showPanel(PANEL_TERMINAL); return true; }
-        if (id == R.id.menu_problems || id == R.id.action_problems)        { showPanel(PANEL_PROBLEMS); return true; }
+        if (id == R.id.menu_logcat || id == R.id.menu_about)            { showPanel(PANEL_LOGCAT); return true; }
+        if (id == R.id.menu_terminal || id == R.id.menu_about)        { showPanel(PANEL_TERMINAL); return true; }
+        if (id == R.id.menu_problems || id == R.id.menu_about)        { showPanel(PANEL_PROBLEMS); return true; }
         if (id == R.id.menu_build_output)                                  { showPanel(PANEL_BUILD); return true; }
-        if (id == R.id.menu_palette || id == R.id.action_command_palette)  { openCommandPalette(); return true; }
-        if (id == R.id.menu_github_token || id == R.id.action_github_token) { showGithubTokenDialog(); return true; }
+        if (id == R.id.menu_palette || id == R.id.menu_about)  { openCommandPalette(); return true; }
+        if (id == R.id.menu_github_token || id == R.id.menu_about) { showGithubTokenDialog(); return true; }
 
         return false;
     }
