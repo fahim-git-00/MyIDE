@@ -56,7 +56,7 @@ public class RemoteKotlinCompiler {
     }
 
     public void compile(List<File> sourceRoots, File classesDir) throws Exception {
-        if (!hasToken()) throw new RuntimeException("GitHub token not set. Open Settings → GitHub Token.");
+        if (!hasToken()) throw new RuntimeException("GitHub token not set. Open ⋮ → GitHub Token.");
 
         List<File> ktFiles = new ArrayList<File>();
         for (File src : sourceRoots) findKtFiles(src, ktFiles);
@@ -65,8 +65,9 @@ public class RemoteKotlinCompiler {
             return;
         }
 
-        say("Packaging " + ktFiles.size() + " Kotlin files...");
-        String payload = buildPayload(ktFiles);
+        // Compute relative path for each .kt file so package structure is preserved.
+        String payload = buildPayload(sourceRoots, ktFiles);
+        say("Packaged " + ktFiles.size() + " Kotlin file(s), " + payload.length() + " chars");
 
         say("Triggering remote build...");
         long runId = triggerWorkflow(payload);
@@ -84,15 +85,28 @@ public class RemoteKotlinCompiler {
         say("Remote Kotlin compile done");
     }
 
-    private String buildPayload(List<File> files) throws Exception {
+    private String buildPayload(List<File> roots, List<File> files) throws Exception {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < files.size(); i++) {
             File f = files.get(i);
             if (i > 0) sb.append('~');
-            sb.append(f.getName()).append('|');
+            sb.append(relativePath(roots, f)).append('|');
             sb.append(android.util.Base64.encodeToString(readAll(f), android.util.Base64.NO_WRAP));
         }
         return sb.toString();
+    }
+
+    private String relativePath(List<File> roots, File f) {
+        String abs = f.getAbsolutePath();
+        for (File root : roots) {
+            String r = root.getAbsolutePath();
+            if (abs.startsWith(r)) {
+                String rel = abs.substring(r.length());
+                if (rel.startsWith("/")) rel = rel.substring(1);
+                return rel;
+            }
+        }
+        return f.getName();
     }
 
     private byte[] readAll(File f) throws Exception {

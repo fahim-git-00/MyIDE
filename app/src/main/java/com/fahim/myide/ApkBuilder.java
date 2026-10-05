@@ -226,12 +226,25 @@ public class ApkBuilder {
             File classesDir = new File(workDir, "classes");
             classesDir.mkdirs();
 
-            // Kotlin sources: use remote compiler if present, else skip with warning
+            // Kotlin support
             boolean hasKt = false;
             for (File src : sourceRoots) if (hasKtFiles(src)) { hasKt = true; break; }
             if (hasKt) {
                 String mode = ThemeHelper.getKotlinMode(ctx);
                 say("Kotlin files detected (mode=" + mode + ")");
+
+                // 1) stdlib jar so runtime linkage works
+                File kStdlib = null;
+                try {
+                    kStdlib = ensureKotlinStdlib();
+                    say("Kotlin stdlib: " + kStdlib.getName()
+                            + " (" + kStdlib.length() + " bytes)");
+                    jarDeps.add(kStdlib);
+                } catch (Throwable t) {
+                    say("Kotlin stdlib unavailable: " + t.getMessage());
+                }
+
+                // 2) compile .kt -> classesDir
                 try {
                     RemoteKotlinCompiler rkc = new RemoteKotlinCompiler(ctx,
                             new RemoteKotlinCompiler.Progress() {
@@ -241,6 +254,12 @@ public class ApkBuilder {
                 } catch (Throwable t) {
                     say("Kotlin compile skipped: " + t.getMessage());
                 }
+
+                // 3) put classesDir on the Java classpath so Java can see Kotlin types
+                File marker = new File(classesDir, ".kotlin_interop");
+                try {
+                    if (!marker.exists()) marker.createNewFile();
+                } catch (IOException ignored) {}
             }
 
             jarDeps.add(lambdaStubs);
@@ -444,6 +463,10 @@ public class ApkBuilder {
 
         StringBuilder cp = new StringBuilder();
         cp.append(androidJar.getAbsolutePath());
+        // Put classesDir on the classpath so Java can reference Kotlin types.
+        if (classesDir != null && classesDir.exists()) {
+            cp.append(File.pathSeparator).append(classesDir.getAbsolutePath());
+        }
         for (File j : extraJars) {
             if (j != null && j.exists())
                 cp.append(File.pathSeparator).append(j.getAbsolutePath());
@@ -791,6 +814,63 @@ public class ApkBuilder {
             d++;
         }
         return sb.toString();
+    }
+
+    // ---------------- Kotlin stdlib ----------------
+
+    private static final String KOTLIN_STDLIB_VERSION = "1.9.24";
+    private static final String MAVEN_CENTRAL = "https://repo1.maven.org/maven2/";
+
+    private File ensureKotlinStdlib() throws Exception {
+        File cached = new File(ctx.getFilesDir(),
+                "kotlin/kotlin-stdlib-" + KOTLIN_STDLIB_VERSION + ".jar");
+        File dir = cached.getParentFile();
+        if (dir != null && !dir.exists()) dir.mkdirs();
+
+        // 1) cache hit
+        if (cached.isFile() && cached.length() > 100_000L) return cached;
+
+        // 2) bundled asset (optional)
+        try {
+            File fromAsset = extractAsset("kotlin/kotlin-stdlib.jar");
+            if (fromAsset.isFile() && fromAsset.length() > 100_000L) {
+                copyFile(fromAsset, cached);
+                return cached;
+            }
+        } catch (IOException ignored) {}
+
+        // 3) download from Maven Central
+        String path = "org/jetbrains/kotlin/kotlin-stdlib/"
+                + KOTLIN_STDLIB_VERSION + "/kotlin-stdlib-"
+                + KOTLIN_STDLIB_VERSION + ".jar";
+        say("Downloading kotlin-stdlib-" + KOTLIN_STDLIB_VERSION + ".jar from Maven Central...");
+        downloadFile(MAVEN_CENTRAL + path, cached);
+
+        if (!cached.isFile() || cached.length() < 100_000L) {
+            throw new IOException("kotlin-stdlib download failed");
+        }
+        return cached;
+    }
+
+    private void downloadFile(String urlStr, File out) throws Exception {
+        java.net.URL url = new java.net.URL(urlStr);
+        java.net.HttpURLConnection c = (java.net.HttpURLConnection) url.openConnection();
+        c.setConnectTimeout(15000);
+        c.setReadTimeout(60000);
+        c.setInstanceFollowRedirects(true);
+        int code = c.getResponseCode();
+        if (code != 200) {
+            c.disconnect();
+            throw new IOException("HTTP " + code + " for " + urlStr);
+        }
+        InputStream in = c.getInputStream();
+        FileOutputStream fos = new FileOutputStream(out);
+        byte[] buf = new byte[8192];
+        int n;
+        while ((n = in.read(buf)) > 0) fos.write(buf, 0, n);
+        fos.close();
+        in.close();
+        c.disconnect();
     }
 
     private static void deleteRecursive(File f) {
