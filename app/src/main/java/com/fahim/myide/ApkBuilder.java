@@ -244,15 +244,63 @@ public class ApkBuilder {
                     say("Kotlin stdlib unavailable: " + t.getMessage());
                 }
 
-                // 2) compile .kt -> classesDir
-                try {
-                    RemoteKotlinCompiler rkc = new RemoteKotlinCompiler(ctx,
-                            new RemoteKotlinCompiler.Progress() {
-                                @Override public void onProgress(String m) { say(m); }
-                            });
-                    rkc.compile(sourceRoots, classesDir);
-                } catch (Throwable t) {
-                    say("Kotlin compile skipped: " + t.getMessage());
+                // 2) compile .kt -> classesDir (local or remote)
+                if ("local".equals(mode)) {
+                    try {
+                        File compilerJar = KotlinCompiler.ensureCompilerJar(ctx);
+                        File stdlibJar   = kStdlib != null
+                                ? kStdlib : KotlinCompiler.ensureStdlibJar(ctx);
+                        say("kotlinc: " + compilerJar.getName()
+                                + " (" + compilerJar.length() + " bytes)");
+                        KotlinCompiler kc = new KotlinCompiler(ctx,
+                                new KotlinCompiler.Progress() {
+                                    @Override public void onProgress(String m) { say(m); }
+                                });
+                        kc.compile(compilerJar, stdlibJar, androidJar,
+                                sourceRoots, genDir, classesDir, jarDeps);
+                    } catch (Throwable t) {
+                        say("Kotlin LOCAL compile failed: " + causeChain(t));
+                    }
+                } else if ("remote".equals(mode)) {
+                    try {
+                        RemoteKotlinCompiler rkc = new RemoteKotlinCompiler(ctx,
+                                new RemoteKotlinCompiler.Progress() {
+                                    @Override public void onProgress(String m) { say(m); }
+                                });
+                        rkc.compile(sourceRoots, classesDir);
+                    } catch (Throwable t) {
+                        say("Kotlin REMOTE compile failed: " + causeChain(t));
+                    }
+                } else {
+                    // auto: try local, fall back to remote
+                    boolean ok = false;
+                    try {
+                        File compilerJar = KotlinCompiler.ensureCompilerJar(ctx);
+                        File stdlibJar   = kStdlib != null
+                                ? kStdlib : KotlinCompiler.ensureStdlibJar(ctx);
+                        say("[auto] trying LOCAL kotlinc");
+                        KotlinCompiler kc = new KotlinCompiler(ctx,
+                                new KotlinCompiler.Progress() {
+                                    @Override public void onProgress(String m) { say(m); }
+                                });
+                        kc.compile(compilerJar, stdlibJar, androidJar,
+                                sourceRoots, genDir, classesDir, jarDeps);
+                        ok = true;
+                    } catch (Throwable t) {
+                        say("[auto] local failed: " + causeChain(t));
+                    }
+                    if (!ok) {
+                        try {
+                            say("[auto] falling back to REMOTE");
+                            RemoteKotlinCompiler rkc = new RemoteKotlinCompiler(ctx,
+                                    new RemoteKotlinCompiler.Progress() {
+                                        @Override public void onProgress(String m) { say(m); }
+                                    });
+                            rkc.compile(sourceRoots, classesDir);
+                        } catch (Throwable t) {
+                            say("[auto] remote failed too: " + causeChain(t));
+                        }
+                    }
                 }
 
                 // 3) put classesDir on the Java classpath so Java can see Kotlin types
@@ -822,6 +870,12 @@ public class ApkBuilder {
     private static final String MAVEN_CENTRAL = "https://repo1.maven.org/maven2/";
 
     private File ensureKotlinStdlib() throws Exception {
+        // 0) bundled asset first
+        try {
+            File local = KotlinCompiler.ensureStdlibJar(ctx);
+            if (local.isFile() && local.length() > 100_000L) return local;
+        } catch (Throwable ignored) {}
+
         File cached = new File(ctx.getFilesDir(),
                 "kotlin/kotlin-stdlib-" + KOTLIN_STDLIB_VERSION + ".jar");
         File dir = cached.getParentFile();
