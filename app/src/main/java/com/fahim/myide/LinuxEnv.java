@@ -54,7 +54,7 @@ public final class LinuxEnv {
 
         // Copy rootfs tar.gz to a real file, then extract with toybox tar
         File tar = new File(ctx.getFilesDir(), "alpine.tar.gz");
-        extractAsset(ctx, "rootfs/alpine-minirootfs.tar.gz", tar);
+        extractAsset(ctx, "rootfs/alpine-rootfs.tgz", tar);
 
         if (cb != null) cb.onProgress("Extracting Alpine Linux…");
         ProcessBuilder pb = new ProcessBuilder(
