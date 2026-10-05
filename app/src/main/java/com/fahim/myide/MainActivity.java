@@ -1094,7 +1094,8 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     private void pickProjectFolder() {
         File start = Environment.getExternalStorageDirectory();
         if (start == null || !start.canRead()) start = getFilesDir();
-        showFolderPicker(start, new FolderCb() {
+        FolderPicker.pick(MainActivity.this, start, "Open Project Folder", false,
+            new FolderPicker.Callback() {
             @Override public void onChosen(File folder) {
                 File root = findProjectRoot(folder);
                 if (root == null) { toast(getString(R.string.toast_no_manifest)); return; }
@@ -1716,7 +1717,8 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         TextView pick = accentBtn("Choose folder", new View.OnClickListener() {
             @Override public void onClick(View v) {
                 File start = Environment.getExternalStorageDirectory();
-                showFolderPicker(start, new FolderCb() {
+                FolderPicker.pick(MainActivity.this, start, "Choose project location", true,
+                    new FolderPicker.Callback() {
                     @Override public void onChosen(File folder) {
                         chosen[0] = folder;
                         locTv.setText(folder.getAbsolutePath());
