@@ -60,6 +60,15 @@ public class KotlinCompiler {
         return out;
     }
 
+    public static File ensureScriptRuntimeJar(Context ctx) throws Exception {
+        File out = new File(ctx.getFilesDir(), "kotlin/kotlin-script-runtime.jar");
+        File dir = out.getParentFile();
+        if (dir != null && !dir.exists()) dir.mkdirs();
+        if (out.isFile() && out.length() > 1000L) return out;
+        extractAsset(ctx, "kotlin/kotlin-script-runtime.jar", out);
+        return out;
+    }
+
     private static void extractAsset(Context ctx, String assetName, File out) throws IOException {
         InputStream in = ctx.getAssets().open(assetName);
         FileOutputStream fos = new FileOutputStream(out);
@@ -124,9 +133,11 @@ public class KotlinCompiler {
 
         File reflectJar = ensureReflectJar(ctx);
         File stdlibOnLoader = ensureStdlibJar(ctx);
+        File scriptJar = ensureScriptRuntimeJar(ctx);
         String dexPath = compilerJar.getAbsolutePath()
                 + File.pathSeparator + stdlibOnLoader.getAbsolutePath()
-                + File.pathSeparator + reflectJar.getAbsolutePath();
+                + File.pathSeparator + reflectJar.getAbsolutePath()
+                + File.pathSeparator + scriptJar.getAbsolutePath();
 
         DexClassLoader loader = new DexClassLoader(
                 dexPath,

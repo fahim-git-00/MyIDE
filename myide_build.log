@@ -22,16 +22,13 @@ Compiling 1 Kotlin file(s)...
 kotlin-home: /data/user/0/com.fahim.myide/files/kotlin-home
 kotlinc error:
 InvocationTargetException: null
-NoClassDefFoundError: Failed resolution of: Lkotlin/reflect/full/KClasses;
-ClassNotFoundException: Didn't find class "kotlin.reflect.full.KClasses" on path: DexPathList[[zip file "/data/user/0/com.fahim.myide/files/kotlin/kotlin-compiler-embeddable.jar"],nativeLibraryDirectories=[/system/lib64, /system_ext/lib64]]
+ClassCastException: kotlin.jvm.internal.ClassReference cannot be cast to kotlin.reflect.jvm.internal.KClassImpl
 
 Kotlin LOCAL compile failed: RuntimeException: kotlinc: InvocationTargetException: null
-NoClassDefFoundError: Failed resolution of: Lkotlin/reflect/full/KClasses;
-ClassNotFoundException: Didn't find class "kotlin.reflect.full.KClasses" on path: DexPathList[[zip file "/data/user/0/com.fahim.myide/files/kotlin/kotlin-compiler-embeddable.jar"],nativeLibraryDirectories=[/system/lib64, /system_ext/lib64]]
+ClassCastException: kotlin.jvm.internal.ClassReference cannot be cast to kotlin.reflect.jvm.internal.KClassImpl
 
 InvocationTargetException: null
-NoClassDefFoundError: Failed resolution of: Lkotlin/reflect/full/KClasses;
-ClassNotFoundException: Didn't find class "kotlin.reflect.full.KClasses" on path: DexPathList[[zip file "/data/user/0/com.fahim.myide/files/kotlin/kotlin-compiler-embeddable.jar"],nativeLibraryDirectories=[/system/lib64, /system_ext/lib64]]
+ClassCastException: kotlin.jvm.internal.ClassReference cannot be cast to kotlin.reflect.jvm.internal.KClassImpl
 
 Compiling Java (ECJ)...
 Dexing (D8)...
