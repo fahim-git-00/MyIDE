@@ -46,6 +46,23 @@ jobs:
           grep -v "aapt2FromMavenOverride" gradle.properties > gradle.properties.new || true
           mv gradle.properties.new gradle.properties
 
+      - name: Dex Kotlin compiler for on-device use
+        run: |
+          cd app/src/main/assets/kotlin
+          ls -lh
+          $HOME/android-sdk/build-tools/34.0.0/d8 \
+            --min-api 24 \
+            --lib $HOME/android-sdk/platforms/android-34/android.jar \
+            --output ./dexout \
+            kotlin-compiler-embeddable.jar
+          cd dexout
+          ls -lh
+          zip -q -X ../kotlin-compiler-embeddable-dexed.jar *.dex
+          cd ..
+          mv kotlin-compiler-embeddable-dexed.jar kotlin-compiler-embeddable.jar
+          rm -rf dexout
+          ls -lh
+
       - name: Build Debug APK
         run: gradle assembleDebug --stacktrace
 
