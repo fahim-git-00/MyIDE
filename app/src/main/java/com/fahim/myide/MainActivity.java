@@ -550,22 +550,33 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     // TAB MANAGEMENT
     // ================================================================
 
-    private void openFile(File f) {
-        try {
-            for (int i = 0; i < tabs.size(); i++) {
-                if (tabs.get(i).file.getAbsolutePath().equals(f.getAbsolutePath())) {
-                    selectTab(i);
-                    return;
-                }
+    private void openFile(final File f) {
+        // already open?
+        for (int i = 0; i < tabs.size(); i++) {
+            if (tabs.get(i).file.getAbsolutePath().equals(f.getAbsolutePath())) {
+                selectTab(i);
+                return;
             }
-            String text = readTextFile(f);
-            EditorTab t = new EditorTab(f, text);
-            tabs.add(t);
-            renderTabs();
-            selectTab(tabs.size() - 1);
-        } catch (Exception e) {
-            toast(getString(R.string.toast_open_failed, e.getMessage()));
         }
+        // background read
+        final String fileName = f.getName();
+        toast("Opening " + fileName + "…");
+        new Thread(new Runnable() {
+            @Override public void run() {
+                String text = "";
+                try { text = readTextFile(f); }
+                catch (Exception e) { text = ""; }
+                final String fText = text;
+                ui.post(new Runnable() {
+                    @Override public void run() {
+                        EditorTab t = new EditorTab(f, fText);
+                        tabs.add(t);
+                        renderTabs();
+                        selectTab(tabs.size() - 1);
+                    }
+                });
+            }
+        }).start();
     }
 
     private void selectTab(int idx) {
@@ -578,9 +589,10 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
 
         isHighlighting = true;
         editor.setText(t.text);
+        isHighlighting = false;
         updateLineNumbers(t.text);
-        // highlight after text is set, off-thread
-        applyHighlight(currentLang);
+        // Delay highlighting until after UI settles
+        scheduleHighlight();
         int s = Math.max(0, Math.min(t.selStart, t.text.length()));
         int e = Math.max(0, Math.min(t.selEnd, t.text.length()));
         editor.setSelection(s, e);
@@ -885,7 +897,9 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                         if (myToken != highlightToken) return;   // stale
                         isHighlighting = true;
                         try {
-                            SyntaxHighlighter.applySpans(editor.getText(), spans);
+                            java.util.List<SyntaxHighlighter.Range> capped = spans;
+                            if (capped.size() > 4000) capped = capped.subList(0, 4000);
+                            SyntaxHighlighter.applySpans(editor.getText(), capped);
                         } finally {
                             isHighlighting = false;
                         }

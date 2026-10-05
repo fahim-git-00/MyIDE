@@ -18,6 +18,10 @@ public final class SyntaxHighlighter {
     public static final int LANG_MARKDOWN = 4;
     public static final int LANG_KOTLIN = 5;
 
+    // Hard caps — beyond this, skip highlighting to avoid UI freeze
+    private static final int MAX_CHARS = 120_000;   // ~3000 lines
+    private static final int MAX_SPANS = 4000;
+
     private static final int C_KEYWORD    = 0xFF569CD6;
     private static final int C_STRING     = 0xFFCE9178;
     private static final int C_COMMENT    = 0xFF6A9955;
@@ -42,9 +46,6 @@ public final class SyntaxHighlighter {
         return LANG_JAVA;
     }
 
-    // ============ SPAN MODEL ============
-
-    /** A foreground color span range: {start, end, color}. */
     public static class Range {
         public final int start, end, color;
         public Range(int s, int e, int c) { start = s; end = e; color = c; }
@@ -108,7 +109,6 @@ public final class SyntaxHighlighter {
     private static final Pattern P_XML_COMMENT = Pattern.compile("<!--[\\s\\S]*?-->");
     private static final Pattern P_XML_DECL    = Pattern.compile("<\\?[\\s\\S]*?\\?>");
     private static final Pattern P_XML_TAG     = Pattern.compile("</?[A-Za-z_][A-Za-z0-9_.:-]*");
-    private static final Pattern P_XML_CLOSE   = Pattern.compile("/?>");
     private static final Pattern P_XML_ATTR    = Pattern.compile("\\b[A-Za-z_][A-Za-z0-9_.:-]*(?=\\s*=)");
     private static final Pattern P_XML_STRING  = Pattern.compile("\"[^\"]*\"");
 
@@ -118,10 +118,7 @@ public final class SyntaxHighlighter {
 
     private static final Pattern P_MD_HEADER = Pattern.compile("^#{1,6} .*$", Pattern.MULTILINE);
     private static final Pattern P_MD_CODE   = Pattern.compile("```[\\s\\S]*?```|`[^`\\n]+`");
-    private static final Pattern P_MD_BOLD   = Pattern.compile("\\*\\*[^*\\n]+\\*\\*|__[^_\\n]+__");
-    private static final Pattern P_MD_ITALIC = Pattern.compile("(?<![*_])\\*[^*\\n]+\\*(?![*_])|(?<![_])_[^_\\n]+_(?![_])");
     private static final Pattern P_MD_LINK   = Pattern.compile("\\[[^\\]]+\\]\\([^)]+\\)");
-    private static final Pattern P_MD_LIST   = Pattern.compile("^\\s*[-*+]\\s.*$", Pattern.MULTILINE);
 
     private static final Pattern P_JAVA_KW_RE;
     private static final Pattern P_KOTLIN_KW_RE;
@@ -145,10 +142,14 @@ public final class SyntaxHighlighter {
 
     // ============ PUBLIC API ============
 
-    /** Compute color spans off the main thread. Returns a list of ranges. */
     public static List<Range> computeSpans(String text, int lang) {
         List<Range> out = new ArrayList<Range>();
         if (text == null || text.isEmpty()) return out;
+
+        // Cap: skip highlighting for very large files
+        if (text.length() > MAX_CHARS) {
+            text = text.substring(0, MAX_CHARS);
+        }
 
         switch (lang) {
             case LANG_XML:      xml(out, text); break;
@@ -158,20 +159,24 @@ public final class SyntaxHighlighter {
             case LANG_KOTLIN:   kotlin(out, text); break;
             default:            java(out, text); break;
         }
+
+        // Cap span count
+        if (out.size() > MAX_SPANS) {
+            return new ArrayList<Range>(out.subList(0, MAX_SPANS));
+        }
         return out;
     }
 
-    /** Apply precomputed ranges on the main thread. */
     public static void applySpans(Spannable text, List<Range> spans) {
         clearSpans(text);
+        int len = text.length();
         for (Range r : spans) {
-            if (r.start < 0 || r.end > text.length() || r.start >= r.end) continue;
+            if (r.start < 0 || r.end > len || r.start >= r.end) continue;
             text.setSpan(new ForegroundColorSpan(r.color), r.start, r.end,
                     Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
     }
 
-    /** Legacy synchronous API — kept for compatibility. */
     public static void highlight(Spannable text, int lang) {
         applySpans(text, computeSpans(text.toString(), lang));
     }
@@ -210,7 +215,6 @@ public final class SyntaxHighlighter {
         add(out, s, P_XML_COMMENT, C_COMMENT);
         add(out, s, P_XML_DECL,    C_KEYWORD);
         add(out, s, P_XML_TAG,     C_XML_TAG);
-        add(out, s, P_XML_CLOSE,   C_XML_TAG);
         add(out, s, P_XML_ATTR,    C_XML_ATTR);
         add(out, s, P_XML_STRING,  C_XML_STR);
         add(out, s, P_XML_COMMENT, C_COMMENT);
@@ -236,10 +240,7 @@ public final class SyntaxHighlighter {
     private static void markdown(List<Range> out, String s) {
         add(out, s, P_MD_HEADER, C_KEYWORD);
         add(out, s, P_MD_CODE,   C_STRING);
-        add(out, s, P_MD_BOLD,   C_ANNOTATION);
-        add(out, s, P_MD_ITALIC, C_TYPE);
         add(out, s, P_MD_LINK,   C_XML_ATTR);
-        add(out, s, P_MD_LIST,   C_FUNC);
     }
 
     private static void add(List<Range> out, String source, Pattern p, int color) {
@@ -247,6 +248,7 @@ public final class SyntaxHighlighter {
         while (m.find()) {
             if (m.start() == m.end()) continue;
             out.add(new Range(m.start(), m.end(), color));
+            if (out.size() >= MAX_SPANS) return;
         }
     }
 }
