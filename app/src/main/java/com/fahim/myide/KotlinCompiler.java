@@ -5,12 +5,15 @@ import android.content.Context;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import dalvik.system.DexClassLoader;
 
@@ -30,7 +33,6 @@ public class KotlinCompiler {
         if (progress != null) progress.onProgress(s);
     }
 
-    /** Extracts assets/kotlin/kotlin-compiler-embeddable.jar to filesDir once. */
     public static File ensureCompilerJar(Context ctx) throws Exception {
         File out = new File(ctx.getFilesDir(), "kotlin/kotlin-compiler-embeddable.jar");
         File dir = out.getParentFile();
@@ -47,7 +49,6 @@ public class KotlinCompiler {
         return out;
     }
 
-    /** Extracts assets/kotlin/kotlin-stdlib.jar to filesDir once. */
     public static File ensureStdlibJar(Context ctx) throws Exception {
         File out = new File(ctx.getFilesDir(), "kotlin/kotlin-stdlib.jar");
         File dir = out.getParentFile();
@@ -62,6 +63,52 @@ public class KotlinCompiler {
         fos.close();
         in.close();
         return out;
+    }
+
+    /**
+     * Builds a fake "kotlin home" layout so PathUtil uses KotlinPathsFromHomeDir
+     * instead of trying to load PathUtil.class as a resource (which is gone after dexing).
+     */
+    private static File ensureKotlinHome(Context ctx, File stdlibJar) throws IOException {
+        File home = new File(ctx.getFilesDir(), "kotlin-home");
+        File lib  = new File(home, "lib");
+        if (!lib.exists()) lib.mkdirs();
+
+        copyIfMissing(stdlibJar, new File(lib, "kotlin-stdlib.jar"));
+
+        String[] stubs = {
+            "kotlin-reflect.jar",
+            "kotlin-script-runtime.jar",
+            "kotlin-test.jar",
+            "kotlin-annotations-jvm.jar",
+            "kotlin-daemon.jar",
+            "kotlin-compiler.jar"
+        };
+        for (String s : stubs) {
+            File f = new File(lib, s);
+            if (!f.exists()) writeEmptyJar(f);
+        }
+        return home;
+    }
+
+    private static void copyIfMissing(File src, File dst) throws IOException {
+        if (dst.exists() && dst.length() > 0) return;
+        InputStream in = new java.io.FileInputStream(src);
+        FileOutputStream fos = new FileOutputStream(dst);
+        byte[] buf = new byte[65536];
+        int n;
+        while ((n = in.read(buf)) > 0) fos.write(buf, 0, n);
+        fos.close();
+        in.close();
+    }
+
+    private static void writeEmptyJar(File f) throws IOException {
+        ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(f));
+        ZipEntry e = new ZipEntry("META-INF/MANIFEST.MF");
+        zos.putNextEntry(e);
+        zos.write("Manifest-Version: 1.0\n".getBytes("UTF-8"));
+        zos.closeEntry();
+        zos.close();
     }
 
     public void compile(File compilerJar,
@@ -94,6 +141,9 @@ public class KotlinCompiler {
         say("Compiling " + ktFiles.size() + " Kotlin file(s)...");
         if (!classesDir.exists()) classesDir.mkdirs();
 
+        File kotlinHome = ensureKotlinHome(ctx, stdlibJar);
+        say("kotlin-home: " + kotlinHome.getAbsolutePath());
+
         StringBuilder cp = new StringBuilder();
         cp.append(androidJar.getAbsolutePath());
         if (stdlibJar != null && stdlibJar.exists()) {
@@ -104,6 +154,7 @@ public class KotlinCompiler {
         }
 
         List<String> args = new ArrayList<String>();
+        args.add("-kotlin-home"); args.add(kotlinHome.getAbsolutePath());
         args.add("-no-stdlib");
         args.add("-no-reflect");
         args.add("-jvm-target"); args.add("1.8");

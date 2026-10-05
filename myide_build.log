@@ -14,14 +14,46 @@ $ aapt2 compile --dir /storage/emulated/0/kotitest/fuckass/res -o /data/user/0/c
 Extracting AAR libraries...
 Linking resources (aapt2 link)...
 $ aapt2 link -I /data/user/0/com.fahim.myide/files/android.jar --manifest /data/user/0/com.fahim.myide/files/build_area/AndroidManifest.xml --java /data/user/0/com.fahim.myide/files/build_area/gen --min-sdk-version 24 --target-sdk-version 29 --auto-add-overlay --no-version-vectors -o /data/user/0/com.fahim.myide/files/build_area/app-unsigned.apk /data/user/0/com.fahim.myide/files/build_area/app_res_flat/res_2012824352/drawable_ic_launcher.xml.flat /data/user/0/com.fahim.myide/files/build_area/app_res_flat/res_2012824352/layout_main.xml.flat /data/user/0/com.fahim.myide/files/build_area/app_res_flat/res_2012824352/values_strings.arsc.flat
-Kotlin files detected (mode=auto)
+Kotlin files detected (mode=local)
 Kotlin stdlib: kotlin-stdlib.jar (1718956 bytes)
-[auto] trying LOCAL kotlinc
+kotlinc: kotlin-compiler-embeddable.jar (18372665 bytes)
 Loading kotlinc (embeddable)...
-[auto] local failed: ClassNotFoundException: Didn't find class "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler" on path: DexPathList[[zip file "/data/user/0/com.fahim.myide/files/kotlin/kotlin-compiler-embeddable.jar"],nativeLibraryDirectories=[/system/lib64, /system_ext/lib64]]
+Compiling 1 Kotlin file(s)...
+exception: java.lang.IllegalStateException: Resource not found: /org/jetbrains/kotlin/utils/PathUtil.class
+	at org.jetbrains.kotlin.utils.PathUtil.getResourcePathForClass(PathUtil.kt:170)
+	at org.jetbrains.kotlin.utils.PathUtil.getPathUtilJar(PathUtil.kt:165)
+	at org.jetbrains.kotlin.utils.PathUtil.getKotlinPathsForCompiler(PathUtil.kt:125)
+	at org.jetbrains.kotlin.cli.common.ArgumentsKt.computeKotlinPaths(arguments.kt:102)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:92)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:48)
+	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:101)
+	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:79)
+	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:40)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.fahim.myide.KotlinCompiler.compile(KotlinCompiler.java:127)
+	at com.fahim.myide.ApkBuilder.build(ApkBuilder.java:259)
+	at com.fahim.myide.MainActivity$66.run(MainActivity.java:1499)
+	at java.lang.Thread.run(Thread.java:1571)
 
-[auto] falling back to REMOTE
-[auto] remote failed too: RuntimeException: GitHub token not set. Open ⋮ → GitHub Token.
+
+Kotlin LOCAL compile failed: RuntimeException: Kotlin compile failed (exit 2):
+exception: java.lang.IllegalStateException: Resource not found: /org/jetbrains/kotlin/utils/PathUtil.class
+	at org.jetbrains.kotlin.utils.PathUtil.getResourcePathForClass(PathUtil.kt:170)
+	at org.jetbrains.kotlin.utils.PathUtil.getPathUtilJar(PathUtil.kt:165)
+	at org.jetbrains.kotlin.utils.PathUtil.getKotlinPathsForCompiler(PathUtil.kt:125)
+	at org.jetbrains.kotlin.cli.common.ArgumentsKt.computeKotlinPaths(arguments.kt:102)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:92)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:48)
+	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:101)
+	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:79)
+	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:40)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.fahim.myide.KotlinCompiler.compile(KotlinCompiler.java:127)
+	at com.fahim.myide.ApkBuilder.build(ApkBuilder.java:259)
+	at com.fahim.myide.MainActivity$66.run(MainActivity.java:1499)
+	at java.lang.Thread.run(Thread.java:1571)
+
+
 
 Compiling Java (ECJ)...
 Dexing (D8)...
