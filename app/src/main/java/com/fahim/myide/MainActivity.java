@@ -1803,6 +1803,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         if (id == R.id.menu_libraries)     { showLibraries(); return true; }
         if (id == R.id.menu_kotlin_mode)   { showKotlinMode(); return true; }
         if (id == R.id.menu_build_settings){ showBuildSettings(); return true; }
+        if (id == R.id.menu_signing_key)   { SigningKeyDialog.show(this); return true; }
 
         // TOOLS
         if (id == R.id.menu_logcat)       { showPanel(PANEL_LOGCAT); return true; }

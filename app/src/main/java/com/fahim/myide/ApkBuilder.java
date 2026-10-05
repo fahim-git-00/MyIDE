@@ -593,8 +593,49 @@ public class ApkBuilder {
 
         List<String> args = new ArrayList<String>();
         args.add("sign");
-        args.add("--key"); args.add(pk8.getAbsolutePath());
-        args.add("--cert"); args.add(pem.getAbsolutePath());
+
+        android.content.SharedPreferences _prefs =
+                ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE);
+        String _mode = _prefs.getString("sign_key_mode", "bundled");
+        boolean _custom = false;
+        if ("pk8pem".equals(_mode)) {
+            File _pk8 = new File(_prefs.getString("sign_pk8_path", ""));
+            File _pem = new File(_prefs.getString("sign_pem_path", ""));
+            if (_pk8.isFile() && _pem.isFile()) {
+                args.add("--key"); args.add(_pk8.getAbsolutePath());
+                args.add("--cert"); args.add(_pem.getAbsolutePath());
+                _custom = true;
+                say("Signing with custom pk8/pem: " + _pk8.getName());
+            } else {
+                say("Custom pk8/pem missing \u2014 falling back to bundled key");
+            }
+        } else if ("keystore".equals(_mode)) {
+            File _ks = new File(_prefs.getString("sign_ks_path", ""));
+            String _alias = _prefs.getString("sign_ks_alias", "");
+            String _sp = _prefs.getString("sign_ks_store_pass", "");
+            String _kp = _prefs.getString("sign_ks_key_pass", "");
+            if (_ks.isFile() && _alias != null && !_alias.isEmpty()) {
+                args.add("--ks"); args.add(_ks.getAbsolutePath());
+                args.add("--ks-key-alias"); args.add(_alias);
+                args.add("--ks-pass"); args.add("pass:" + _sp);
+                if (_kp != null && !_kp.isEmpty()) {
+                    args.add("--key-pass"); args.add("pass:" + _kp);
+                } else {
+                    args.add("--key-pass"); args.add("pass:" + _sp);
+                }
+                _custom = true;
+                say("Signing with keystore: " + _ks.getName() + " (alias=" + _alias + ")");
+            } else {
+                say("Custom keystore missing or alias empty \u2014 falling back to bundled key");
+            }
+        }
+
+        if (!_custom) {
+            args.add("--key"); args.add(pk8.getAbsolutePath());
+            args.add("--cert"); args.add(pem.getAbsolutePath());
+            say("Signing with bundled test key");
+        }
+
         args.add("--out"); args.add(outApk.getAbsolutePath());
         args.add(inApk.getAbsolutePath());
 

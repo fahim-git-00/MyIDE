@@ -271,4 +271,5 @@
     <string name="perm_storage_msg">MyIDE needs all-files access to read and build Android projects.</string>
     <string name="perm_grant">Grant</string>
 
+    <string name="action_signing_key">Signing Key\u2026</string>
 </resources>
