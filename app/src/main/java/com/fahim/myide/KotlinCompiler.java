@@ -33,37 +33,49 @@ public class KotlinCompiler {
         if (progress != null) progress.onProgress(s);
     }
 
+    // Bump this whenever compiler/stdlib/reflect jars change
+    private static final String KT_CACHE_VER = "v3-1.7.22";
+
+    private static File cacheDir(Context ctx) {
+        File d = new File(ctx.getFilesDir(), "kotlin-" + KT_CACHE_VER);
+        if (!d.exists()) d.mkdirs();
+        // Kill legacy "kotlin/" cache dir
+        File legacy = new File(ctx.getFilesDir(), "kotlin");
+        if (legacy.exists()) deleteTree(legacy);
+        return d;
+    }
+
+    private static void deleteTree(File f) {
+        if (f.isDirectory()) {
+            File[] k = f.listFiles();
+            if (k != null) for (File x : k) deleteTree(x);
+        }
+        f.delete();
+    }
+
     public static File ensureCompilerJar(Context ctx) throws Exception {
-        File out = new File(ctx.getFilesDir(), "kotlin/kotlin-compiler-embeddable.jar");
-        File dir = out.getParentFile();
-        if (dir != null && !dir.exists()) dir.mkdirs();
+        File out = new File(cacheDir(ctx), "kotlin-compiler-embeddable.jar");
         if (out.isFile() && out.length() > 10_000_000L) return out;
         extractAsset(ctx, "kotlin/kotlin-compiler-embeddable.jar", out);
         return out;
     }
 
     public static File ensureStdlibJar(Context ctx) throws Exception {
-        File out = new File(ctx.getFilesDir(), "kotlin/kotlin-stdlib.jar");
-        File dir = out.getParentFile();
-        if (dir != null && !dir.exists()) dir.mkdirs();
+        File out = new File(cacheDir(ctx), "kotlin-stdlib.jar");
         if (out.isFile() && out.length() > 100_000L) return out;
         extractAsset(ctx, "kotlin/kotlin-stdlib.jar", out);
         return out;
     }
 
     public static File ensureReflectJar(Context ctx) throws Exception {
-        File out = new File(ctx.getFilesDir(), "kotlin/kotlin-reflect.jar");
-        File dir = out.getParentFile();
-        if (dir != null && !dir.exists()) dir.mkdirs();
+        File out = new File(cacheDir(ctx), "kotlin-reflect.jar");
         if (out.isFile() && out.length() > 100_000L) return out;
         extractAsset(ctx, "kotlin/kotlin-reflect.jar", out);
         return out;
     }
 
     public static File ensureScriptRuntimeJar(Context ctx) throws Exception {
-        File out = new File(ctx.getFilesDir(), "kotlin/kotlin-script-runtime.jar");
-        File dir = out.getParentFile();
-        if (dir != null && !dir.exists()) dir.mkdirs();
+        File out = new File(cacheDir(ctx), "kotlin-script-runtime.jar");
         if (out.isFile() && out.length() > 1000L) return out;
         extractAsset(ctx, "kotlin/kotlin-script-runtime.jar", out);
         return out;
@@ -132,10 +144,8 @@ public class KotlinCompiler {
         say("Loading kotlinc (embeddable)...");
 
         File reflectJar = ensureReflectJar(ctx);
-        File stdlibOnLoader = ensureStdlibJar(ctx);
         File scriptJar = ensureScriptRuntimeJar(ctx);
         String dexPath = compilerJar.getAbsolutePath()
-                + File.pathSeparator + stdlibOnLoader.getAbsolutePath()
                 + File.pathSeparator + reflectJar.getAbsolutePath()
                 + File.pathSeparator + scriptJar.getAbsolutePath();
 
@@ -143,7 +153,7 @@ public class KotlinCompiler {
                 dexPath,
                 ctx.getCacheDir().getAbsolutePath(),
                 null,
-                ctx.getClassLoader());
+                ClassLoader.getSystemClassLoader());
 
         Class<?> mainClass = loader.loadClass(
                 "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler");
