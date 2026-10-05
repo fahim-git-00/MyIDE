@@ -1,7 +1,6 @@
 package com.fahim.myide;
 
 import android.system.Os;
-import android.system.OsConstants;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -9,6 +8,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.zip.GZIPInputStream;
 
 public final class TarGzExtractor {
@@ -16,6 +17,12 @@ public final class TarGzExtractor {
     private TarGzExtractor() {}
 
     public interface Progress { void onProgress(String path); }
+
+    private static class PendingLink {
+        File file;
+        String target;
+        char type; // '1' hardlink, '2' symlink
+    }
 
     public static int extract(File targz, File dest, Progress cb) throws IOException {
         if (!dest.exists()) dest.mkdirs();
@@ -30,6 +37,7 @@ public final class TarGzExtractor {
         String longName = null;
         String longLink = null;
         int count = 0;
+        List<PendingLink> links = new ArrayList<>();
 
         while (true) {
             int read = readFully(in, header, 512);
@@ -66,26 +74,6 @@ public final class TarGzExtractor {
                     out.mkdirs();
                     count++;
                     break;
-                case '2':
-                    out.getParentFile().mkdirs();
-                    try { if (out.exists()) out.delete(); } catch (Throwable ignored) {}
-                    try {
-                        Os.symlink(linkName, outCanon);
-                    } catch (Throwable t) {
-                        // Fallback: resolve to a real file when possible
-                        File target = new File(dest, linkName);
-                        try {
-                            if (target.isFile()) {
-                                copy(target, out);
-                            } else {
-                                FileOutputStream fos = new FileOutputStream(out);
-                                fos.write(linkName.getBytes("UTF-8"));
-                                fos.close();
-                            }
-                        } catch (IOException ignored) {}
-                    }
-                    count++;
-                    break;
                 case '0': case '\0': case '7':
                     out.getParentFile().mkdirs();
                     FileOutputStream fos = new FileOutputStream(out);
@@ -105,6 +93,14 @@ public final class TarGzExtractor {
                     if (cb != null) cb.onProgress(name);
                     count++;
                     break;
+                case '1': case '2':
+                    // Defer links until after all regular files exist
+                    PendingLink pl = new PendingLink();
+                    pl.file = out;
+                    pl.target = linkName;
+                    pl.type = type;
+                    links.add(pl);
+                    break;
                 default:
                     skip(in, size);
                     break;
@@ -114,7 +110,54 @@ public final class TarGzExtractor {
             skip(in, pad);
         }
         in.close();
+
+        // Second pass: create links with fallbacks
+        for (PendingLink pl : links) {
+            pl.file.getParentFile().mkdirs();
+            try { if (pl.file.exists()) pl.file.delete(); } catch (Throwable ignored) {}
+
+            boolean ok = false;
+
+            // Try 1: native Os.symlink (works for type 2)
+            if (pl.type == '2') {
+                try {
+                    Os.symlink(pl.target, pl.file.getCanonicalPath());
+                    ok = pl.file.exists();
+                } catch (Throwable ignored) {}
+            }
+
+            // Try 2: toybox ln
+            if (!ok) {
+                try {
+                    String arg = (pl.type == '2') ? "-sf" : "-f";
+                    Process p = Runtime.getRuntime().exec(new String[]{
+                            "/system/bin/toybox", "ln", arg, pl.target, pl.file.getAbsolutePath()
+                    });
+                    p.waitFor();
+                    ok = pl.file.exists();
+                } catch (Throwable ignored) {}
+            }
+
+            // Try 3: copy the target file
+            if (!ok) {
+                File target = resolveTarget(dest, pl.file, pl.target);
+                if (target != null && target.isFile()) {
+                    try { copy(target, pl.file); ok = true; }
+                    catch (Throwable ignored) {}
+                }
+            }
+
+            if (ok) count++;
+        }
+
         return count;
+    }
+
+    private static File resolveTarget(File dest, File linkFile, String target) {
+        File t;
+        if (target.startsWith("/")) t = new File(dest, target.substring(1));
+        else t = new File(linkFile.getParentFile(), target);
+        try { return t.getCanonicalFile(); } catch (IOException e) { return t; }
     }
 
     private static void copy(File src, File dst) throws IOException {
@@ -125,6 +168,7 @@ public final class TarGzExtractor {
         while ((n = in.read(b)) > 0) out.write(b, 0, n);
         out.close();
         in.close();
+        try { dst.setExecutable(src.canExecute(), false); } catch (Throwable ignored) {}
     }
 
     private static int readFully(InputStream in, byte[] buf, int len) throws IOException {
