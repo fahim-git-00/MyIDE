@@ -34,7 +34,7 @@ public class KotlinCompiler {
     }
 
     // Bump this whenever compiler/stdlib/reflect jars change
-    private static final String KT_CACHE_VER = "v4-1.7.22";
+    private static final String KT_CACHE_VER = "v5-1.7.22";
 
     private static File cacheDir(Context ctx) {
         File d = new File(ctx.getFilesDir(), "kotlin-" + KT_CACHE_VER);
