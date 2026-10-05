@@ -96,6 +96,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     private final java.util.Set<String> expandedPaths = new java.util.HashSet<String>();
 
     private UndoManager undoMgr;
+    private TextWatcher editorWatcher;
     private EditorEnhancer enhancer;
 
     private boolean isHighlighting = false;
@@ -434,7 +435,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     }
 
     private void wireEditor() {
-        editor.addTextChangedListener(new TextWatcher() {
+        editorWatcher = new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
             @Override public void onTextChanged(CharSequence s, int a, int b, int c) {}
             @Override public void afterTextChanged(Editable s) {
@@ -445,7 +446,8 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                 updateStatusBar();
                 updateBreadcrumb();
             }
-        });
+        };
+        editor.addTextChangedListener(editorWatcher);
 
         editor.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { updateStatusBar(); }
@@ -588,11 +590,21 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         currentLang = t.lang();
 
         isHighlighting = true;
+        // Detach watcher to avoid N callbacks during setText
+        if (editorWatcher != null) editor.removeTextChangedListener(editorWatcher);
         editor.setText(t.text);
+        if (editorWatcher != null) editor.addTextChangedListener(editorWatcher);
         isHighlighting = false;
-        updateLineNumbers(t.text);
-        // Delay highlighting until after UI settles
-        scheduleHighlight();
+
+        // Defer heavier work until after the frame renders
+        ui.post(new Runnable() {
+            @Override public void run() {
+                updateLineNumbers(t.text);
+                updateStatusBar();
+                updateBreadcrumb();
+                scheduleHighlight();
+            }
+        });
         int s = Math.max(0, Math.min(t.selStart, t.text.length()));
         int e = Math.max(0, Math.min(t.selEnd, t.text.length()));
         editor.setSelection(s, e);
@@ -676,6 +688,24 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     }
 
     private void renderTabs() {
+        // Fast path: same count, only update active state
+        if (tabRow.getChildCount() == tabs.size()) {
+            for (int i = 0; i < tabs.size(); i++) {
+                View cell = tabRow.getChildAt(i);
+                EditorTab t = tabs.get(i);
+                boolean active = (i == activeTab);
+                cell.setBackgroundColor(active ? 0xFF1E1E1E : 0xFF2D2D30);
+                TextView title = cell.findViewById(R.id.tabTitle);
+                if (title != null) {
+                    title.setText(t.title());
+                    title.setTextColor(active ? 0xFFFFFFFF : 0xFF969696);
+                    title.setTypeface(active ? Typeface.DEFAULT_BOLD : Typeface.MONOSPACE);
+                }
+                TextView close = cell.findViewById(R.id.tabClose);
+                if (close != null) close.setTextColor(active ? 0xFFFFFFFF : 0xFF969696);
+            }
+            return;
+        }
         tabRow.removeAllViews();
         for (int i = 0; i < tabs.size(); i++) {
             final int idx = i;
