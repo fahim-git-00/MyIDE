@@ -51,7 +51,7 @@ jobs:
           cd app/src/main/assets/kotlin
           ls -lh
           $HOME/android-sdk/build-tools/34.0.0/d8 \
-            --min-api 24 \
+            --min-api 26 \
             --lib $HOME/android-sdk/platforms/android-34/android.jar \
             --output ./kotlin-compiler-embeddable-dexed.jar \
             kotlin-compiler-embeddable.jar

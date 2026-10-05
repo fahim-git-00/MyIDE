@@ -19,40 +19,11 @@ Kotlin stdlib: kotlin-stdlib.jar (1718956 bytes)
 kotlinc: kotlin-compiler-embeddable.jar (18372665 bytes)
 Loading kotlinc (embeddable)...
 Compiling 1 Kotlin file(s)...
-exception: java.lang.IllegalStateException: Resource not found: /org/jetbrains/kotlin/utils/PathUtil.class
-	at org.jetbrains.kotlin.utils.PathUtil.getResourcePathForClass(PathUtil.kt:170)
-	at org.jetbrains.kotlin.utils.PathUtil.getPathUtilJar(PathUtil.kt:165)
-	at org.jetbrains.kotlin.utils.PathUtil.getKotlinPathsForCompiler(PathUtil.kt:125)
-	at org.jetbrains.kotlin.cli.common.ArgumentsKt.computeKotlinPaths(arguments.kt:102)
-	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:92)
-	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:48)
-	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:101)
-	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:79)
-	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:40)
-	at java.lang.reflect.Method.invoke(Native Method)
-	at com.fahim.myide.KotlinCompiler.compile(KotlinCompiler.java:127)
-	at com.fahim.myide.ApkBuilder.build(ApkBuilder.java:259)
-	at com.fahim.myide.MainActivity$66.run(MainActivity.java:1499)
-	at java.lang.Thread.run(Thread.java:1571)
+kotlin-home: /data/user/0/com.fahim.myide/files/kotlin-home
+error: no class roots are found in the JDK path: /apex/com.android.art
 
-
-Kotlin LOCAL compile failed: RuntimeException: Kotlin compile failed (exit 2):
-exception: java.lang.IllegalStateException: Resource not found: /org/jetbrains/kotlin/utils/PathUtil.class
-	at org.jetbrains.kotlin.utils.PathUtil.getResourcePathForClass(PathUtil.kt:170)
-	at org.jetbrains.kotlin.utils.PathUtil.getPathUtilJar(PathUtil.kt:165)
-	at org.jetbrains.kotlin.utils.PathUtil.getKotlinPathsForCompiler(PathUtil.kt:125)
-	at org.jetbrains.kotlin.cli.common.ArgumentsKt.computeKotlinPaths(arguments.kt:102)
-	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:92)
-	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:48)
-	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:101)
-	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:79)
-	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:40)
-	at java.lang.reflect.Method.invoke(Native Method)
-	at com.fahim.myide.KotlinCompiler.compile(KotlinCompiler.java:127)
-	at com.fahim.myide.ApkBuilder.build(ApkBuilder.java:259)
-	at com.fahim.myide.MainActivity$66.run(MainActivity.java:1499)
-	at java.lang.Thread.run(Thread.java:1571)
-
+Kotlin LOCAL compile failed: RuntimeException: Kotlin compile failed (exit 1):
+error: no class roots are found in the JDK path: /apex/com.android.art
 
 
 Compiling Java (ECJ)...
