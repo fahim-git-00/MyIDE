@@ -56,6 +56,12 @@ jobs:
             --output ./kotlin-compiler-embeddable-dexed.jar \
             kotlin-compiler-embeddable.jar
           mv kotlin-compiler-embeddable-dexed.jar kotlin-compiler-embeddable.jar
+          $HOME/android-sdk/build-tools/34.0.0/d8 \
+            --min-api 26 \
+            --lib $HOME/android-sdk/platforms/android-34/android.jar \
+            --output ./kotlin-reflect-dexed.jar \
+            kotlin-reflect.jar
+          mv kotlin-reflect-dexed.jar kotlin-reflect.jar
           ls -lh
 
       - name: Build Debug APK

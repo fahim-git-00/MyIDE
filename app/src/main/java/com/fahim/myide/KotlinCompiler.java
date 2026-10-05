@@ -38,14 +38,7 @@ public class KotlinCompiler {
         File dir = out.getParentFile();
         if (dir != null && !dir.exists()) dir.mkdirs();
         if (out.isFile() && out.length() > 10_000_000L) return out;
-
-        InputStream in = ctx.getAssets().open("kotlin/kotlin-compiler-embeddable.jar");
-        FileOutputStream fos = new FileOutputStream(out);
-        byte[] buf = new byte[65536];
-        int n;
-        while ((n = in.read(buf)) > 0) fos.write(buf, 0, n);
-        fos.close();
-        in.close();
+        extractAsset(ctx, "kotlin/kotlin-compiler-embeddable.jar", out);
         return out;
     }
 
@@ -54,21 +47,29 @@ public class KotlinCompiler {
         File dir = out.getParentFile();
         if (dir != null && !dir.exists()) dir.mkdirs();
         if (out.isFile() && out.length() > 100_000L) return out;
+        extractAsset(ctx, "kotlin/kotlin-stdlib.jar", out);
+        return out;
+    }
 
-        InputStream in = ctx.getAssets().open("kotlin/kotlin-stdlib.jar");
+    public static File ensureReflectJar(Context ctx) throws Exception {
+        File out = new File(ctx.getFilesDir(), "kotlin/kotlin-reflect.jar");
+        File dir = out.getParentFile();
+        if (dir != null && !dir.exists()) dir.mkdirs();
+        if (out.isFile() && out.length() > 100_000L) return out;
+        extractAsset(ctx, "kotlin/kotlin-reflect.jar", out);
+        return out;
+    }
+
+    private static void extractAsset(Context ctx, String assetName, File out) throws IOException {
+        InputStream in = ctx.getAssets().open(assetName);
         FileOutputStream fos = new FileOutputStream(out);
         byte[] buf = new byte[65536];
         int n;
         while ((n = in.read(buf)) > 0) fos.write(buf, 0, n);
         fos.close();
         in.close();
-        return out;
     }
 
-    /**
-     * Builds a fake "kotlin home" layout so PathUtil uses KotlinPathsFromHomeDir
-     * instead of trying to load PathUtil.class as a resource (which is gone after dexing).
-     */
     private static File ensureKotlinHome(Context ctx, File stdlibJar) throws IOException {
         File home = new File(ctx.getFilesDir(), "kotlin-home");
         File lib  = new File(home, "lib");
@@ -121,8 +122,12 @@ public class KotlinCompiler {
 
         say("Loading kotlinc (embeddable)...");
 
+        File reflectJar = ensureReflectJar(ctx);
+        String dexPath = compilerJar.getAbsolutePath()
+                + File.pathSeparator + reflectJar.getAbsolutePath();
+
         DexClassLoader loader = new DexClassLoader(
-                compilerJar.getAbsolutePath(),
+                dexPath,
                 ctx.getCacheDir().getAbsolutePath(),
                 null,
                 ctx.getClassLoader());
@@ -148,6 +153,9 @@ public class KotlinCompiler {
         cp.append(androidJar.getAbsolutePath());
         if (stdlibJar != null && stdlibJar.exists()) {
             cp.append(File.pathSeparator).append(stdlibJar.getAbsolutePath());
+        }
+        if (reflectJar != null && reflectJar.exists()) {
+            cp.append(File.pathSeparator).append(reflectJar.getAbsolutePath());
         }
         for (File j : extraJars) {
             if (j != null && j.exists()) cp.append(File.pathSeparator).append(j.getAbsolutePath());
