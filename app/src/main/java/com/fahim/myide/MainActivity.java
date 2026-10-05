@@ -879,7 +879,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         highlightExec.submit(new Runnable() {
             @Override public void run() {
                 // compute spans off-thread
-                final java.util.List<int[]> spans = SyntaxHighlighter.computeSpans(snapshot, lang);
+                final java.util.List<SyntaxHighlighter.Range> spans = SyntaxHighlighter.computeSpans(snapshot, lang);
                 ui.post(new Runnable() {
                     @Override public void run() {
                         if (myToken != highlightToken) return;   // stale
