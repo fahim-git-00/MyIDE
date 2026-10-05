@@ -1,6 +1,7 @@
 package com.fahim.myide;
 
 import java.io.File;
+import java.util.List;
 
 public class EditorTab {
 
@@ -12,6 +13,10 @@ public class EditorTab {
     public boolean dirty;
     public boolean loaded;
 
+    // Highlight cache
+    public List<SyntaxHighlighter.Range> cachedSpans;
+    public int cachedLangHash;
+
     public EditorTab(File f, String initial) {
         this.file = f;
         this.text = initial != null ? initial : "";
@@ -20,6 +25,8 @@ public class EditorTab {
         this.scrollY = 0;
         this.dirty = false;
         this.loaded = false;
+        this.cachedSpans = null;
+        this.cachedLangHash = 0;
     }
 
     public String title() {

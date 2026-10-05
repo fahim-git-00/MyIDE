@@ -6,12 +6,6 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.widget.EditText;
 
-/**
- * Provides auto-close, auto-indent, tab insertion and undo/redo key
- * passthrough to a single EditText. Safe to run alongside other
- * TextWatchers — all edits it makes are flagged as internal so
- * the highlighter and undo manager can skip them.
- */
 public class EditorEnhancer {
 
     public interface Host {
@@ -34,7 +28,8 @@ public class EditorEnhancer {
 
     private final EditText editor;
     private final Host host;
-    private boolean internalEdit = false;
+    private volatile boolean internalEdit = false;
+    private volatile boolean suspend = false;
 
     public EditorEnhancer(EditText editor, Host host) {
         this.editor = editor;
@@ -43,12 +38,13 @@ public class EditorEnhancer {
     }
 
     public boolean isInternalEdit() { return internalEdit; }
+    public void setSuspended(boolean s) { this.suspend = s; }
 
     private void install() {
         editor.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int st, int c, int a) {}
             @Override public void onTextChanged(CharSequence s, int st, int b, int c) {
-                if (internalEdit) return;
+                if (internalEdit || suspend) return;
                 if (!host.wantsAutoClose()) return;
                 if (c == 1 && b == 0 && st >= 0 && st < s.length()) {
                     handleAutoClose(s.charAt(st), st);
@@ -174,7 +170,6 @@ public class EditorEnhancer {
         while (j >= lineStart && Character.isWhitespace(text.charAt(j))) j--;
         boolean openBrace = j >= lineStart && text.charAt(j) == '{';
 
-        // If the next non-space char is a closer, we de-indent one level.
         int k = selStart;
         while (k < text.length() && (text.charAt(k) == ' ' || text.charAt(k) == '\t')) k++;
         boolean nextIsCloser = k < text.length() &&
@@ -185,10 +180,7 @@ public class EditorEnhancer {
         String insertion;
 
         if (openBrace && nextIsCloser && k == selStart) {
-            // {|} => {\n    |\n}
-            String mid = "\n" + newIndent;
-            String tail = "\n" + baseIndent;
-            insertion = mid + tail;
+            insertion = "\n" + newIndent + "\n" + baseIndent;
         } else {
             insertion = "\n" + newIndent;
         }
@@ -210,7 +202,6 @@ public class EditorEnhancer {
         final int a = Math.min(s, e), b = Math.max(s, e);
 
         if (a == b) {
-            // Indent whole current line
             final Editable text = editor.getText();
             int lineStart = a;
             while (lineStart > 0 && text.charAt(lineStart - 1) != '\n') lineStart--;
@@ -342,7 +333,7 @@ public class EditorEnhancer {
         while (lineEnd < text.length() && text.charAt(lineEnd) != '\n') lineEnd++;
         final int ls = lineStart;
         int end = lineEnd;
-        if (end < text.length()) end++;  // include the trailing \n
+        if (end < text.length()) end++;
         final int le = end;
         doInternal(new Runnable() {
             @Override public void run() {

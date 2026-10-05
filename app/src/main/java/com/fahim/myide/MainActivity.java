@@ -30,16 +30,13 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
-import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.PopupMenu;
-import android.widget.RadioGroup;
 import android.widget.ScrollView;
-import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -55,12 +52,15 @@ import java.util.List;
 public class MainActivity extends Activity implements EditorEnhancer.Host {
 
     private static final int REQ_MANAGE_STORAGE = 2001;
-    private static final int REQ_INSTALL        = 2002;
 
     private static final int PANEL_BUILD    = 0;
     private static final int PANEL_PROBLEMS = 1;
     private static final int PANEL_LOGCAT   = 2;
     private static final int PANEL_TERMINAL = 3;
+
+    // Global load flag so watchers skip during bulk setText
+    private static volatile boolean LOADING_TAB = false;
+    public static boolean isLoadingTab() { return LOADING_TAB; }
 
     // Widgets
     private EditText editor;
@@ -94,6 +94,8 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     private final List<FileNode> visibleNodes = new ArrayList<FileNode>();
     private FileTreeAdapter fileAdapter;
     private final java.util.Set<String> expandedPaths = new java.util.HashSet<String>();
+    private long treeCacheTime = 0L;
+    private static final long TREE_CACHE_TTL = 3000L;
 
     private UndoManager undoMgr;
     private TextWatcher editorWatcher;
@@ -104,7 +106,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     private boolean bottomPanelOpen = false;
     private int currentPanel = PANEL_BUILD;
     private int currentLang = SyntaxHighlighter.LANG_JAVA;
-    private String currentDirtyId = null;
+    private int lastLineCount = -1;
 
     // Panels
     private View panelBuildView, panelProblemsView, panelLogcatView, panelTerminalView;
@@ -259,10 +261,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                         n.expanded = true;
                     }
                     rebuildVisibleNodes();
-                    // Scroll so children are visible
-                    fileList.post(new Runnable() {
-                        @Override public void run() { }
-                    });
                 } else if (n.file != null) {
                     openFile(n.file);
                     closeSidebar();
@@ -284,7 +282,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             }
         });
         findViewById(R.id.btnSidebarRefresh).setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) { rebuildFileTree(); }
+            @Override public void onClick(View v) { treeCacheTime = 0L; rebuildFileTree(); }
         });
         findViewById(R.id.btnSidebarCollapse).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { collapseAll(); }
@@ -439,7 +437,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
             @Override public void onTextChanged(CharSequence s, int a, int b, int c) {}
             @Override public void afterTextChanged(Editable s) {
-                if (isHighlighting) return;
+                if (isHighlighting || LOADING_TAB) return;
                 markCurrentTabDirty();
                 scheduleHighlight();
                 updateLineNumbers(s.toString());
@@ -539,7 +537,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
 
     private void restoreSessionState() {
         if (ThemeHelper.isSidebarVisible(this)) {
-            // wait until first layout to animate
             sidebar.post(new Runnable() {
                 @Override public void run() { if (!sidebarOpen) openSidebar(); }
             });
@@ -549,18 +546,16 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     }
 
     // ================================================================
-    // TAB MANAGEMENT
+    // TAB MANAGEMENT  (optimized)
     // ================================================================
 
     private void openFile(final File f) {
-        // already open?
         for (int i = 0; i < tabs.size(); i++) {
             if (tabs.get(i).file.getAbsolutePath().equals(f.getAbsolutePath())) {
                 selectTab(i);
                 return;
             }
         }
-        // background read
         final String fileName = f.getName();
         toast("Opening " + fileName + "…");
         new Thread(new Runnable() {
@@ -589,22 +584,20 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         EditorTab t = tabs.get(idx);
         currentLang = t.lang();
 
-        isHighlighting = true;
-        // Detach watcher to avoid N callbacks during setText
-        if (editorWatcher != null) editor.removeTextChangedListener(editorWatcher);
-        editor.setText(t.text);
-        if (editorWatcher != null) editor.addTextChangedListener(editorWatcher);
-        isHighlighting = false;
+        // Suspend every watcher during bulk setText
+        LOADING_TAB = true;
+        if (undoMgr != null) undoMgr.setSuspended(true);
+        if (enhancer != null) enhancer.setSuspended(true);
+        try {
+            if (editorWatcher != null) editor.removeTextChangedListener(editorWatcher);
+            editor.setText(t.text);
+            if (editorWatcher != null) editor.addTextChangedListener(editorWatcher);
+        } finally {
+            LOADING_TAB = false;
+            if (undoMgr != null) undoMgr.setSuspended(false);
+            if (enhancer != null) enhancer.setSuspended(false);
+        }
 
-        // Defer heavier work until after the frame renders
-        ui.post(new Runnable() {
-            @Override public void run() {
-                updateLineNumbers(t.text);
-                updateStatusBar();
-                updateBreadcrumb();
-                scheduleHighlight();
-            }
-        });
         int s = Math.max(0, Math.min(t.selStart, t.text.length()));
         int e = Math.max(0, Math.min(t.selEnd, t.text.length()));
         editor.setSelection(s, e);
@@ -612,17 +605,35 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         editor.post(new Runnable() {
             @Override public void run() { editor.scrollTo(0, scroll); }
         });
-        isHighlighting = false;
 
         t.loaded = true;
         lastLoaded = t;
-        undoMgr.reset();
+        if (undoMgr != null) undoMgr.reset();
 
         renderTabs();
         updateTitleBar();
-        updateStatusBar();
-        updateBreadcrumb();
         updateEditorPlaceholder();
+
+        // Reuse cached spans if present
+        if (t.cachedSpans != null && t.cachedLangHash == t.text.hashCode()) {
+            isHighlighting = true;
+            try {
+                SyntaxHighlighter.applySpans(editor.getText(), t.cachedSpans);
+            } finally {
+                isHighlighting = false;
+            }
+        }
+
+        editor.post(new Runnable() {
+            @Override public void run() {
+                updateLineNumbers(t.text);
+                updateStatusBar();
+                updateBreadcrumb();
+                if (t.cachedSpans == null || t.cachedLangHash != t.text.hashCode()) {
+                    scheduleHighlight();
+                }
+            }
+        });
     }
 
     private void closeTab(int idx) {
@@ -646,12 +657,13 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             editor.setText("");
             SyntaxHighlighter.clearSpans(editor.getText());
             isHighlighting = false;
+            lastLineCount = -1;
             updateLineNumbers("");
             updateStatusBar();
             updateTitleBar();
             updateBreadcrumb();
             updateEditorPlaceholder();
-            undoMgr.reset();
+            if (undoMgr != null) undoMgr.reset();
         } else {
             if (activeTab >= 0) selectTab(activeTab);
         }
@@ -688,12 +700,18 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     }
 
     private void renderTabs() {
-        // Fast path: same count, only update active state
         if (tabRow.getChildCount() == tabs.size()) {
             for (int i = 0; i < tabs.size(); i++) {
                 View cell = tabRow.getChildAt(i);
                 EditorTab t = tabs.get(i);
                 boolean active = (i == activeTab);
+                Object tag = cell.getTag();
+                if (tag != null && ((Boolean) tag).booleanValue() == active
+                        && ((TextView) cell.findViewById(R.id.tabTitle)).getText()
+                            .toString().equals(t.title())) {
+                    continue;
+                }
+                cell.setTag(Boolean.valueOf(active));
                 cell.setBackgroundColor(active ? 0xFF1E1E1E : 0xFF2D2D30);
                 TextView title = cell.findViewById(R.id.tabTitle);
                 if (title != null) {
@@ -713,6 +731,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             View cell = getLayoutInflater().inflate(R.layout.item_tab, tabRow, false);
 
             boolean active = (i == activeTab);
+            cell.setTag(Boolean.valueOf(active));
             cell.setBackgroundColor(active ? 0xFF1E1E1E : 0xFF2D2D30);
 
             TextView icon = cell.findViewById(R.id.tabIcon);
@@ -732,14 +751,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             cell.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { selectTab(idx); }
             });
-
-            if (active) {
-                cell.setBackgroundColor(0xFF1E1E1E);
-                ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) cell.getLayoutParams();
-                if (lp == null) lp = new ViewGroup.MarginLayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT);
-                cell.setLayoutParams(lp);
-            }
 
             tabRow.addView(cell);
         }
@@ -785,7 +796,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     }
 
     // ================================================================
-    // SIDEBAR / FILE TREE
+    // SIDEBAR / FILE TREE  (optimized)
     // ================================================================
 
     private void toggleSidebar() {
@@ -802,6 +813,10 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         ViewGroup.LayoutParams lp = sidebar.getLayoutParams();
         lp.width = dp(ThemeHelper.getSidebarWidth(this));
         sidebar.setLayoutParams(lp);
+        if (visibleNodes.isEmpty() && projectRoot != null) {
+            treeCacheTime = 0L;
+            rebuildFileTree();
+        }
     }
 
     private void closeSidebar() {
@@ -813,6 +828,9 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
 
     private void rebuildFileTree() {
         if (projectRoot == null) { toast(getString(R.string.toast_pick_project)); return; }
+        long now = System.currentTimeMillis();
+        if (now - treeCacheTime < TREE_CACHE_TTL && !visibleNodes.isEmpty()) return;
+        treeCacheTime = now;
         txtProjectPath.setText(projectRoot.getAbsolutePath());
         txtProjectPath.setVisibility(View.VISIBLE);
         emptyState.setVisibility(View.GONE);
@@ -821,31 +839,72 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     }
 
     private void rebuildVisibleNodes() {
+        final File root = projectRoot;
+        if (root == null) {
+            visibleNodes.clear();
+            fileAdapter.notifyDataSetChanged();
+            return;
+        }
+        // Walk synchronously — it's fast now (single stat per file)
         visibleNodes.clear();
-        if (projectRoot != null) walk(projectRoot, 0);
+        walk(root, 0);
         fileAdapter.notifyDataSetChanged();
     }
 
     private void walk(File dir, int depth) {
         File[] kids = dir.listFiles();
         if (kids == null) return;
-        Arrays.sort(kids, new Comparator<File>() {
-            @Override public int compare(File a, File b) {
-                if (a.isDirectory() != b.isDirectory()) return a.isDirectory() ? -1 : 1;
-                return a.getName().compareToIgnoreCase(b.getName());
-            }
-        });
-        for (File f : kids) {
-            String name = f.getName();
+
+        int n = kids.length;
+        if (n == 0) return;
+
+        // Single isDirectory() call per entry
+        String[] names = new String[n];
+        boolean[] isDir = new boolean[n];
+        for (int i = 0; i < n; i++) {
+            File f = kids[i];
+            names[i] = f.getName();
+            isDir[i] = f.isDirectory();
+        }
+
+        // Sort indices (no boxing per comparison)
+        int[] idx = new int[n];
+        for (int i = 0; i < n; i++) idx[i] = i;
+        sortIndices(idx, names, isDir, 0, n - 1);
+
+        for (int k = 0; k < n; k++) {
+            int i = idx[k];
+            String name = names[i];
             if (name.startsWith(".") && !name.equals(".myide")) continue;
             if (name.equals("build") || name.equals("gradle")) continue;
-            FileNode n = new FileNode(name, f.isDirectory(), depth, f);
-            if (f.isDirectory()) {
-                n.expanded = expandedPaths.contains(f.getAbsolutePath());
-            }
-            visibleNodes.add(n);
-            if (f.isDirectory() && n.expanded) walk(f, depth + 1);
+
+            File f = kids[i];
+            boolean d = isDir[i];
+            FileNode node = new FileNode(name, d, depth, f);
+            if (d) node.expanded = expandedPaths.contains(f.getAbsolutePath());
+            visibleNodes.add(node);
+            if (d && node.expanded) walk(f, depth + 1);
         }
+    }
+
+    private void sortIndices(int[] idx, String[] names, boolean[] isDir, int lo, int hi) {
+        if (lo >= hi) return;
+        int mid = (lo + hi) >>> 1;
+        sortIndices(idx, names, isDir, lo, mid);
+        sortIndices(idx, names, isDir, mid + 1, hi);
+        int[] tmp = new int[hi - lo + 1];
+        int i = lo, j = mid + 1, t = 0;
+        while (i <= mid && j <= hi) {
+            int a = idx[i], b = idx[j];
+            int cmp;
+            if (isDir[a] != isDir[b]) cmp = isDir[a] ? -1 : 1;
+            else cmp = names[a].compareToIgnoreCase(names[b]);
+            if (cmp <= 0) tmp[t++] = idx[i++];
+            else tmp[t++] = idx[j++];
+        }
+        while (i <= mid) tmp[t++] = idx[i++];
+        while (j <= hi) tmp[t++] = idx[j++];
+        System.arraycopy(tmp, 0, idx, lo, tmp.length);
     }
 
     private void collapseAll() {
@@ -879,7 +938,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     private FileTreeOps.After afterTree() {
         return new FileTreeOps.After() {
             @Override public void done(boolean changed) {
-                if (changed) rebuildFileTree();
+                if (changed) { treeCacheTime = 0L; rebuildFileTree(); }
             }
         };
     }
@@ -917,21 +976,28 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         final long myToken = ++highlightToken;
         final Editable editable = editor.getText();
         final String snapshot = editable.toString();
+        final int snapHash = snapshot.hashCode();
 
         highlightExec.submit(new Runnable() {
             @Override public void run() {
-                // compute spans off-thread
-                final java.util.List<SyntaxHighlighter.Range> spans = SyntaxHighlighter.computeSpans(snapshot, lang);
+                final List<SyntaxHighlighter.Range> spans =
+                        SyntaxHighlighter.computeSpans(snapshot, lang);
                 ui.post(new Runnable() {
                     @Override public void run() {
-                        if (myToken != highlightToken) return;   // stale
+                        if (myToken != highlightToken) return;
                         isHighlighting = true;
                         try {
-                            java.util.List<SyntaxHighlighter.Range> capped = spans;
-                            if (capped.size() > 4000) capped = capped.subList(0, 4000);
-                            SyntaxHighlighter.applySpans(editor.getText(), capped);
+                            SyntaxHighlighter.applySpans(editor.getText(), spans);
                         } finally {
                             isHighlighting = false;
+                        }
+                        // Cache on the active tab
+                        if (activeTab >= 0 && activeTab < tabs.size()) {
+                            EditorTab t = tabs.get(activeTab);
+                            if (t.text.hashCode() == snapHash) {
+                                t.cachedSpans = spans;
+                                t.cachedLangHash = snapHash;
+                            }
                         }
                     }
                 });
@@ -942,7 +1008,12 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     private void updateLineNumbers(String text) {
         if (!ThemeHelper.isLineNumbers(this)) return;
         int lines = 1;
-        for (int i = 0; i < text.length(); i++) if (text.charAt(i) == '\n') lines++;
+        for (int i = 0, n = text.length(); i < n; i++) {
+            if (text.charAt(i) == '\n') lines++;
+        }
+        if (lines == lastLineCount) return;
+        lastLineCount = lines;
+
         StringBuilder sb = new StringBuilder(lines * 3);
         for (int i = 1; i <= lines; i++) {
             sb.append(i);
@@ -1066,6 +1137,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                     File f = new File(dir, name);
                     if (writeFile(f, editor.getText().toString())) {
                         openFile(f);
+                        treeCacheTime = 0L;
                         rebuildFileTree();
                         toast(getString(R.string.toast_saved, name));
                     }
@@ -1168,8 +1240,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     // PROJECT PICKER / NEW PROJECT
     // ================================================================
 
-    private interface FolderCb { void onChosen(File f); }
-
     private void pickProjectFolder() {
         File start = Environment.getExternalStorageDirectory();
         if (start == null || !start.canRead()) start = getFilesDir();
@@ -1180,6 +1250,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                 if (root == null) { toast(getString(R.string.toast_no_manifest)); return; }
                 projectRoot = root;
                 RecentProjects.add(MainActivity.this, root);
+                treeCacheTime = 0L;
                 rebuildFileTree();
                 openSidebar();
                 toast(getString(R.string.toast_project_opened, root.getName()));
@@ -1212,127 +1283,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         boolean hasSrc = new File(dir, "src").isDirectory() || new File(dir, "java").isDirectory();
         if (hasManifest && hasRes && hasSrc) return dir;
         return null;
-    }
-
-    private void showFolderPicker(final File start, final FolderCb cb) {
-        final File[] cur = { start };
-
-        final Dialog dlg = new Dialog(this);
-        dlg.requestWindowFeature(Window.FEATURE_NO_TITLE);
-
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xFF252526);
-
-        LinearLayout header = new LinearLayout(this);
-        header.setOrientation(LinearLayout.VERTICAL);
-        header.setPadding(dp(16), dp(14), dp(16), dp(10));
-        header.setBackgroundColor(0xFF1E1E1E);
-
-        TextView title = new TextView(this);
-        title.setText("Open Folder");
-        title.setTextColor(0xFFD4D4D4);
-        title.setTextSize(16f);
-        title.setTypeface(Typeface.DEFAULT_BOLD);
-        header.addView(title);
-
-        final TextView crumb = new TextView(this);
-        crumb.setTextColor(0xFF4FC3F7);
-        crumb.setTextSize(11f);
-        crumb.setPadding(0, dp(4), 0, 0);
-        crumb.setSingleLine(true);
-        header.addView(crumb);
-
-        root.addView(header);
-
-        final ListView list = new ListView(this);
-        list.setBackgroundColor(0xFF252526);
-        list.setDivider(null);
-        list.setDividerHeight(0);
-
-        final List<File> entries = new ArrayList<File>();
-        final BaseAdapter adapter = new BaseAdapter() {
-            @Override public int getCount() { return entries.size(); }
-            @Override public Object getItem(int i) { return entries.get(i); }
-            @Override public long getItemId(int i) { return i; }
-            @Override public View getView(int pos, View reuse, ViewGroup parent) {
-                LinearLayout row = (LinearLayout) (reuse instanceof LinearLayout
-                        ? reuse
-                        : new LinearLayout(MainActivity.this));
-                row.removeAllViews();
-                row.setOrientation(LinearLayout.HORIZONTAL);
-                row.setGravity(Gravity.CENTER_VERTICAL);
-                row.setPadding(dp(16), dp(12), dp(16), dp(12));
-
-                TextView icon = new TextView(MainActivity.this);
-                icon.setText(entries.get(pos).isDirectory() ? "📁" : "📄");
-                icon.setTextSize(16f);
-                icon.setPadding(0, 0, dp(12), 0);
-                row.addView(icon);
-
-                TextView name = new TextView(MainActivity.this);
-                name.setText(entries.get(pos).getName());
-                name.setTextColor(entries.get(pos).isDirectory() ? 0xFFDCDCAA : 0xFFD4D4D4);
-                name.setTextSize(13f);
-                name.setTypeface(Typeface.MONOSPACE);
-                name.setSingleLine(true);
-                row.addView(name, new LinearLayout.LayoutParams(0,
-                        ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-                return row;
-            }
-        };
-        list.setAdapter(adapter);
-
-        list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override public void onItemClick(AdapterView<?> p, View v, int pos, long id) {
-                File picked = entries.get(pos);
-                if (picked.isDirectory()) {
-                    cur[0] = picked;
-                    refreshFolder(cur[0], entries, adapter, crumb);
-                }
-            }
-        });
-
-        root.addView(list, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
-
-        LinearLayout bar = new LinearLayout(this);
-        bar.setOrientation(LinearLayout.HORIZONTAL);
-        bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setBackgroundColor(0xFF2D2D30);
-        bar.setPadding(dp(8), dp(8), dp(8), dp(8));
-
-        bar.addView(barBtn("↑ Up", new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                File par = cur[0].getParentFile();
-                if (par != null) { cur[0] = par; refreshFolder(cur[0], entries, adapter, crumb); }
-            }
-        }));
-        bar.addView(barBtn("+ New", new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                promptNewFolder(cur[0], new Runnable() {
-                    @Override public void run() { refreshFolder(cur[0], entries, adapter, crumb); }
-                });
-            }
-        }));
-
-        View spacer = new View(this);
-        bar.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1f));
-
-        bar.addView(barBtn("Cancel", new View.OnClickListener() {
-            @Override public void onClick(View v) { dlg.dismiss(); }
-        }));
-        bar.addView(accentBtn("Use this folder", new View.OnClickListener() {
-            @Override public void onClick(View v) { dlg.dismiss(); cb.onChosen(cur[0]); }
-        }));
-
-        root.addView(bar);
-
-        dlg.setContentView(root);
-        dlg.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT);
-        refreshFolder(cur[0], entries, adapter, crumb);
-        dlg.show();
     }
 
     private void refreshFolder(File dir, List<File> out, BaseAdapter ad, TextView crumb) {
@@ -1693,71 +1643,65 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
 
     private boolean handleMenu(int id) {
         // FILE
-        if (id == R.id.menu_new_project || id == R.id.menu_about) { showNewProjectDialog(); return true; }
-        if (id == R.id.menu_open_project || id == R.id.menu_about)       { pickProjectFolder(); return true; }
-        if (id == R.id.menu_open_recent)                                  { showRecentProjects(); return true; }
-        if (id == R.id.menu_new_file || id == R.id.menu_about) {
-            if (projectRoot != null) showNewFileMenu(projectRoot);
-            return true;
-        }
-        if (id == R.id.menu_new_folder || id == R.id.menu_about) {
-            if (projectRoot != null) FileTreeOps.newFolder(this, projectRoot, afterTree());
-            return true;
-        }
-        if (id == R.id.menu_save || id == R.id.menu_about)               { saveCurrentFile(); return true; }
-        if (id == R.id.menu_save_as || id == R.id.menu_about)         { saveAs(); return true; }
-        if (id == R.id.menu_save_all || id == R.id.menu_about)       { saveAll(); return true; }
-        if (id == R.id.menu_close_tab || id == R.id.menu_about)     { if (activeTab >= 0) closeTab(activeTab); return true; }
-        if (id == R.id.menu_close_all || id == R.id.menu_about)     { closeAllTabs(); return true; }
-        if (id == R.id.menu_refresh || id == R.id.menu_about)         { rebuildFileTree(); return true; }
-        if (id == R.id.menu_settings || id == R.id.menu_about)       { showSettings(); return true; }
-        if (id == R.id.menu_exit)                                          { finish(); return true; }
-        if (id == R.id.menu_about)             { showAbout(); return true; }
+        if (id == R.id.menu_new_project)  { showNewProjectDialog(); return true; }
+        if (id == R.id.menu_open_project) { pickProjectFolder(); return true; }
+        if (id == R.id.menu_open_recent)  { showRecentProjects(); return true; }
+        if (id == R.id.menu_new_file)     { if (projectRoot != null) showNewFileMenu(projectRoot); return true; }
+        if (id == R.id.menu_new_folder)   { if (projectRoot != null) FileTreeOps.newFolder(this, projectRoot, afterTree()); return true; }
+        if (id == R.id.menu_save)         { saveCurrentFile(); return true; }
+        if (id == R.id.menu_save_as)      { saveAs(); return true; }
+        if (id == R.id.menu_save_all)     { saveAll(); return true; }
+        if (id == R.id.menu_close_tab)    { if (activeTab >= 0) closeTab(activeTab); return true; }
+        if (id == R.id.menu_close_all)    { closeAllTabs(); return true; }
+        if (id == R.id.menu_refresh)      { treeCacheTime = 0L; rebuildFileTree(); return true; }
+        if (id == R.id.menu_settings)     { showSettings(); return true; }
+        if (id == R.id.menu_exit)         { finish(); return true; }
 
         // EDIT
-        if (id == R.id.menu_undo || id == R.id.menu_about)               { doUndo(); return true; }
-        if (id == R.id.menu_redo || id == R.id.menu_about)               { doRedo(); return true; }
-        if (id == R.id.menu_cut)                                           { editor.onTextContextMenuItem(android.R.id.cut); return true; }
-        if (id == R.id.menu_copy)                                          { editor.onTextContextMenuItem(android.R.id.copy); return true; }
-        if (id == R.id.menu_paste)                                         { editor.onTextContextMenuItem(android.R.id.paste); return true; }
-        if (id == R.id.menu_select_all)                                    { editor.selectAll(); return true; }
-        if (id == R.id.menu_find || id == R.id.menu_about)                { openFindReplace(); return true; }
-        if (id == R.id.menu_replace)                                       { openFindReplace(); return true; }
-        if (id == R.id.menu_find_in_files)                                 { showFindInFiles(); return true; }
-        if (id == R.id.menu_goto_line)                                     { showGotoLine(); return true; }
-        if (id == R.id.menu_duplicate_line)                                { enhancer.duplicateLine(); return true; }
-        if (id == R.id.menu_delete_line)                                   { enhancer.deleteLine(); return true; }
-        if (id == R.id.menu_toggle_comment)                                { enhancer.toggleLineComment(); return true; }
+        if (id == R.id.menu_undo)          { doUndo(); return true; }
+        if (id == R.id.menu_redo)          { doRedo(); return true; }
+        if (id == R.id.menu_cut)           { editor.onTextContextMenuItem(android.R.id.cut); return true; }
+        if (id == R.id.menu_copy)          { editor.onTextContextMenuItem(android.R.id.copy); return true; }
+        if (id == R.id.menu_paste)         { editor.onTextContextMenuItem(android.R.id.paste); return true; }
+        if (id == R.id.menu_select_all)    { editor.selectAll(); return true; }
+        if (id == R.id.menu_find)          { openFindReplace(); return true; }
+        if (id == R.id.menu_replace)       { openFindReplace(); return true; }
+        if (id == R.id.menu_find_in_files) { showFindInFiles(); return true; }
+        if (id == R.id.menu_goto_line)     { showGotoLine(); return true; }
+        if (id == R.id.menu_duplicate_line){ enhancer.duplicateLine(); return true; }
+        if (id == R.id.menu_delete_line)   { enhancer.deleteLine(); return true; }
+        if (id == R.id.menu_toggle_comment){ enhancer.toggleLineComment(); return true; }
 
         // VIEW
-        if (id == R.id.menu_toggle_sidebar || id == R.id.menu_about) { toggleSidebar(); return true; }
-        if (id == R.id.menu_toggle_bottom)                                 { if (bottomPanelOpen) closePanel(); else showPanel(PANEL_BUILD); return true; }
-        if (id == R.id.menu_word_wrap)                                     { toggleWordWrap(); return true; }
-        if (id == R.id.menu_line_numbers)                                  { toggleLineNumbers(); return true; }
-        if (id == R.id.menu_zoom_in)                                       { zoomIn(); return true; }
-        if (id == R.id.menu_zoom_out)                                      { zoomOut(); return true; }
-        if (id == R.id.menu_zoom_reset)                                    { zoomReset(); return true; }
-        if (id == R.id.menu_theme_dark || id == R.id.menu_about)         { applyThemeMode(ThemeHelper.THEME_DARK); return true; }
-        if (id == R.id.menu_theme_light)                                   { applyThemeMode(ThemeHelper.THEME_LIGHT); return true; }
-        if (id == R.id.menu_theme_system)                                  { applyThemeMode(ThemeHelper.THEME_SYSTEM); return true; }
-        if (id == R.id.menu_fullscreen)                                    { toggleFullscreen(); return true; }
+        if (id == R.id.menu_toggle_sidebar) { toggleSidebar(); return true; }
+        if (id == R.id.menu_toggle_bottom)  { if (bottomPanelOpen) closePanel(); else showPanel(PANEL_BUILD); return true; }
+        if (id == R.id.menu_word_wrap)      { toggleWordWrap(); return true; }
+        if (id == R.id.menu_line_numbers)   { toggleLineNumbers(); return true; }
+        if (id == R.id.menu_zoom_in)        { zoomIn(); return true; }
+        if (id == R.id.menu_zoom_out)       { zoomOut(); return true; }
+        if (id == R.id.menu_zoom_reset)     { zoomReset(); return true; }
+        if (id == R.id.menu_theme_dark)     { applyThemeMode(ThemeHelper.THEME_DARK); return true; }
+        if (id == R.id.menu_theme_light)    { applyThemeMode(ThemeHelper.THEME_LIGHT); return true; }
+        if (id == R.id.menu_theme_system)   { applyThemeMode(ThemeHelper.THEME_SYSTEM); return true; }
+        if (id == R.id.menu_fullscreen)     { toggleFullscreen(); return true; }
 
         // BUILD
-        if (id == R.id.menu_build_apk || id == R.id.menu_about)          { runBuild(); return true; }
-        if (id == R.id.menu_gradle_build || id == R.id.menu_about) { runGradleBuild(); return true; }
-        if (id == R.id.menu_clean || id == R.id.menu_about)              { cleanProject(); return true; }
-        if (id == R.id.menu_rebuild || id == R.id.menu_about)          { runBuild(); return true; }
-        if (id == R.id.menu_libraries || id == R.id.menu_about)      { showLibraries(); return true; }
-        if (id == R.id.menu_kotlin_mode || id == R.id.menu_about)  { showKotlinMode(); return true; }
-        if (id == R.id.menu_build_settings)                                { showBuildSettings(); return true; }
+        if (id == R.id.menu_build_apk)     { runBuild(); return true; }
+        if (id == R.id.menu_gradle_build)  { runGradleBuild(); return true; }
+        if (id == R.id.menu_clean)         { cleanProject(); return true; }
+        if (id == R.id.menu_rebuild)       { runBuild(); return true; }
+        if (id == R.id.menu_libraries)     { showLibraries(); return true; }
+        if (id == R.id.menu_kotlin_mode)   { showKotlinMode(); return true; }
+        if (id == R.id.menu_build_settings){ showBuildSettings(); return true; }
 
         // TOOLS
-        if (id == R.id.menu_logcat || id == R.id.menu_about)            { showPanel(PANEL_LOGCAT); return true; }
-        if (id == R.id.menu_terminal || id == R.id.menu_about)        { showPanel(PANEL_TERMINAL); return true; }
-        if (id == R.id.menu_problems || id == R.id.menu_about)        { showPanel(PANEL_PROBLEMS); return true; }
-        if (id == R.id.menu_build_output)                                  { showPanel(PANEL_BUILD); return true; }
-        if (id == R.id.menu_palette || id == R.id.menu_about)  { openCommandPalette(); return true; }
-        if (id == R.id.menu_github_token || id == R.id.menu_about) { showGithubTokenDialog(); return true; }
+        if (id == R.id.menu_logcat)       { showPanel(PANEL_LOGCAT); return true; }
+        if (id == R.id.menu_terminal)     { showPanel(PANEL_TERMINAL); return true; }
+        if (id == R.id.menu_problems)     { showPanel(PANEL_PROBLEMS); return true; }
+        if (id == R.id.menu_build_output) { showPanel(PANEL_BUILD); return true; }
+        if (id == R.id.menu_palette)      { openCommandPalette(); return true; }
+        if (id == R.id.menu_github_token) { showGithubTokenDialog(); return true; }
+        if (id == R.id.menu_about)        { showAbout(); return true; }
 
         return false;
     }
@@ -1831,6 +1775,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                         dlg.dismiss();
                         projectRoot = created;
                         RecentProjects.add(MainActivity.this, created);
+                        treeCacheTime = 0L;
                         rebuildFileTree();
                         openSidebar();
                         File main = new File(created, "src/" + pkg.replace('.', '/') + "/MainActivity.java");
@@ -1863,7 +1808,11 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         SettingsDialog.show(this, new Runnable() {
             @Override public void run() {
                 applySettingsToEditor();
-                if (lastLoaded != null) applyHighlight(lastLoaded.lang());
+                if (lastLoaded != null) {
+                    lastLoaded.cachedSpans = null;
+                    lastLoaded.cachedLangHash = 0;
+                    applyHighlight(lastLoaded.lang());
+                }
                 updateStatusBar();
             }
         });
@@ -1896,9 +1845,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             .show();
     }
 
-    private void showBuildSettings() {
-        showSettings();
-    }
+    private void showBuildSettings() { showSettings(); }
 
     private void showGithubTokenDialog() {
         final EditText et = new EditText(this);
@@ -1945,6 +1892,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                     File f = new File(recents.get(w));
                     if (f.isDirectory()) {
                         projectRoot = f;
+                        treeCacheTime = 0L;
                         rebuildFileTree();
                         openSidebar();
                     } else toast("Not found");

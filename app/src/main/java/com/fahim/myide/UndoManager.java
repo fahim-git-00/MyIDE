@@ -9,11 +9,6 @@ import android.widget.EditText;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
-/**
- * Simple text undo/redo with debounce. Marks programmatic edits so
- * other watchers (highlighter, enhancer) can suppress their own
- * reactions when we're the ones mutating the buffer.
- */
 public class UndoManager {
 
     public interface ChangeListener {
@@ -31,6 +26,7 @@ public class UndoManager {
 
     private String lastCommitted;
     private boolean selfEdit = false;
+    private boolean suspend = false;
     private Runnable pending;
     private int lastCaret;
     private ChangeListener listener;
@@ -51,16 +47,17 @@ public class UndoManager {
             @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
             @Override public void onTextChanged(CharSequence s, int a, int b, int c) {}
             @Override public void afterTextChanged(Editable s) {
-                if (selfEdit) return;
+                if (selfEdit || suspend) return;
                 scheduleCommit(s.toString());
             }
         });
     }
 
     public void setChangeListener(ChangeListener l) { this.listener = l; }
-
-    /** True when the last change was made by undo/redo. */
     public boolean isProgrammatic() { return selfEdit; }
+
+    /** Suspend recording while caller is doing bulk setText. */
+    public void setSuspended(boolean s) { this.suspend = s; }
 
     public void reset() {
         if (pending != null) {
@@ -137,7 +134,6 @@ public class UndoManager {
         if (listener != null) listener.onProgrammaticChange();
     }
 
-    /** Called by EditorEnhancer when it performs an internal edit. */
     public void noteInternalEdit(String newText, int newCaret) {
         lastCommitted = newText;
         lastCaret = newCaret;

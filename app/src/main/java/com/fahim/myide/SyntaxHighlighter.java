@@ -18,8 +18,7 @@ public final class SyntaxHighlighter {
     public static final int LANG_MARKDOWN = 4;
     public static final int LANG_KOTLIN = 5;
 
-    // Hard caps — beyond this, skip highlighting to avoid UI freeze
-    private static final int MAX_CHARS = 120_000;   // ~3000 lines
+    private static final int MAX_CHARS = 120_000;
     private static final int MAX_SPANS = 4000;
 
     private static final int C_KEYWORD    = 0xFF569CD6;
@@ -50,8 +49,6 @@ public final class SyntaxHighlighter {
         public final int start, end, color;
         public Range(int s, int e, int c) { start = s; end = e; color = c; }
     }
-
-    // ============ KEYWORD TABLES ============
 
     private static final String[] JAVA_KW = {
         "abstract","assert","boolean","break","byte","case","catch","char",
@@ -90,8 +87,6 @@ public final class SyntaxHighlighter {
         "sourceCompatibility","targetCompatibility","compileOptions",
         "applicationId","versionCode","versionName"
     };
-
-    // ============ PATTERNS ============
 
     private static final Pattern P_COMMENT =
         Pattern.compile("//[^\\n]*|/\\*[\\s\\S]*?\\*/");
@@ -140,16 +135,10 @@ public final class SyntaxHighlighter {
         return Pattern.compile(sb.toString());
     }
 
-    // ============ PUBLIC API ============
-
     public static List<Range> computeSpans(String text, int lang) {
         List<Range> out = new ArrayList<Range>();
         if (text == null || text.isEmpty()) return out;
-
-        // Cap: skip highlighting for very large files
-        if (text.length() > MAX_CHARS) {
-            text = text.substring(0, MAX_CHARS);
-        }
+        if (text.length() > MAX_CHARS) text = text.substring(0, MAX_CHARS);
 
         switch (lang) {
             case LANG_XML:      xml(out, text); break;
@@ -160,7 +149,6 @@ public final class SyntaxHighlighter {
             default:            java(out, text); break;
         }
 
-        // Cap span count
         if (out.size() > MAX_SPANS) {
             return new ArrayList<Range>(out.subList(0, MAX_SPANS));
         }
@@ -185,8 +173,6 @@ public final class SyntaxHighlighter {
         ForegroundColorSpan[] old = text.getSpans(0, text.length(), ForegroundColorSpan.class);
         for (ForegroundColorSpan sp : old) text.removeSpan(sp);
     }
-
-    // ============ PER-LANGUAGE ============
 
     private static void java(List<Range> out, String s) {
         add(out, s, P_COMMENT, C_COMMENT);
