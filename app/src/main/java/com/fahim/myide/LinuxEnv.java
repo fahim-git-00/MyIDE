@@ -57,15 +57,15 @@ public final class LinuxEnv {
         extractAsset(ctx, "rootfs/alpine-rootfs.tgz", tar);
 
         if (cb != null) cb.onProgress("Extracting Alpine Linux…");
-        ProcessBuilder pb = new ProcessBuilder(
-                "/system/bin/tar", "-xzf", tar.getAbsolutePath(),
-                "-C", root.getAbsolutePath());
-        pb.redirectErrorStream(true);
-        Process p = pb.start();
-        drain(p, null);
-        int rc = p.waitFor();
+        TarGzExtractor.extract(tar, root, new TarGzExtractor.Progress() {
+            @Override public void onProgress(String p) {}
+        });
         tar.delete();
-        if (rc != 0) throw new RuntimeException("tar failed: " + rc);
+
+        // Sanity: /bin/sh must exist
+        if (!new File(root, "bin/sh").exists()) {
+            throw new RuntimeException("rootfs extract failed: /bin/sh missing");
+        }
 
         // Point apk at repositories
         File apkRepo = new File(root, "etc/apk/repositories");
