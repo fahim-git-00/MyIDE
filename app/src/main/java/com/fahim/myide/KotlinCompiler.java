@@ -144,10 +144,10 @@ public class KotlinCompiler {
         say("Loading kotlinc (embeddable)...");
 
         File reflectJar = ensureReflectJar(ctx);
-        File stdlibJar = ensureStdlibJar(ctx);
+        File stdlibOnLoader = ensureStdlibJar(ctx);
         File scriptJar = ensureScriptRuntimeJar(ctx);
         String dexPath = compilerJar.getAbsolutePath()
-                + File.pathSeparator + stdlibJar.getAbsolutePath()
+                + File.pathSeparator + stdlibOnLoader.getAbsolutePath()
                 + File.pathSeparator + reflectJar.getAbsolutePath()
                 + File.pathSeparator + scriptJar.getAbsolutePath();
 

@@ -22,13 +22,16 @@ Compiling 1 Kotlin file(s)...
 kotlin-home: /data/user/0/com.fahim.myide/files/kotlin-home
 kotlinc error:
 InvocationTargetException: null
-ClassCastException: kotlin.jvm.internal.ClassReference cannot be cast to kotlin.reflect.jvm.internal.KClassImpl
+NoClassDefFoundError: Failed resolution of: Lkotlin/jvm/internal/Intrinsics;
+ClassNotFoundException: Didn't find class "kotlin.jvm.internal.Intrinsics" on path: DexPathList[[zip file "/data/user/0/com.fahim.myide/files/kotlin-v3-1.7.22/kotlin-compiler-embeddable.jar", zip file "/data/user/0/com.fahim.myide/files/kotlin-v3-1.7.22/kotlin-reflect.jar", zip file "/data/user/0/com.fahim.myide/files/kotlin-v3-1.7.22/kotlin-script-runtime.jar"],nativeLibraryDirectories=[/system/lib64, /system_ext/lib64]]
 
 Kotlin LOCAL compile failed: RuntimeException: kotlinc: InvocationTargetException: null
-ClassCastException: kotlin.jvm.internal.ClassReference cannot be cast to kotlin.reflect.jvm.internal.KClassImpl
+NoClassDefFoundError: Failed resolution of: Lkotlin/jvm/internal/Intrinsics;
+ClassNotFoundException: Didn't find class "kotlin.jvm.internal.Intrinsics" on path: DexPathList[[zip file "/data/user/0/com.fahim.myide/files/kotlin-v3-1.7.22/kotlin-compiler-embeddable.jar", zip file "/data/user/0/com.fahim.myide/files/kotlin-v3-1.7.22/kotlin-reflect.jar", zip file "/data/user/0/com.fahim.myide/files/kotlin-v3-1.7.22/kotlin-script-runtime.jar"],nativeLibraryDirectories=[/system/lib64, /system_ext/lib64]]
 
 InvocationTargetException: null
-ClassCastException: kotlin.jvm.internal.ClassReference cannot be cast to kotlin.reflect.jvm.internal.KClassImpl
+NoClassDefFoundError: Failed resolution of: Lkotlin/jvm/internal/Intrinsics;
+ClassNotFoundException: Didn't find class "kotlin.jvm.internal.Intrinsics" on path: DexPathList[[zip file "/data/user/0/com.fahim.myide/files/kotlin-v3-1.7.22/kotlin-compiler-embeddable.jar", zip file "/data/user/0/com.fahim.myide/files/kotlin-v3-1.7.22/kotlin-reflect.jar", zip file "/data/user/0/com.fahim.myide/files/kotlin-v3-1.7.22/kotlin-script-runtime.jar"],nativeLibraryDirectories=[/system/lib64, /system_ext/lib64]]
 
 Compiling Java (ECJ)...
 Dexing (D8)...
