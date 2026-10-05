@@ -93,6 +93,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     private File projectRoot;
     private final List<FileNode> visibleNodes = new ArrayList<FileNode>();
     private FileTreeAdapter fileAdapter;
+    private final java.util.Set<String> expandedPaths = new java.util.HashSet<String>();
 
     private UndoManager undoMgr;
     private EditorEnhancer enhancer;
@@ -245,8 +246,19 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             @Override public void onItemClick(AdapterView<?> p, View v, int pos, long id) {
                 FileNode n = visibleNodes.get(pos);
                 if (n.isDirectory) {
-                    n.expanded = !n.expanded;
+                    String key = n.file.getAbsolutePath();
+                    if (expandedPaths.contains(key)) {
+                        expandedPaths.remove(key);
+                        n.expanded = false;
+                    } else {
+                        expandedPaths.add(key);
+                        n.expanded = true;
+                    }
                     rebuildVisibleNodes();
+                    // Scroll so children are visible
+                    fileList.post(new Runnable() {
+                        @Override public void run() { }
+                    });
                 } else if (n.file != null) {
                     openFile(n.file);
                     closeSidebar();
@@ -780,14 +792,18 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         for (File f : kids) {
             String name = f.getName();
             if (name.startsWith(".") && !name.equals(".myide")) continue;
-            if (name.equals("build") || name.equals(".gradle")) continue;
+            if (name.equals("build") || name.equals("gradle")) continue;
             FileNode n = new FileNode(name, f.isDirectory(), depth, f);
+            if (f.isDirectory()) {
+                n.expanded = expandedPaths.contains(f.getAbsolutePath());
+            }
             visibleNodes.add(n);
             if (f.isDirectory() && n.expanded) walk(f, depth + 1);
         }
     }
 
     private void collapseAll() {
+        expandedPaths.clear();
         for (FileNode n : visibleNodes) n.expanded = false;
         rebuildVisibleNodes();
     }
