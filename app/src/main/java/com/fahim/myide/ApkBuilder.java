@@ -803,64 +803,6 @@ public class ApkBuilder {
     private static final String KOTLIN_STDLIB_VERSION = "1.9.24";
     private static final String MAVEN_CENTRAL = "https://repo1.maven.org/maven2/";
 
-    private File ensureKotlinStdlib() throws Exception {
-        // 0) bundled asset first
-        try {
-            File local = KotlinCompiler.ensureStdlibJar(ctx);
-            if (local.isFile() && local.length() > 100_000L) return local;
-        } catch (Throwable ignored) {}
-
-        File cached = new File(ctx.getFilesDir(),
-                "kotlin/kotlin-stdlib-" + KOTLIN_STDLIB_VERSION + ".jar");
-        File dir = cached.getParentFile();
-        if (dir != null && !dir.exists()) dir.mkdirs();
-
-        // 1) cache hit
-        if (cached.isFile() && cached.length() > 100_000L) return cached;
-
-        // 2) bundled asset (optional)
-        try {
-            File fromAsset = extractAsset("kotlin/kotlin-stdlib.jar");
-            if (fromAsset.isFile() && fromAsset.length() > 100_000L) {
-                copyFile(fromAsset, cached);
-                return cached;
-            }
-        } catch (IOException ignored) {}
-
-        // 3) download from Maven Central
-        String path = "org/jetbrains/kotlin/kotlin-stdlib/"
-                + KOTLIN_STDLIB_VERSION + "/kotlin-stdlib-"
-                + KOTLIN_STDLIB_VERSION + ".jar";
-        say("Downloading kotlin-stdlib-" + KOTLIN_STDLIB_VERSION + ".jar from Maven Central...");
-        downloadFile(MAVEN_CENTRAL + path, cached);
-
-        if (!cached.isFile() || cached.length() < 100_000L) {
-            throw new IOException("kotlin-stdlib download failed");
-        }
-        return cached;
-    }
-
-    private void downloadFile(String urlStr, File out) throws Exception {
-        java.net.URL url = new java.net.URL(urlStr);
-        java.net.HttpURLConnection c = (java.net.HttpURLConnection) url.openConnection();
-        c.setConnectTimeout(15000);
-        c.setReadTimeout(60000);
-        c.setInstanceFollowRedirects(true);
-        int code = c.getResponseCode();
-        if (code != 200) {
-            c.disconnect();
-            throw new IOException("HTTP " + code + " for " + urlStr);
-        }
-        InputStream in = c.getInputStream();
-        FileOutputStream fos = new FileOutputStream(out);
-        byte[] buf = new byte[8192];
-        int n;
-        while ((n = in.read(buf)) > 0) fos.write(buf, 0, n);
-        fos.close();
-        in.close();
-        c.disconnect();
-    }
-
     private static void deleteRecursive(File f) {
         if (f == null || !f.exists()) return;
         if (f.isDirectory()) {
