@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:id="@+id/menu_new_project" android:title="@string/action_new_project" />
+    <item android:id="@+id/menu_open_project" android:title="@string/action_open_project" />
+    <item android:id="@+id/menu_open_recent" android:title="@string/action_open_recent" />
+
+    <item android:id="@+id/menu_sep_1" android:title="" />
+
+    <item android:id="@+id/menu_new_file" android:title="@string/action_new_file" />
+    <item android:id="@+id/menu_new_folder" android:title="@string/action_new_folder" />
+
+    <item android:id="@+id/menu_sep_2" android:title="" />
+
+    <item android:id="@+id/menu_save" android:title="@string/action_save" />
+    <item android:id="@+id/menu_save_as" android:title="@string/action_save_as" />
+    <item android:id="@+id/menu_save_all" android:title="@string/action_save_all" />
+
+    <item android:id="@+id/menu_sep_3" android:title="" />
+
+    <item android:id="@+id/menu_close_tab" android:title="@string/action_close_tab" />
+    <item android:id="@+id/menu_close_all" android:title="@string/action_close_all" />
+
+    <item android:id="@+id/menu_sep_4" android:title="" />
+
+    <item android:id="@+id/menu_refresh" android:title="@string/action_refresh" />
+    <item android:id="@+id/menu_settings" android:title="@string/action_settings" />
+    <item android:id="@+id/menu_exit" android:title="@string/action_exit" />
+
+</menu>

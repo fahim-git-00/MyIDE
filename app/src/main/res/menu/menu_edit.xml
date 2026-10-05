@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:id="@+id/menu_undo" android:title="@string/action_undo" />
+    <item android:id="@+id/menu_redo" android:title="@string/action_redo" />
+
+    <item android:id="@+id/menu_sep_1" android:title="" />
+
+    <item android:id="@+id/menu_cut" android:title="@string/action_cut" />
+    <item android:id="@+id/menu_copy" android:title="@string/action_copy" />
+    <item android:id="@+id/menu_paste" android:title="@string/action_paste" />
+    <item android:id="@+id/menu_select_all" android:title="@string/action_select_all" />
+
+    <item android:id="@+id/menu_sep_2" android:title="" />
+
+    <item android:id="@+id/menu_find" android:title="@string/action_find" />
+    <item android:id="@+id/menu_replace" android:title="@string/action_replace" />
+    <item android:id="@+id/menu_find_in_files" android:title="@string/action_find_in_files" />
+    <item android:id="@+id/menu_goto_line" android:title="@string/action_goto_line" />
+
+    <item android:id="@+id/menu_sep_3" android:title="" />
+
+    <item android:id="@+id/menu_duplicate_line" android:title="@string/action_duplicate_line" />
+    <item android:id="@+id/menu_delete_line" android:title="@string/action_delete_line" />
+    <item android:id="@+id/menu_toggle_comment" android:title="@string/action_toggle_comment" />
+
+</menu>

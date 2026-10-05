@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Solid dark background -->
+    <path
+        android:fillColor="#1E1E1E"
+        android:pathData="M0,0 L108,0 L108,108 L0,108 Z" />
+
+    <!-- Subtle grid dots -->
+    <path
+        android:fillColor="#2A2A2A"
+        android:pathData="M14,14 h2 v2 h-2 z M34,14 h2 v2 h-2 z M54,14 h2 v2 h-2 z M74,14 h2 v2 h-2 z M94,14 h2 v2 h-2 z
+                          M14,34 h2 v2 h-2 z M34,34 h2 v2 h-2 z M54,34 h2 v2 h-2 z M74,34 h2 v2 h-2 z M94,34 h2 v2 h-2 z
+                          M14,54 h2 v2 h-2 z M34,54 h2 v2 h-2 z M54,54 h2 v2 h-2 z M74,54 h2 v2 h-2 z M94,54 h2 v2 h-2 z
+                          M14,74 h2 v2 h-2 z M34,74 h2 v2 h-2 z M54,74 h2 v2 h-2 z M74,74 h2 v2 h-2 z M94,74 h2 v2 h-2 z
+                          M14,94 h2 v2 h-2 z M34,94 h2 v2 h-2 z M54,94 h2 v2 h-2 z M74,94 h2 v2 h-2 z M94,94 h2 v2 h-2 z" />
+
+</vector>

@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/dialog_bg"
+    android:paddingTop="12dp"
+    android:paddingBottom="8dp">
+
+    <!-- FIND ROW -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingLeft="12dp"
+        android:paddingRight="6dp">
+
+        <TextView
+            android:layout_width="20dp"
+            android:layout_height="wrap_content"
+            android:text="🔍"
+            android:textSize="12sp" />
+
+        <EditText
+            android:id="@+id/findField"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="6dp"
+            android:background="@color/dialog_input_bg"
+            android:hint="@string/dlg_find_hint"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:singleLine="true"
+            android:textColor="@color/dialog_input_fg"
+            android:textColorHint="@color/dialog_input_hint"
+            android:textSize="13sp"
+            android:typeface="monospace" />
+
+        <TextView
+            android:id="@+id/findCounter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="6dp"
+            android:minWidth="60dp"
+            android:gravity="end|center_vertical"
+            android:text=""
+            android:textColor="@color/text_dim"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- FIND OPTIONS -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingLeft="12dp"
+        android:paddingRight="6dp"
+        android:paddingTop="4dp">
+
+        <CheckBox
+            android:id="@+id/findCase"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:buttonTint="@color/accent"
+            android:text="Aa"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp" />
+
+        <CheckBox
+            android:id="@+id/findRegex"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="8dp"
+            android:buttonTint="@color/accent"
+            android:text=".*"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp" />
+
+        <CheckBox
+            android:id="@+id/findWhole"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="8dp"
+            android:buttonTint="@color/accent"
+            android:text="W"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/findPrev"
+            style="@style/ToolbarButtonSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="↑" />
+
+        <TextView
+            android:id="@+id/findNext"
+            style="@style/ToolbarButtonSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="↓" />
+
+        <TextView
+            android:id="@+id/findClose"
+            style="@style/ToolbarButtonSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✕" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="6dp"
+        android:background="@color/divider" />
+
+    <!-- REPLACE ROW -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingLeft="12dp"
+        android:paddingRight="6dp"
+        android:paddingTop="6dp">
+
+        <TextView
+            android:layout_width="20dp"
+            android:layout_height="wrap_content"
+            android:text="⇄"
+            android:textSize="12sp" />
+
+        <EditText
+            android:id="@+id/replaceField"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="6dp"
+            android:background="@color/dialog_input_bg"
+            android:hint="@string/dlg_replace_hint"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:singleLine="true"
+            android:textColor="@color/dialog_input_fg"
+            android:textColorHint="@color/dialog_input_hint"
+            android:textSize="13sp"
+            android:typeface="monospace" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:paddingTop="4dp">
+
+        <TextView
+            android:id="@+id/replaceOne"
+            style="@style/SecondaryButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="6dp"
+            android:text="@string/dlg_replace_one" />
+
+        <TextView
+            android:id="@+id/replaceAll"
+            style="@style/PrimaryButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/dlg_replace_all" />
+    </LinearLayout>
+
+</LinearLayout>

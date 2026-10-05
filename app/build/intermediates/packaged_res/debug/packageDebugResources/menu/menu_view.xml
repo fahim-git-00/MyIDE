@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:id="@+id/menu_toggle_sidebar" android:title="@string/action_toggle_sidebar" />
+    <item android:id="@+id/menu_toggle_bottom" android:title="@string/action_toggle_bottom" />
+
+    <item android:id="@+id/menu_sep_1" android:title="" />
+
+    <item android:id="@+id/menu_word_wrap" android:title="@string/action_toggle_word_wrap" />
+    <item android:id="@+id/menu_line_numbers" android:title="@string/action_toggle_line_numbers" />
+
+    <item android:id="@+id/menu_sep_2" android:title="" />
+
+    <item android:id="@+id/menu_zoom_in" android:title="@string/action_zoom_in" />
+    <item android:id="@+id/menu_zoom_out" android:title="@string/action_zoom_out" />
+    <item android:id="@+id/menu_zoom_reset" android:title="@string/action_reset_zoom" />
+
+    <item android:id="@+id/menu_sep_3" android:title="" />
+
+    <item android:id="@+id/menu_theme_dark" android:title="@string/action_theme_dark" />
+    <item android:id="@+id/menu_theme_light" android:title="@string/action_theme_light" />
+    <item android:id="@+id/menu_theme_system" android:title="@string/action_theme_system" />
+
+    <item android:id="@+id/menu_sep_4" android:title="" />
+
+    <item android:id="@+id/menu_fullscreen" android:title="@string/action_fullscreen" />
+
+</menu>

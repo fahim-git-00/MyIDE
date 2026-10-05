@@ -1,0 +1,591 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg">
+
+    <!-- ==================== MENU BAR ==================== -->
+    <LinearLayout
+        android:id="@+id/menuBar"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/menubar_height"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/toolbar_bg"
+        android:paddingLeft="4dp"
+        android:paddingRight="4dp">
+
+        <TextView
+            android:id="@+id/menuFile"
+            style="@style/MenuBarItem"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="@string/menu_file" />
+
+        <TextView
+            android:id="@+id/menuEdit"
+            style="@style/MenuBarItem"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="@string/menu_edit" />
+
+        <TextView
+            android:id="@+id/menuView"
+            style="@style/MenuBarItem"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="@string/menu_view" />
+
+        <TextView
+            android:id="@+id/menuBuild"
+            style="@style/MenuBarItem"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="@string/menu_build" />
+
+        <TextView
+            android:id="@+id/menuTools"
+            style="@style/MenuBarItem"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="@string/menu_tools" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/menuPalette"
+            style="@style/MenuBarItem"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="⌘K" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider" />
+
+    <!-- ==================== TOOLBAR ==================== -->
+    <LinearLayout
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/toolbar_height"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/bg_elevated"
+        android:paddingLeft="4dp"
+        android:paddingRight="4dp">
+
+        <TextView
+            android:id="@+id/btnMenu"
+            style="@style/ToolbarButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="☰" />
+
+        <TextView
+            android:id="@+id/btnNewFile"
+            style="@style/ToolbarButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="＋" />
+
+        <TextView
+            android:id="@+id/btnSave"
+            style="@style/ToolbarButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="💾" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="20dp"
+            android:layout_marginLeft="4dp"
+            android:layout_marginRight="4dp"
+            android:background="@color/divider" />
+
+        <TextView
+            android:id="@+id/btnUndo"
+            style="@style/ToolbarButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="↶" />
+
+        <TextView
+            android:id="@+id/btnRedo"
+            style="@style/ToolbarButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="↷" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="20dp"
+            android:layout_marginLeft="4dp"
+            android:layout_marginRight="4dp"
+            android:background="@color/divider" />
+
+        <TextView
+            android:id="@+id/btnFind"
+            style="@style/ToolbarButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="🔍" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/btnBuild"
+            style="@style/ToolbarButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="▶" />
+
+        <TextView
+            android:id="@+id/btnMore"
+            style="@style/ToolbarButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="⋮" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider" />
+
+    <!-- ==================== TAB STRIP ==================== -->
+    <LinearLayout
+        android:id="@+id/tabStripContainer"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/tabstrip_height"
+        android:orientation="horizontal"
+        android:background="@color/bg_elevated">
+
+        <HorizontalScrollView
+            android:id="@+id/tabStrip"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:scrollbars="none"
+            android:fillViewport="false" />
+
+        <TextView
+            android:id="@+id/btnTabOverflow"
+            style="@style/ToolbarButtonSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="⌄" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider" />
+
+    <!-- ==================== MIDDLE: SIDEBAR + EDITOR + PANEL ==================== -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:id="@+id/mainRow"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
+
+            <!-- ==================== SIDEBAR ==================== -->
+            <LinearLayout
+                android:id="@+id/sidebar"
+                android:layout_width="@dimen/sidebar_default_width"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:background="@color/sidebar_bg">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@color/sidebar_header"
+                    android:paddingLeft="12dp"
+                    android:paddingRight="4dp"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp">
+
+                    <TextView
+                        android:id="@+id/txtSidebarTitle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/sidebar_explorer"
+                        android:textColor="@color/text_dim"
+                        android:textSize="@dimen/text_sm"
+                        android:textStyle="bold"
+                        android:singleLine="true" />
+
+                    <TextView
+                        android:id="@+id/btnSidebarNew"
+                        style="@style/ToolbarButtonSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="＋" />
+
+                    <TextView
+                        android:id="@+id/btnSidebarRefresh"
+                        style="@style/ToolbarButtonSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⟳" />
+
+                    <TextView
+                        android:id="@+id/btnSidebarCollapse"
+                        style="@style/ToolbarButtonSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⌃" />
+
+                    <TextView
+                        android:id="@+id/btnSidebarClose"
+                        style="@style/ToolbarButtonSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="✕" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/txtProjectPath"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@color/sidebar_section"
+                    android:ellipsize="middle"
+                    android:paddingLeft="12dp"
+                    android:paddingRight="12dp"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp"
+                    android:singleLine="true"
+                    android:text="@string/sidebar_no_project"
+                    android:textColor="@color/accent_light"
+                    android:textSize="@dimen/text_xs" />
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1">
+
+                    <ListView
+                        android:id="@+id/fileList"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@color/sidebar_bg"
+                        android:divider="@null"
+                        android:dividerHeight="0dp"
+                        android:scrollbars="vertical"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp"
+                        android:clipToPadding="false" />
+
+                    <LinearLayout
+                        android:id="@+id/emptyState"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:padding="24dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="📂"
+                            android:textSize="42sp"
+                            android:alpha="0.5" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="@string/sidebar_open_project_hint"
+                            android:textColor="@color/text_dim"
+                            android:textSize="@dimen/text_md"
+                            android:gravity="center" />
+
+                        <TextView
+                            android:id="@+id/btnEmptyOpen"
+                            style="@style/PrimaryButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:text="@string/sidebar_open_folder" />
+                    </LinearLayout>
+                </FrameLayout>
+            </LinearLayout>
+
+            <!-- ==================== SIDEBAR RESIZER ==================== -->
+            <View
+                android:id="@+id/sidebarResizer"
+                android:layout_width="4dp"
+                android:layout_height="match_parent"
+                android:background="@color/transparent" />
+
+            <!-- ==================== EDITOR + BOTTOM PANEL ==================== -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <!-- BREADCRUMB -->
+                <HorizontalScrollView
+                    android:id="@+id/breadcrumbScroll"
+                    android:layout_width="match_parent"
+                    android:layout_height="26dp"
+                    android:background="@color/bg"
+                    android:scrollbars="none">
+
+                    <LinearLayout
+                        android:id="@+id/breadcrumb"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingLeft="12dp"
+                        android:paddingRight="12dp" />
+                </HorizontalScrollView>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider" />
+
+                <!-- EDITOR AREA -->
+                <LinearLayout
+                    android:id="@+id/editorRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    android:background="@color/editor_bg">
+
+                    <TextView
+                        android:id="@+id/lineNumbers"
+                        style="@style/Gutter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:maxLines="5000"
+                        android:text="1" />
+
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="match_parent"
+                        android:background="@color/gutter_divider" />
+
+                    <FrameLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1">
+
+                        <EditText
+                            android:id="@+id/editor"
+                            style="@style/Editor"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:hint="@string/sidebar_open_project_hint"
+                            android:textColorHint="@color/text_muted" />
+
+                        <TextView
+                            android:id="@+id/editorPlaceholder"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center"
+                            android:padding="32dp"
+                            android:text=""
+                            android:textColor="@color/text_muted"
+                            android:textSize="@dimen/text_md"
+                            android:visibility="gone" />
+                    </FrameLayout>
+                </LinearLayout>
+
+                <!-- PANEL RESIZER -->
+                <View
+                    android:id="@+id/panelResizer"
+                    android:layout_width="match_parent"
+                    android:layout_height="4dp"
+                    android:background="@color/transparent" />
+
+                <!-- BOTTOM PANEL -->
+                <LinearLayout
+                    android:id="@+id/bottomPanel"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/panel_default_height"
+                    android:orientation="vertical"
+                    android:background="@color/panel_bg"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/panel_header_height"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@color/panel_header">
+
+                        <TextView
+                            android:id="@+id/panelTabBuild"
+                            style="@style/PanelTab"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:text="@string/panel_build" />
+
+                        <TextView
+                            android:id="@+id/panelTabProblems"
+                            style="@style/PanelTab"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:text="@string/panel_problems" />
+
+                        <TextView
+                            android:id="@+id/panelTabLogcat"
+                            style="@style/PanelTab"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:text="@string/panel_logcat" />
+
+                        <TextView
+                            android:id="@+id/panelTabTerminal"
+                            style="@style/PanelTab"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:text="@string/panel_terminal" />
+
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="1dp"
+                            android:layout_weight="1" />
+
+                        <TextView
+                            android:id="@+id/btnPanelMaximize"
+                            style="@style/ToolbarButtonSmall"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:text="⤢" />
+
+                        <TextView
+                            android:id="@+id/btnPanelClose"
+                            style="@style/ToolbarButtonSmall"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:text="✕" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/divider" />
+
+                    <FrameLayout
+                        android:id="@+id/panelContent"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- DIMMER (when sidebar open on narrow screens) -->
+        <View
+            android:id="@+id/dimLayer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/scrim"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <!-- ==================== STATUS BAR ==================== -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider" />
+
+    <LinearLayout
+        android:id="@+id/statusBar"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/statusbar_height"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/statusbar_bg">
+
+        <TextView
+            android:id="@+id/statusBranch"
+            style="@style/StatusBarButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="main" />
+
+        <TextView
+            android:id="@+id/statusProblems"
+            style="@style/StatusBarButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="0  ⚠" />
+
+        <TextView
+            android:id="@+id/statusLeft"
+            style="@style/StatusBarText"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:text="@string/status_ready" />
+
+        <TextView
+            android:id="@+id/statusPos"
+            style="@style/StatusBarButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="Ln 1, Col 1" />
+
+        <TextView
+            android:id="@+id/statusSpaces"
+            style="@style/StatusBarButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="Spaces: 4" />
+
+        <TextView
+            android:id="@+id/statusEncoding"
+            style="@style/StatusBarButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="UTF-8" />
+
+        <TextView
+            android:id="@+id/statusLang"
+            style="@style/StatusBarButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="Java" />
+
+        <TextView
+            android:id="@+id/statusBuild"
+            style="@style/StatusBarButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="🔨" />
+
+        <TextView
+            android:id="@+id/statusTheme"
+            style="@style/StatusBarButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="🌙" />
+    </LinearLayout>
+
+</LinearLayout>

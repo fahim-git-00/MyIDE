@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tabRoot"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@color/tab_bg"
+    android:paddingLeft="10dp"
+    android:paddingRight="4dp"
+    android:minWidth="@dimen/tab_min_width"
+    android:maxWidth="@dimen/tab_max_width">
+
+    <TextView
+        android:id="@+id/tabIcon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="6dp"
+        android:text="📄"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/tabTitle"
+        style="@style/TabText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="File.java"
+        android:maxWidth="@dimen/tab_max_width" />
+
+    <TextView
+        android:id="@+id/tabClose"
+        android:layout_width="@dimen/tab_close_size"
+        android:layout_height="@dimen/tab_close_size"
+        android:layout_marginLeft="4dp"
+        android:gravity="center"
+        android:text="✕"
+        android:textColor="@color/text_dim"
+        android:textSize="11sp"
+        android:background="?android:attr/selectableItemBackgroundBorderless" />
+
+    <View
+        android:id="@+id/tabIndicator"
+        android:layout_width="0dp"
+        android:layout_height="0dp" />
+
+</LinearLayout>

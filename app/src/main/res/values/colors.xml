@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ============ DARK THEME (default) ============ -->
+    <color name="bg">#1E1E1E</color>
+    <color name="bg_elevated">#252526</color>
+    <color name="bg_overlay">#2D2D30</color>
+    <color name="bg_hover">#37373D</color>
+    <color name="bg_pressed">#094771</color>
+    <color name="bg_input">#3C3C3C</color>
+
+    <color name="surface">#252526</color>
+    <color name="surface_alt">#2D2D30</color>
+    <color name="surface_raised">#333333</color>
+
+    <color name="divider">#3E3E42</color>
+    <color name="border">#3C3C3C</color>
+    <color name="outline">#454545</color>
+
+    <color name="text_primary">#D4D4D4</color>
+    <color name="text_secondary">#CCCCCC</color>
+    <color name="text_dim">#969696</color>
+    <color name="text_muted">#6A6A6A</color>
+    <color name="text_disabled">#5A5A5A</color>
+    <color name="text_inverse">#FFFFFF</color>
+
+    <color name="accent">#0E639C</color>
+    <color name="accent_hover">#1177BB</color>
+    <color name="accent_pressed">#0A4D7A</color>
+    <color name="accent_light">#4FC3F7</color>
+    <color name="accent_focus">#007ACC</color>
+
+    <color name="success">#4EC9B0</color>
+    <color name="success_bg">#1B3A34</color>
+    <color name="warning">#DCDCAA</color>
+    <color name="warning_bg">#3A3418</color>
+    <color name="error">#F44747</color>
+    <color name="error_bg">#3A1B1B</color>
+    <color name="info">#569CD6</color>
+
+    <!-- ============ SYNTAX ============ -->
+    <color name="syntax_keyword">#569CD6</color>
+    <color name="syntax_string">#CE9178</color>
+    <color name="syntax_comment">#6A9955</color>
+    <color name="syntax_number">#B5CEA8</color>
+    <color name="syntax_annotation">#DCDCAA</color>
+    <color name="syntax_type">#4EC9B0</color>
+    <color name="syntax_function">#DCDCAA</color>
+    <color name="syntax_variable">#9CDCFE</color>
+    <color name="syntax_tag">#569CD6</color>
+    <color name="syntax_attr">#9CDCFE</color>
+    <color name="syntax_value">#CE9178</color>
+    <color name="syntax_operator">#D4D4D4</color>
+
+    <!-- ============ EDITOR ============ -->
+    <color name="editor_bg">#1E1E1E</color>
+    <color name="editor_fg">#D4D4D4</color>
+    <color name="editor_selection">#264F78</color>
+    <color name="editor_cursor">#AEAFAD</color>
+    <color name="editor_line_highlight">#282828</color>
+    <color name="editor_find_match">#515C6A</color>
+    <color name="editor_find_active">#9E6A03</color>
+
+    <!-- ============ GUTTER / LINE NUMBERS ============ -->
+    <color name="gutter_bg">#1E1E1E</color>
+    <color name="gutter_fg">#858585</color>
+    <color name="gutter_fg_active">#C6C6C6</color>
+    <color name="gutter_divider">#2A2A2A</color>
+
+    <!-- ============ SIDEBAR / FILE TREE ============ -->
+    <color name="sidebar_bg">#252526</color>
+    <color name="sidebar_header">#252526</color>
+    <color name="sidebar_section">#1E1E1E</color>
+    <color name="tree_folder">#DCDCAA</color>
+    <color name="tree_file">#D4D4D4</color>
+    <color name="tree_file_dim">#858585</color>
+    <color name="tree_selected">#094771</color>
+    <color name="tree_hover">#2A2D2E</color>
+
+    <!-- ============ TOOLBAR ============ -->
+    <color name="toolbar_bg">#323233</color>
+    <color name="toolbar_fg">#CCCCCC</color>
+    <color name="toolbar_btn_hover">#3E3E42</color>
+
+    <!-- ============ TABS ============ -->
+    <color name="tab_bg">#2D2D30</color>
+    <color name="tab_bg_active">#1E1E1E</color>
+    <color name="tab_fg">#969696</color>
+    <color name="tab_fg_active">#FFFFFF</color>
+    <color name="tab_border_active">#007ACC</color>
+    <color name="tab_border_inactive">#252526</color>
+
+    <!-- ============ STATUS BAR ============ -->
+    <color name="statusbar_bg">#007ACC</color>
+    <color name="statusbar_fg">#FFFFFF</color>
+    <color name="statusbar_hover">#1F8AD2</color>
+
+    <!-- ============ PANELS / BOTTOM ============ -->
+    <color name="panel_bg">#1E1E1E</color>
+    <color name="panel_header">#252526</color>
+    <color name="panel_tab_active">#1E1E1E</color>
+    <color name="panel_tab_inactive">#2D2D30</color>
+    <color name="panel_tab_fg_active">#FFFFFF</color>
+    <color name="panel_tab_fg_inactive">#969696</color>
+
+    <!-- ============ TERMINAL ============ -->
+    <color name="term_bg">#0C0C0C</color>
+    <color name="term_fg">#CCCCCC</color>
+    <color name="term_prompt">#4EC9B0</color>
+    <color name="term_error">#F44747</color>
+    <color name="term_warn">#DCDCAA</color>
+    <color name="term_ok">#4EC9B0</color>
+    <color name="term_dim">#6A6A6A</color>
+
+    <!-- ============ LOGCAT ============ -->
+    <color name="log_v">#AAAAAA</color>
+    <color name="log_d">#66CCFF</color>
+    <color name="log_i">#66FF66</color>
+    <color name="log_w">#FFCC66</color>
+    <color name="log_e">#FF6666</color>
+    <color name="log_f">#FF00FF</color>
+
+    <!-- ============ DIALOGS ============ -->
+    <color name="dialog_bg">#252526</color>
+    <color name="dialog_title">#DCDCAA</color>
+    <color name="dialog_input_bg">#3C3C3C</color>
+    <color name="dialog_input_fg">#D4D4D4</color>
+    <color name="dialog_input_hint">#6A6A6A</color>
+
+    <!-- ============ LIGHT THEME (for runtime toggle) ============ -->
+    <color name="light_bg">#FFFFFF</color>
+    <color name="light_bg_elevated">#F3F3F3</color>
+    <color name="light_surface">#ECECEC</color>
+    <color name="light_divider">#E0E0E0</color>
+    <color name="light_text_primary">#1E1E1E</color>
+    <color name="light_text_secondary">#3B3B3B</color>
+    <color name="light_text_dim">#6A6A6A</color>
+    <color name="light_accent">#0066B8</color>
+    <color name="light_gutter_bg">#F3F3F3</color>
+    <color name="light_gutter_fg">#237893</color>
+    <color name="light_sidebar_bg">#F3F3F3</color>
+    <color name="light_tree_folder">#795E26</color>
+    <color name="light_tree_file">#1E1E1E</color>
+
+    <!-- ============ TRANSPARENCY ============ -->
+    <color name="scrim">#99000000</color>
+    <color name="transparent">#00000000</color>
+
+</resources>

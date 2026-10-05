@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Same AppTheme in night mode (we control colors ourselves) -->
+    <style name="AppTheme.Night" parent="AppTheme" />
+    <style name="Theme.MyIDE.Night" parent="AppTheme.Night" />
+
+</resources>

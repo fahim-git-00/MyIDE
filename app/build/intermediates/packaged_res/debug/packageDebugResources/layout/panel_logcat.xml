@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/panel_bg">
+
+    <!-- Filter row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingLeft="8dp"
+        android:paddingRight="4dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+
+        <EditText
+            android:id="@+id/logFilter"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@color/bg_input"
+            android:hint="@string/logcat_filter_hint"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:singleLine="true"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_muted"
+            android:textSize="@dimen/text_sm" />
+
+        <TextView
+            android:id="@+id/btnLogPause"
+            style="@style/ToolbarButtonSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⏸" />
+
+        <TextView
+            android:id="@+id/btnLogClear"
+            style="@style/ToolbarButtonSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🗑" />
+
+        <TextView
+            android:id="@+id/btnLogCopy"
+            style="@style/ToolbarButtonSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⧉" />
+
+        <TextView
+            android:id="@+id/btnLogSave"
+            style="@style/ToolbarButtonSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="💾" />
+
+        <TextView
+            android:id="@+id/btnLogAuto"
+            style="@style/ToolbarButtonSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⤓" />
+    </LinearLayout>
+
+    <!-- Level toggles -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="4dp">
+
+        <CheckBox
+            android:id="@+id/lvlV"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:buttonTint="@color/log_v"
+            android:checked="true"
+            android:text="V"
+            android:textColor="@color/log_v"
+            android:textSize="11sp" />
+
+        <CheckBox
+            android:id="@+id/lvlD"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:buttonTint="@color/log_d"
+            android:checked="true"
+            android:text="D"
+            android:textColor="@color/log_d"
+            android:textSize="11sp" />
+
+        <CheckBox
+            android:id="@+id/lvlI"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:buttonTint="@color/log_i"
+            android:checked="true"
+            android:text="I"
+            android:textColor="@color/log_i"
+            android:textSize="11sp" />
+
+        <CheckBox
+            android:id="@+id/lvlW"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:buttonTint="@color/log_w"
+            android:checked="true"
+            android:text="W"
+            android:textColor="@color/log_w"
+            android:textSize="11sp" />
+
+        <CheckBox
+            android:id="@+id/lvlE"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:buttonTint="@color/log_e"
+            android:checked="true"
+            android:text="E"
+            android:textColor="@color/log_e"
+            android:textSize="11sp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/logCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 lines"
+            android:textColor="@color/text_dim"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider" />
+
+    <ScrollView
+        android:id="@+id/logScroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/term_bg"
+        android:scrollbars="vertical">
+
+        <TextView
+            android:id="@+id/logOutput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:text=""
+            android:textColor="@color/term_fg"
+            android:textSize="10sp"
+            android:textIsSelectable="true"
+            android:typeface="monospace" />
+    </ScrollView>
+
+</LinearLayout>

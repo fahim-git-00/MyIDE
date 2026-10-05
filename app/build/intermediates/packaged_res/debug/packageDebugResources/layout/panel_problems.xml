@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/panel_bg">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingLeft="12dp"
+        android:paddingRight="6dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+
+        <TextView
+            android:id="@+id/probCount"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:singleLine="true"
+            android:text="@string/problems_none"
+            android:textColor="@color/text_dim"
+            android:textSize="@dimen/text_sm" />
+
+        <TextView
+            android:id="@+id/btnProbClear"
+            style="@style/ToolbarButtonSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🗑" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <ListView
+            android:id="@+id/probList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/panel_bg"
+            android:divider="@color/divider"
+            android:dividerHeight="1dp"
+            android:scrollbars="vertical" />
+
+        <TextView
+            android:id="@+id/probEmpty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="@string/problems_none"
+            android:textColor="@color/text_muted"
+            android:textSize="@dimen/text_md" />
+    </FrameLayout>
+
+</LinearLayout>

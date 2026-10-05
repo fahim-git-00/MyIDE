@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- File -->
+    <item android:id="@+id/menu_new_project" android:title="@string/action_new_project" />
+    <item android:id="@+id/menu_open_project" android:title="@string/action_open_project" />
+    <item android:id="@+id/menu_open_recent" android:title="@string/action_open_recent" />
+    <item android:id="@+id/menu_new_file" android:title="@string/action_new_file" />
+    <item android:id="@+id/menu_new_folder" android:title="@string/action_new_folder" />
+    <item android:id="@+id/menu_save" android:title="@string/action_save" />
+    <item android:id="@+id/menu_save_as" android:title="@string/action_save_as" />
+    <item android:id="@+id/menu_save_all" android:title="@string/action_save_all" />
+    <item android:id="@+id/menu_close_tab" android:title="@string/action_close_tab" />
+    <item android:id="@+id/menu_close_all" android:title="@string/action_close_all" />
+    <item android:id="@+id/menu_refresh" android:title="@string/action_refresh" />
+    <item android:id="@+id/menu_settings" android:title="@string/action_settings" />
+    <item android:id="@+id/menu_exit" android:title="@string/action_exit" />
+
+    <!-- Edit -->
+    <item android:id="@+id/menu_undo" android:title="@string/action_undo" />
+    <item android:id="@+id/menu_redo" android:title="@string/action_redo" />
+    <item android:id="@+id/menu_cut" android:title="@string/action_cut" />
+    <item android:id="@+id/menu_copy" android:title="@string/action_copy" />
+    <item android:id="@+id/menu_paste" android:title="@string/action_paste" />
+    <item android:id="@+id/menu_select_all" android:title="@string/action_select_all" />
+    <item android:id="@+id/menu_find" android:title="@string/action_find" />
+    <item android:id="@+id/menu_replace" android:title="@string/action_replace" />
+    <item android:id="@+id/menu_find_in_files" android:title="@string/action_find_in_files" />
+    <item android:id="@+id/menu_goto_line" android:title="@string/action_goto_line" />
+    <item android:id="@+id/menu_duplicate_line" android:title="@string/action_duplicate_line" />
+    <item android:id="@+id/menu_delete_line" android:title="@string/action_delete_line" />
+    <item android:id="@+id/menu_toggle_comment" android:title="@string/action_toggle_comment" />
+
+    <!-- View -->
+    <item android:id="@+id/menu_toggle_sidebar" android:title="@string/action_toggle_sidebar" />
+    <item android:id="@+id/menu_toggle_bottom" android:title="@string/action_toggle_bottom" />
+    <item android:id="@+id/menu_word_wrap" android:title="@string/action_toggle_word_wrap" />
+    <item android:id="@+id/menu_line_numbers" android:title="@string/action_toggle_line_numbers" />
+    <item android:id="@+id/menu_zoom_in" android:title="@string/action_zoom_in" />
+    <item android:id="@+id/menu_zoom_out" android:title="@string/action_zoom_out" />
+    <item android:id="@+id/menu_zoom_reset" android:title="@string/action_reset_zoom" />
+    <item android:id="@+id/menu_theme_dark" android:title="@string/action_theme_dark" />
+    <item android:id="@+id/menu_theme_light" android:title="@string/action_theme_light" />
+    <item android:id="@+id/menu_theme_system" android:title="@string/action_theme_system" />
+    <item android:id="@+id/menu_fullscreen" android:title="@string/action_fullscreen" />
+
+    <!-- Build -->
+    <item android:id="@+id/menu_build_apk" android:title="@string/action_build_apk" />
+    <item android:id="@+id/menu_gradle_build" android:title="@string/action_gradle_build" />
+    <item android:id="@+id/menu_clean" android:title="@string/action_clean" />
+    <item android:id="@+id/menu_rebuild" android:title="@string/action_rebuild" />
+    <item android:id="@+id/menu_libraries" android:title="@string/action_libraries" />
+    <item android:id="@+id/menu_kotlin_mode" android:title="@string/action_kotlin_mode" />
+    <item android:id="@+id/menu_build_settings" android:title="@string/action_build_settings" />
+
+    <!-- Tools -->
+    <item android:id="@+id/menu_logcat" android:title="@string/action_logcat" />
+    <item android:id="@+id/menu_terminal" android:title="@string/action_terminal" />
+    <item android:id="@+id/menu_problems" android:title="@string/action_problems" />
+    <item android:id="@+id/menu_build_output" android:title="@string/action_build_output" />
+    <item android:id="@+id/menu_palette" android:title="@string/action_command_palette" />
+    <item android:id="@+id/menu_github_token" android:title="@string/action_github_token" />
+    <item android:id="@+id/menu_about" android:title="@string/action_about" />
+
+</menu>

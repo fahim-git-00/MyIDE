@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ============ BASE APP THEME ============ -->
+    <style name="AppTheme" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:colorBackground">@color/bg</item>
+        <item name="android:colorForeground">@color/text_primary</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:textColorHint">@color/text_muted</item>
+        <item name="android:statusBarColor">@color/toolbar_bg</item>
+        <item name="android:navigationBarColor">@color/toolbar_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowContentTransitions">false</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:colorAccent">@color/accent</item>
+        <item name="android:colorControlActivated">@color/accent</item>
+        <item name="android:colorControlHighlight">@color/accent_hover</item>
+        <item name="android:colorControlNormal">@color/text_dim</item>
+        <item name="android:popupMenuStyle">@style/PopupMenuStyle</item>
+        <item name="android:itemTextAppearance">@style/PopupMenuItemText</item>
+    </style>
+
+    <!-- ============ DIALOG THEME ============ -->
+    <style name="AppDialogTheme" parent="@android:style/Theme.DeviceDefault.Dialog.Alert">
+        <item name="android:windowBackground">@color/dialog_bg</item>
+        <item name="android:colorBackground">@color/dialog_bg</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_dim</item>
+        <item name="android:textColorHint">@color/dialog_input_hint</item>
+        <item name="android:colorAccent">@color/accent</item>
+        <item name="android:colorControlActivated">@color/accent</item>
+        <item name="android:colorControlHighlight">@color/accent_hover</item>
+        <item name="android:colorControlNormal">@color/text_dim</item>
+        <item name="android:windowTitleStyle">@style/DialogTitleStyle</item>
+        <item name="android:buttonStyle">@style/DialogButtonStyle</item>
+    </style>
+
+    <style name="DialogTitleStyle" parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">
+        <item name="android:textColor">@color/dialog_title</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="DialogButtonStyle" parent="@android:style/Widget.DeviceDefault.Button.Borderless">
+        <item name="android:textColor">@color/accent_light</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <!-- ============ POPUP MENU ============ -->
+    <style name="PopupMenuStyle" parent="@android:style/Widget.DeviceDefault.PopupMenu">
+        <item name="android:popupBackground">@color/bg_elevated</item>
+    </style>
+
+    <style name="PopupMenuItemText" parent="@android:style/TextAppearance.DeviceDefault.Widget.PopupMenu.Large">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <!-- ============ TOOLBAR BUTTON ============ -->
+    <style name="ToolbarButton">
+        <item name="android:background">?android:attr/selectableItemBackgroundBorderless</item>
+        <item name="android:textColor">@color/toolbar_fg</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:paddingLeft">10dp</item>
+        <item name="android:paddingRight">10dp</item>
+        <item name="android:minWidth">44dp</item>
+        <item name="android:minHeight">44dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="ToolbarButtonSmall">
+        <item name="android:background">?android:attr/selectableItemBackgroundBorderless</item>
+        <item name="android:textColor">@color/toolbar_fg</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:paddingLeft">8dp</item>
+        <item name="android:paddingRight">8dp</item>
+        <item name="android:minWidth">36dp</item>
+        <item name="android:minHeight">36dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <!-- ============ MENU BAR ITEM ============ -->
+    <style name="MenuBarItem">
+        <item name="android:background">?android:attr/selectableItemBackground</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:paddingLeft">12dp</item>
+        <item name="android:paddingRight">12dp</item>
+        <item name="android:minHeight">32dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <!-- ============ TAB ============ -->
+    <style name="TabText">
+        <item name="android:textColor">@color/tab_fg</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">middle</item>
+        <item name="android:typeface">monospace</item>
+    </style>
+
+    <style name="TabTextActive">
+        <item name="android:textColor">@color/tab_fg_active</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">middle</item>
+        <item name="android:typeface">monospace</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- ============ PANEL TAB ============ -->
+    <style name="PanelTab">
+        <item name="android:background">?android:attr/selectableItemBackground</item>
+        <item name="android:textColor">@color/panel_tab_fg_inactive</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:paddingLeft">14dp</item>
+        <item name="android:paddingRight">14dp</item>
+        <item name="android:minHeight">36dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
+
+    <style name="PanelTabActive">
+        <item name="android:background">?android:attr/selectableItemBackground</item>
+        <item name="android:textColor">@color/panel_tab_fg_active</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:paddingLeft">14dp</item>
+        <item name="android:paddingRight">14dp</item>
+        <item name="android:minHeight">36dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- ============ STATUS BAR TEXT ============ -->
+    <style name="StatusBarText">
+        <item name="android:textColor">@color/statusbar_fg</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:paddingLeft">8dp</item>
+        <item name="android:paddingRight">8dp</item>
+        <item name="android:gravity">center_vertical</item>
+    </style>
+
+    <style name="StatusBarButton" parent="StatusBarText">
+        <item name="android:background">?android:attr/selectableItemBackground</item>
+    </style>
+
+    <!-- ============ SIDEBAR BUTTON ============ -->
+    <style name="SidebarAction">
+        <item name="android:background">?android:attr/selectableItemBackground</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:paddingLeft">8dp</item>
+        <item name="android:paddingRight">8dp</item>
+        <item name="android:minHeight">32dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <!-- ============ EDITOR ============ -->
+    <style name="Editor">
+        <item name="android:background">@color/editor_bg</item>
+        <item name="android:textColor">@color/editor_fg</item>
+        <item name="android:textColorHighlight">@color/editor_selection</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:typeface">monospace</item>
+        <item name="android:gravity">top|start</item>
+        <item name="android:padding">8dp</item>
+        <item name="android:inputType">textMultiLine|textNoSuggestions|textVisiblePassword</item>
+        <item name="android:scrollbars">vertical|horizontal</item>
+        <item name="android:scrollbarStyle">insideInset</item>
+        <item name="android:textCursorDrawable">@null</item>
+    </style>
+
+    <style name="Gutter">
+        <item name="android:background">@color/gutter_bg</item>
+        <item name="android:textColor">@color/gutter_fg</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:typeface">monospace</item>
+        <item name="android:gravity">top|end</item>
+        <item name="android:paddingLeft">8dp</item>
+        <item name="android:paddingRight">8dp</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:minWidth">44dp</item>
+    </style>
+
+    <!-- ============ INPUT ============ -->
+    <style name="DialogInput">
+        <item name="android:background">@color/dialog_input_bg</item>
+        <item name="android:textColor">@color/dialog_input_fg</item>
+        <item name="android:textColorHint">@color/dialog_input_hint</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:padding">10dp</item>
+        <item name="android:singleLine">true</item>
+    </style>
+
+    <style name="DialogInputMulti" parent="DialogInput">
+        <item name="android:singleLine">false</item>
+        <item name="android:gravity">top|start</item>
+        <item name="android:minLines">3</item>
+        <item name="android:inputType">textMultiLine</item>
+    </style>
+
+    <!-- ============ BUTTONS ============ -->
+    <style name="PrimaryButton">
+        <item name="android:background">@color/accent</item>
+        <item name="android:textColor">@color/text_inverse</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:paddingLeft">16dp</item>
+        <item name="android:paddingRight">16dp</item>
+        <item name="android:minHeight">38dp</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <style name="SecondaryButton">
+        <item name="android:background">@color/bg_hover</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:paddingLeft">14dp</item>
+        <item name="android:paddingRight">14dp</item>
+        <item name="android:minHeight">36dp</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <style name="GhostButton">
+        <item name="android:background">?android:attr/selectableItemBackground</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:paddingLeft">12dp</item>
+        <item name="android:paddingRight">12dp</item>
+        <item name="android:minHeight">34dp</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <!-- ============ SECTION HEADER ============ -->
+    <style name="SectionHeader">
+        <item name="android:textColor">@color/text_dim</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:paddingLeft">12dp</item>
+        <item name="android:paddingRight">12dp</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingBottom">6dp</item>
+        <item name="android:background">@color/sidebar_section</item>
+    </style>
+
+</resources>

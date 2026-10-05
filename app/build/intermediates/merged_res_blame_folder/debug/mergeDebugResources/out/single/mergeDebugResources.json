@@ -1,0 +1,142 @@
+[
+    {
+        "merged": "com.fahim.myide.app-debug-10:/mipmap-xxhdpi_ic_launcher_round.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/mipmap-xxhdpi/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/layout_item_problem.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/layout/item_problem.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/mipmap-xxxhdpi_ic_launcher_round.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/mipmap-xxxhdpi/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/mipmap-xhdpi_ic_launcher.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/mipmap-xhdpi/ic_launcher.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/mipmap-hdpi_ic_launcher.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/mipmap-hdpi/ic_launcher.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/layout_dialog_settings.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/layout/dialog_settings.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/layout_panel_problems.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/layout/panel_problems.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/layout_panel_terminal.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/layout/panel_terminal.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/layout_item_recent.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/layout/item_recent.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/menu_main_menu.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/menu/main_menu.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/xml_file_paths.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/xml/file_paths.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/layout_dialog_command_palette.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/layout/dialog_command_palette.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/mipmap-mdpi_ic_launcher_round.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/mipmap-mdpi/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/layout_item_tab.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/layout/item_tab.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/mipmap-xxxhdpi_ic_launcher.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/mipmap-xxxhdpi/ic_launcher.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/layout_panel_build.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/layout/panel_build.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/menu_menu_build.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/menu/menu_build.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/menu_menu_tools.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/menu/menu_tools.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/mipmap-xhdpi_ic_launcher_round.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/mipmap-xhdpi/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/mipmap-mdpi_ic_launcher.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/mipmap-mdpi/ic_launcher.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/mipmap-hdpi_ic_launcher_round.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/mipmap-hdpi/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/layout_item_dependency.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/layout/item_dependency.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/layout_item_file.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/layout/item_file.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/menu_menu_edit.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/menu/menu_edit.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/layout_item_palette.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/layout/item_palette.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/layout_panel_logcat.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/layout/panel_logcat.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/mipmap-xxhdpi_ic_launcher.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/mipmap-xxhdpi/ic_launcher.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/layout_dialog_find.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/layout/dialog_find.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/layout_main.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/layout/main.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/drawable_ic_launcher_background.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/drawable/ic_launcher_background.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/menu_menu_file.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/menu/menu_file.xml"
+    },
+    {
+        "merged": "com.fahim.myide.app-debug-10:/menu_menu_view.xml.flat",
+        "source": "com.fahim.myide.app-main-12:/menu/menu_view.xml"
+    }
+]

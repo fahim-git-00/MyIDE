@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Alias theme that resolves AppTheme from styles.xml -->
+    <style name="Theme.MyIDE" parent="AppTheme" />
+    <style name="Theme.MyIDE.Dialog" parent="AppDialogTheme" />
+    <style name="Theme.MyIDE.Transparent" parent="AppTheme">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+    </style>
+
+</resources>

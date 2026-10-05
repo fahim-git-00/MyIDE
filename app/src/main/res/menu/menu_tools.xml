@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:id="@+id/menu_logcat" android:title="@string/action_logcat" />
+    <item android:id="@+id/menu_terminal" android:title="@string/action_terminal" />
+    <item android:id="@+id/menu_problems" android:title="@string/action_problems" />
+    <item android:id="@+id/menu_build_output" android:title="@string/action_build_output" />
+
+    <item android:id="@+id/menu_sep_1" android:title="" />
+
+    <item android:id="@+id/menu_palette" android:title="@string/action_command_palette" />
+    <item android:id="@+id/menu_settings" android:title="@string/action_settings" />
+
+    <item android:id="@+id/menu_sep_2" android:title="" />
+
+    <item android:id="@+id/menu_github_token" android:title="@string/action_github_token" />
+    <item android:id="@+id/menu_about" android:title="@string/action_about" />
+
+</menu>

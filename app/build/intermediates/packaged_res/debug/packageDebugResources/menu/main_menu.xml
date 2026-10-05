@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:id="@+id/grp_file">
+        <item android:id="@+id/action_new_project" android:title="@string/action_new_project" />
+        <item android:id="@+id/action_open" android:title="@string/action_open_project" />
+        <item android:id="@+id/action_refresh" android:title="@string/action_refresh" />
+    </group>
+
+    <group android:id="@+id/grp_edit">
+        <item android:id="@+id/action_undo" android:title="@string/action_undo" />
+        <item android:id="@+id/action_redo" android:title="@string/action_redo" />
+        <item android:id="@+id/action_find" android:title="@string/action_find" />
+    </group>
+
+    <group android:id="@+id/grp_save">
+        <item android:id="@+id/action_save" android:title="@string/action_save" />
+        <item android:id="@+id/action_save_as" android:title="@string/action_save_as" />
+    </group>
+
+    <group android:id="@+id/grp_build">
+        <item android:id="@+id/action_build" android:title="@string/action_build_apk" />
+        <item android:id="@+id/action_gradle_build" android:title="@string/action_gradle_build" />
+        <item android:id="@+id/action_libraries" android:title="@string/action_libraries" />
+        <item android:id="@+id/action_kotlin_mode" android:title="@string/action_kotlin_mode" />
+    </group>
+
+    <group android:id="@+id/grp_tools">
+        <item android:id="@+id/action_logcat" android:title="@string/action_logcat" />
+        <item android:id="@+id/action_terminal" android:title="@string/action_terminal" />
+        <item android:id="@+id/action_settings" android:title="@string/action_settings" />
+        <item android:id="@+id/action_theme" android:title="@string/action_theme_dark" />
+        <item android:id="@+id/action_toggle_drawer" android:title="@string/action_toggle_sidebar" />
+        <item android:id="@+id/action_about" android:title="@string/action_about" />
+    </group>
+
+</menu>

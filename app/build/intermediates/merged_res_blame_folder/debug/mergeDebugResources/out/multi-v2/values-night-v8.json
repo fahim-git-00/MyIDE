@@ -1,0 +1,26 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.fahim.myide.app-mergeDebugResources-8:/values-night-v8/values-night-v8.xml",
+            "map": [
+                {
+                    "source": "/data/data/com.termux/files/home/MyIDE/app/src/main/res/values-night/themes.xml",
+                    "from": {
+                        "startLines": "4,5",
+                        "startColumns": "4,4",
+                        "startOffsets": "127,181",
+                        "endColumns": "53,62",
+                        "endOffsets": "176,239"
+                    },
+                    "to": {
+                        "startLines": "2,3",
+                        "startColumns": "4,4",
+                        "startOffsets": "55,108",
+                        "endColumns": "52,61",
+                        "endOffsets": "103,165"
+                    }
+                }
+            ]
+        }
+    ]
+}

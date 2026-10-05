@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/term_bg">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/panel_header"
+        android:paddingLeft="12dp"
+        android:paddingRight="6dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+
+        <TextView
+            android:id="@+id/termCwd"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="middle"
+            android:singleLine="true"
+            android:text="~"
+            android:textColor="@color/term_prompt"
+            android:textSize="@dimen/text_sm"
+            android:typeface="monospace" />
+
+        <TextView
+            android:id="@+id/btnTermCopy"
+            style="@style/ToolbarButtonSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⧉" />
+
+        <TextView
+            android:id="@+id/btnTermClear"
+            style="@style/ToolbarButtonSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🗑" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider" />
+
+    <ScrollView
+        android:id="@+id/termScroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/term_bg"
+        android:scrollbars="vertical">
+
+        <TextView
+            android:id="@+id/termOutput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:text=""
+            android:textColor="@color/term_fg"
+            android:textSize="11sp"
+            android:textIsSelectable="true"
+            android:typeface="monospace" />
+    </ScrollView>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/term_bg"
+        android:paddingLeft="8dp"
+        android:paddingRight="4dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+
+        <TextView
+            android:id="@+id/termPrompt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="$"
+            android:textColor="@color/term_prompt"
+            android:textSize="12sp"
+            android:typeface="monospace" />
+
+        <EditText
+            android:id="@+id/termInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="6dp"
+            android:background="@null"
+            android:hint="@string/terminal_hint"
+            android:imeOptions="actionSend"
+            android:inputType="text|textNoSuggestions|textVisiblePassword"
+            android:singleLine="true"
+            android:textColor="@color/term_fg"
+            android:textColorHint="@color/term_dim"
+            android:textSize="12sp"
+            android:typeface="monospace" />
+
+        <TextView
+            android:id="@+id/btnTermRun"
+            style="@style/ToolbarButtonSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="▶" />
+
+        <TextView
+            android:id="@+id/btnTermSend"
+            style="@style/ToolbarButtonSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="↵" />
+    </LinearLayout>
+
+</LinearLayout>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/tree_row_height"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="?android:attr/selectableItemBackground"
+    android:paddingRight="8dp">
+
+    <!-- Indent spacer (width set programmatically) -->
+    <View
+        android:id="@+id/indent"
+        android:layout_width="0dp"
+        android:layout_height="1dp" />
+
+    <!-- Expand/collapse chevron (only for folders) -->
+    <TextView
+        android:id="@+id/chevron"
+        android:layout_width="@dimen/tree_chevron_size"
+        android:layout_height="@dimen/tree_chevron_size"
+        android:layout_marginRight="2dp"
+        android:gravity="center"
+        android:text="›"
+        android:textColor="@color/text_dim"
+        android:textSize="14sp"
+        android:visibility="invisible" />
+
+    <!-- Icon -->
+    <TextView
+        android:id="@+id/icon"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginRight="6dp"
+        android:gravity="center"
+        android:text="📄"
+        android:textSize="14sp" />
+
+    <!-- Name -->
+    <TextView
+        android:id="@+id/name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="middle"
+        android:singleLine="true"
+        android:text="File.java"
+        android:textColor="@color/tree_file"
+        android:textSize="@dimen/text_md"
+        android:typeface="monospace" />
+
+    <!-- Dirty indicator -->
+    <TextView
+        android:id="@+id/dirty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="4dp"
+        android:text="●"
+        android:textColor="@color/accent_light"
+        android:textSize="10sp"
+        android:visibility="gone" />
+
+</LinearLayout>
