@@ -53,14 +53,9 @@ jobs:
           $HOME/android-sdk/build-tools/34.0.0/d8 \
             --min-api 24 \
             --lib $HOME/android-sdk/platforms/android-34/android.jar \
-            --output ./dexout \
+            --output ./kotlin-compiler-embeddable-dexed.jar \
             kotlin-compiler-embeddable.jar
-          cd dexout
-          ls -lh
-          zip -q -X ../kotlin-compiler-embeddable-dexed.jar *.dex
-          cd ..
           mv kotlin-compiler-embeddable-dexed.jar kotlin-compiler-embeddable.jar
-          rm -rf dexout
           ls -lh
 
       - name: Build Debug APK
