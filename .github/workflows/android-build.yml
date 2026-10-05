@@ -46,22 +46,21 @@ jobs:
           grep -v "aapt2FromMavenOverride" gradle.properties > gradle.properties.new || true
           mv gradle.properties.new gradle.properties
 
-      - name: Dex Kotlin compiler for on-device use
+      - name: Dex Kotlin jars for on-device use
         run: |
           cd app/src/main/assets/kotlin
           ls -lh
-          $HOME/android-sdk/build-tools/34.0.0/d8 \
-            --min-api 26 \
-            --lib $HOME/android-sdk/platforms/android-34/android.jar \
-            --output ./kotlin-compiler-embeddable-dexed.jar \
-            kotlin-compiler-embeddable.jar
-          mv kotlin-compiler-embeddable-dexed.jar kotlin-compiler-embeddable.jar
-          $HOME/android-sdk/build-tools/34.0.0/d8 \
-            --min-api 26 \
-            --lib $HOME/android-sdk/platforms/android-34/android.jar \
-            --output ./kotlin-reflect-dexed.jar \
-            kotlin-reflect.jar
-          mv kotlin-reflect-dexed.jar kotlin-reflect.jar
+          D8=$HOME/android-sdk/build-tools/34.0.0/d8
+          LIB=$HOME/android-sdk/platforms/android-34/android.jar
+          for J in kotlin-compiler-embeddable.jar kotlin-stdlib.jar kotlin-reflect.jar kotlin-script-runtime.jar; do
+            if [ ! -f "$J" ]; then echo "skip $J (missing)"; continue; fi
+            rm -rf tmp_dex && mkdir tmp_dex
+            $D8 --min-api 26 --lib $LIB --output tmp_dex "$J"
+            rm "$J"
+            (cd tmp_dex && zip -q -X "../$J" *.dex)
+            rm -rf tmp_dex
+            echo "dexed $J -> $(ls -lh $J | awk '{print $5}')"
+          done
           ls -lh
 
       - name: Build Debug APK
