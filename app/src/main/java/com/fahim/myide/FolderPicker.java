@@ -40,6 +40,7 @@ public final class FolderPicker {
         final int dp4 = dp(ctx, 4);
         final int dp6 = dp(ctx, 6);
         final int dp8 = dp(ctx, 8);
+        final int dp10 = dp(ctx, 10);
         final int dp12 = dp(ctx, 12);
         final int dp14 = dp(ctx, 14);
         final int dp16 = dp(ctx, 16);
