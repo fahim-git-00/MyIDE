@@ -155,6 +155,7 @@ public class KotlinCompiler {
 
         List<String> args = new ArrayList<String>();
         args.add("-kotlin-home"); args.add(kotlinHome.getAbsolutePath());
+        args.add("-no-jdk");
         args.add("-no-stdlib");
         args.add("-no-reflect");
         args.add("-jvm-target"); args.add("1.8");
