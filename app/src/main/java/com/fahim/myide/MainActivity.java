@@ -83,6 +83,8 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     private LinearLayout breadcrumb;
     private TextView editorPlaceholder;
     private View sidebarResizer, panelResizer;
+    private ScrollView gutterScroll;
+    private FastScrollBar fastScrollBar;
 
     // State
     private final List<EditorTab> tabs = new ArrayList<EditorTab>();
@@ -235,6 +237,8 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         editorPlaceholder  = findViewById(R.id.editorPlaceholder);
         sidebarResizer     = findViewById(R.id.sidebarResizer);
         panelResizer       = findViewById(R.id.panelResizer);
+        gutterScroll       = findViewById(R.id.gutterScroll);
+        fastScrollBar      = findViewById(R.id.fastScrollBar);
     }
 
     private void buildTabsBar() {
@@ -457,6 +461,40 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                 if (hasFocus) updateStatusBarFast();
             }
         });
+
+        editor.setOnScrollChangeListener(new View.OnScrollChangeListener() {
+            @Override public void onScrollChange(View v, int sx, int sy, int osx, int osy) {
+                if (gutterScroll != null && gutterScroll.getScrollY() != sy) {
+                    gutterScroll.scrollTo(0, sy);
+                }
+                if (fastScrollBar != null) fastScrollBar.refresh();
+            }
+        });
+
+        fastScrollBar.setHost(new FastScrollBar.Host() {
+            @Override public int getScrollY() { return editor.getScrollY(); }
+            @Override public int getScrollRange() {
+                android.text.Layout lay = editor.getLayout();
+                int contentH = lay != null ? lay.getHeight() : 0;
+                int viewH = editor.getHeight()
+                        - editor.getCompoundPaddingTop()
+                        - editor.getCompoundPaddingBottom();
+                return Math.max(0, contentH - viewH);
+            }
+            @Override public int getViewHeight() {
+                return editor.getHeight()
+                        - editor.getCompoundPaddingTop()
+                        - editor.getCompoundPaddingBottom();
+            }
+            @Override public void scrollToFraction(float frac) {
+                int range = getScrollRange();
+                int target = (int)(frac * range);
+                editor.scrollTo(0, target);
+                if (gutterScroll != null) gutterScroll.scrollTo(0, target);
+                if (fastScrollBar != null) fastScrollBar.refresh();
+            }
+        });
+
     }
 
     private void wireResizers() {
