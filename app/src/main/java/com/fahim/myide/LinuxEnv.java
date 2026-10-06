@@ -256,8 +256,6 @@ public final class LinuxEnv {
         full.add("-b"); full.add("/proc");
         full.add("-b"); full.add("/sys");
 
-        full.add("-b"); full.add(new File(root, "lib").getAbsolutePath() + ":/lib");
-        full.add("-b"); full.add(new File(root, "usr/lib").getAbsolutePath() + ":/usr/lib");
 
         full.add("/bin/sh");
         full.add("-c");
