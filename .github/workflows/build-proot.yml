@@ -28,21 +28,20 @@ jobs:
           sed -i 's|/data/data/com.termux/files/applib|/data/data/com.fahim.myide/files/applib|g' src/*.c src/*.h 2>/dev/null || true
           grep -rn "com.termux" src/ || true
 
-      - name: Configure
-        run: |
-          cd proot
-          ./configure \
-            --host=aarch64-linux-android \
-            --prefix=/data/data/com.fahim.myide/files/usr \
-            --without-ptrace \
-            CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang \
-            CFLAGS="-O2 -fPIC" \
-            LDFLAGS="-fPIE -pie"
-
       - name: Build
         run: |
-          cd proot
-          make -j$(nproc)
+          cd proot/src
+          mkdir -p $GITHUB_WORKSPACE/out/arm64-v8a
+          CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
+          CFLAGS="-O2 -fPIC -DARG_MAX=131072 -I."
+          LDFLAGS="-fPIE -pie"
+          make -j$(nproc) \
+            CC=$CC \
+            LD=$CC \
+            CFLAGS="$CFLAGS" \
+            LDFLAGS="$LDFLAGS" \
+            PREFIX=/data/data/com.fahim.myide/files/usr \
+            V=1 || (echo "--- build failed, dumping log ---"; ls; exit 1)
 
       - name: Collect artifacts
         run: |
