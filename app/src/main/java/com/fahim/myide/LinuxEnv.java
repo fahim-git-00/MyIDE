@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -78,7 +77,6 @@ public final class LinuxEnv {
 
         healMuslLoader(root, cb);
 
-        // Ensure the loader and libc have broad permissions (kernel must mmap them)
         try {
             String[] chmodPaths = {
                     new File(root, "bin").getAbsolutePath(),
@@ -100,8 +98,6 @@ public final class LinuxEnv {
         File resolv = new File(root, "etc/resolv.conf");
         writeText(resolv, "nameserver 1.1.1.1\nnameserver 8.8.8.8\n");
 
-        // Quick proot smoke test — runs /bin/sh -c "true". If this fails,
-        // we bail with a clear message instead of pretending we're downloading.
         if (cb != null) cb.onProgress("proot smoke test…");
         int probe = exec(ctx, new String[]{"/bin/sh", "-c", "echo proot_ok"}, cb);
         if (probe != 0) {
@@ -217,7 +213,6 @@ public final class LinuxEnv {
         List<String> full = new ArrayList<String>();
         full.add(proot.getAbsolutePath());
 
-        // Termux proot needs this for musl rootfs loader handling
         full.add("--link2symlink");
         full.add("--kill-on-exit");
 
@@ -228,21 +223,30 @@ public final class LinuxEnv {
         full.add("-b"); full.add("/proc");
         full.add("-b"); full.add("/sys");
 
-        // Expose the rootfs's /lib and /usr/lib directly as host paths.
-        // Some proot builds don't remap the musl loader otherwise.
         full.add("-b"); full.add(new File(root, "lib").getAbsolutePath() + ":/lib");
         full.add("-b"); full.add(new File(root, "usr/lib").getAbsolutePath() + ":/usr/lib");
 
         full.add("/bin/sh");
         full.add("-c");
 
+        // Build the script. If the caller already gave us /bin/sh -c "...", use
+        // their inner script verbatim (no double-wrapping). Otherwise shell-quote.
         StringBuilder script = new StringBuilder();
         script.append("export HOME=/root ")
               .append("PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin ")
               .append("TERM=xterm LANG=C.UTF-8 ")
-              .append("JAVA_HOME=/usr/lib/jvm/java-17-openjdk ; ");
-        for (String c : cmd) {
-            script.append(shellQuote(c)).append(' ');
+              .append("JAVA_HOME=/usr/lib/jvm/java-17-openjdk ")
+              .append("KOTLIN_HOME=/usr/lib/kotlin ; ");
+
+        if (cmd.length == 3
+                && ("/bin/sh".equals(cmd[0]) || "sh".equals(cmd[0]))
+                && "-c".equals(cmd[1])) {
+            // Already a shell script — use as-is
+            script.append(cmd[2]);
+        } else {
+            for (String c : cmd) {
+                script.append(shellQuote(c)).append(' ');
+            }
         }
         full.add(script.toString());
 

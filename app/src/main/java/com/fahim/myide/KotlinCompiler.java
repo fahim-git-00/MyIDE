@@ -2,19 +2,11 @@ package com.fahim.myide;
 
 import android.content.Context;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-
-import dalvik.system.DexClassLoader;
 
 public class KotlinCompiler {
 
@@ -36,152 +28,113 @@ public class KotlinCompiler {
                         File classesDir,
                         File androidJar) throws Exception {
 
-        File dexDir = new File(ctx.getFilesDir(), "kotlin-dex");
-        if (!dexDir.exists()) dexDir.mkdirs();
+        // 1) Ensure Alpine + OpenJDK + kotlinc is installed (one-time)
+        LinuxEnv.setupIfNeeded(ctx, new LinuxEnv.Progress() {
+            @Override public void onProgress(String m) { say(m); }
+        });
 
-        // ---- 1) Materialise jars from assets ----
-        // Loaded into DexClassLoader:  ONLY the embeddable compiler.
-        // Used as -classpath for the compiled code:  stdlib.
-        // Deliberately NOT loaded:  kotlin-reflect (duplicate of shaded copy),
-        //                           kotlin-script-runtime (not needed).
-        File embeddable = ensureAsset("kotlin/kotlin-compiler-embeddable.jar", dexDir);
-        File stdlib     = ensureAsset("kotlin/kotlin-stdlib.jar", dexDir);
-
-        say("  embeddable: " + embeddable.length() + " bytes");
-        say("  stdlib:     " + stdlib.length() + " bytes");
-
-        // ---- 2) Sources ----
+        // 2) Collect .kt sources
         List<File> ktFiles = new ArrayList<File>();
         for (File src : sourceRoots) findKtFiles(src, ktFiles);
         if (ktFiles.isEmpty()) { say("No .kt files found"); return; }
-        say("Compiling " + ktFiles.size() + " Kotlin file(s) in-process");
+        say("Compiling " + ktFiles.size() + " Kotlin file(s) via kotlinc (Alpine)");
 
         if (!classesDir.exists()) classesDir.mkdirs();
 
-        // ---- 3) DexClassLoader with ONLY the embeddable jar ----
-        DexClassLoader loader;
-        try {
-            loader = new DexClassLoader(
-                    embeddable.getAbsolutePath(),
-                    ctx.getCacheDir().getAbsolutePath(),
-                    null,
-                    ctx.getClassLoader());
-        } catch (Throwable t) {
-            throw new RuntimeException("DexClassLoader failed: " + t.getMessage(), t);
+        // 3) Copy inputs into rootfs (so proot can see them)
+        File inRoot = new File(LinuxEnv.rootfsDir(ctx), "work/in");
+        File outRoot = new File(LinuxEnv.rootfsDir(ctx), "work/out");
+        deleteRecursive(inRoot);
+        deleteRecursive(outRoot);
+        inRoot.mkdirs();
+        outRoot.mkdirs();
+
+        // Copy android.jar + stdlib + reflect + sources
+        File stdlib = ensureAsset("kotlin/kotlin-stdlib.jar",
+                new File(ctx.getFilesDir(), "kotlin-dex"));
+        File reflect = ensureAsset("kotlin/kotlin-reflect.jar",
+                new File(ctx.getFilesDir(), "kotlin-dex"));
+
+        copyFile(androidJar, new File(inRoot, "android.jar"));
+        copyFile(stdlib,     new File(inRoot, "kotlin-stdlib.jar"));
+        copyFile(reflect,    new File(inRoot, "kotlin-reflect.jar"));
+
+        // Preserve relative package structure for each .kt
+        for (File kt : ktFiles) {
+            String rel = relativePath(sourceRoots, kt);
+            File dst = new File(inRoot, rel);
+            File parent = dst.getParentFile();
+            if (parent != null && !parent.exists()) parent.mkdirs();
+            copyFile(kt, dst);
         }
 
-        Class<?> compilerClass;
-        try {
-            compilerClass = loader.loadClass(
-                    "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler");
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(
-                    "K2JVMCompiler not found in dexed embeddable jar. "
-                    + "Is app/src/main/assets/kotlin/kotlin-compiler-embeddable.jar "
-                    + "the dexed one produced by CI?", e);
+        // 4) Build kotlinc command
+        StringBuilder ktArgs = new StringBuilder();
+        ktArgs.append("/usr/bin/kotlinc ");
+        ktArgs.append("-no-stdlib -no-reflect ");
+        ktArgs.append("-jvm-target 1.8 ");
+        ktArgs.append("-classpath '/work/in/android.jar:/work/in/kotlin-stdlib.jar:/work/in/kotlin-reflect.jar' ");
+        ktArgs.append("-d /work/out ");
+        for (File kt : ktFiles) {
+            String rel = relativePath(sourceRoots, kt);
+            ktArgs.append("/work/in/").append(rel).append(' ');
         }
 
-        Object compiler = compilerClass.getDeclaredConstructor().newInstance();
+        // 5) Run inside proot
+        int rc = LinuxEnv.exec(ctx,
+                new String[]{"/bin/sh", "-c", ktArgs.toString()},
+                new LinuxEnv.Progress() {
+                    @Override public void onProgress(String m) { say(m); }
+                });
 
-        // ---- 4) Arguments ----
-        // -classpath goes to the code being compiled.
-        // -no-stdlib stops kotlinc from auto-appending; we append manually.
-        String cp = androidJar.getAbsolutePath()
-                  + File.pathSeparator + stdlib.getAbsolutePath();
-
-        List<String> args = new ArrayList<String>();
-        args.add("-no-stdlib");
-        args.add("-no-reflect");
-        args.add("-jvm-target"); args.add("1.8");
-        args.add("-classpath"); args.add(cp);
-        args.add("-d"); args.add(classesDir.getAbsolutePath());
-        for (File kt : ktFiles) args.add(kt.getAbsolutePath());
-
-        String[] argArr = args.toArray(new String[0]);
-
-        // ---- 5) exec() — does not call System.exit ----
-        ByteArrayOutputStream buf = new ByteArrayOutputStream();
-        PrintStream errStream = new PrintStream(buf, true);
-
-        Object exitObj = null;
-        boolean usedExec = false;
-
-        try {
-            Method exec = compilerClass.getMethod(
-                    "exec", PrintStream.class, String[].class);
-            exitObj = exec.invoke(compiler, errStream, (Object) argArr);
-            usedExec = true;
-        } catch (NoSuchMethodException nsme) {
-            say("K2JVMCompiler.exec() unavailable — falling back to main()");
-        } catch (InvocationTargetException ite) {
-            flush(buf, errStream);
-            Throwable cause = ite.getTargetException();
-            throw new RuntimeException("Kotlin exec() threw: " + cause, cause);
+        if (rc != 0) {
+            throw new RuntimeException("kotlinc exited with " + rc);
         }
 
-        if (!usedExec) {
-            Method main = compilerClass.getMethod("main", String[].class);
-            try {
-                main.invoke(compiler, (Object) argArr);
-            } catch (InvocationTargetException ite) {
-                flush(buf, errStream);
-                Throwable cause = ite.getTargetException();
-                throw new RuntimeException("Kotlin main() threw: " + cause, cause);
+        // 6) Copy .class files back out of rootfs
+        if (!outRoot.exists()) {
+            throw new RuntimeException("kotlinc produced no output dir");
+        }
+        int n = copyTree(outRoot, classesDir);
+        say("Kotlin done: " + n + " files");
+
+        if (n == 0) {
+            throw new RuntimeException("kotlinc produced no .class files");
+        }
+    }
+
+    // ---------------- helpers ----------------
+
+    private String relativePath(List<File> roots, File f) {
+        String abs = f.getAbsolutePath();
+        for (File root : roots) {
+            String r = root.getAbsolutePath();
+            if (abs.startsWith(r)) {
+                String rel = abs.substring(r.length());
+                if (rel.startsWith("/")) rel = rel.substring(1);
+                return rel;
             }
         }
-
-        errStream.flush();
-        String out = buf.toString("UTF-8");
-        if (!out.isEmpty()) for (String line : out.split("\n")) say(line);
-
-        String exitStr = exitObj == null ? "" : exitObj.toString();
-        if (exitStr.contains("COMPILATION_ERROR")
-                || exitStr.contains("INTERNAL_ERROR")
-                || exitStr.contains("SCRIPT_EXECUTION_ERROR")) {
-            throw new RuntimeException("Kotlin compilation failed: " + exitStr);
-        }
-
-        int count = countClasses(classesDir);
-        say("Kotlin done: " + count + " classes");
-        if (count == 0) {
-            throw new RuntimeException("Kotlin compiler produced no .class files. "
-                    + "See compiler output above.");
-        }
+        return f.getName();
     }
 
-    private void flush(ByteArrayOutputStream buf, PrintStream ps) {
-        try {
-            ps.flush();
-            String s = buf.toString("UTF-8");
-            if (!s.isEmpty()) for (String line : s.split("\n")) say(line);
-        } catch (Throwable ignored) {}
-    }
-
-    private int countClasses(File dir) {
-        if (dir == null || !dir.exists()) return 0;
-        int n = 0;
-        File[] kids = dir.listFiles();
+    private int copyTree(File srcDir, File dstDir) throws Exception {
+        int count = 0;
+        File[] kids = srcDir.listFiles();
         if (kids == null) return 0;
-        for (File f : kids) {
-            if (f.isDirectory()) n += countClasses(f);
-            else if (f.getName().endsWith(".class")) n++;
+        if (!dstDir.exists()) dstDir.mkdirs();
+        for (File k : kids) {
+            File d = new File(dstDir, k.getName());
+            if (k.isDirectory()) {
+                count += copyTree(k, d);
+            } else {
+                File parent = d.getParentFile();
+                if (parent != null && !parent.exists()) parent.mkdirs();
+                copyFile(k, d);
+                count++;
+            }
         }
-        return n;
-    }
-
-    private File ensureAsset(String assetPath, File dir) throws IOException {
-        String name = assetPath.substring(assetPath.lastIndexOf('/') + 1);
-        File out = new File(dir, name);
-        if (out.exists() && out.length() > 0) return out;
-
-        InputStream in = ctx.getAssets().open(assetPath);
-        OutputStream os = new FileOutputStream(out);
-        byte[] buf = new byte[65536];
-        int n;
-        while ((n = in.read(buf)) > 0) os.write(buf, 0, n);
-        os.close();
-        in.close();
-        return out;
+        return count;
     }
 
     private void findKtFiles(File dir, List<File> out) {
@@ -192,5 +145,41 @@ public class KotlinCompiler {
             if (f.isDirectory()) findKtFiles(f, out);
             else if (f.getName().endsWith(".kt")) out.add(f);
         }
+    }
+
+    private File ensureAsset(String assetPath, File dir) throws Exception {
+        String name = assetPath.substring(assetPath.lastIndexOf('/') + 1);
+        File out = new File(dir, name);
+        if (out.exists() && out.length() > 0) return out;
+        if (!dir.exists()) dir.mkdirs();
+        InputStream in = ctx.getAssets().open(assetPath);
+        FileOutputStream os = new FileOutputStream(out);
+        byte[] buf = new byte[65536];
+        int n;
+        while ((n = in.read(buf)) > 0) os.write(buf, 0, n);
+        os.close();
+        in.close();
+        return out;
+    }
+
+    private void copyFile(File src, File dst) throws Exception {
+        File parent = dst.getParentFile();
+        if (parent != null && !parent.exists()) parent.mkdirs();
+        InputStream in = new java.io.FileInputStream(src);
+        FileOutputStream out = new FileOutputStream(dst);
+        byte[] buf = new byte[65536];
+        int n;
+        while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+        out.close();
+        in.close();
+    }
+
+    private static void deleteRecursive(File f) {
+        if (f == null || !f.exists()) return;
+        if (f.isDirectory()) {
+            File[] kids = f.listFiles();
+            if (kids != null) for (File k : kids) deleteRecursive(k);
+        }
+        f.delete();
     }
 }
