@@ -20,11 +20,23 @@ jobs:
       - name: Install deps
         run: sudo apt-get update && sudo apt-get install -y libtalloc-dev
 
+      - name: Build talloc for Android
+        run: |
+          wget -q https://download.samba.org/pub/talloc/talloc-2.4.2.tar.gz
+          tar xf talloc-2.4.2.tar.gz
+          cd talloc-2.4.2
+          export CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
+          export AR=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+          ./configure --host=aarch64-linux-android --prefix=$GITHUB_WORKSPACE/talloc-out \
+            --disable-python --without-gettext
+          make -j$(nproc)
+          make install
+          ls -la $GITHUB_WORKSPACE/talloc-out/include $GITHUB_WORKSPACE/talloc-out/lib
+
       - name: Clone proot
         run: |
-          git clone --depth=1 --recursive https://github.com/proot-me/proot.git proot
+          git clone --depth=1 https://github.com/proot-me/proot.git proot
           cd proot
-          # Apply the path patch so it does not hardcode Termux paths
           sed -i 's|/data/data/com.termux/files/applib|/data/data/com.fahim.myide/files/applib|g' src/*.c src/*.h 2>/dev/null || true
           grep -rn "com.termux" src/ || true
 
@@ -33,8 +45,8 @@ jobs:
           cd proot/src
           mkdir -p $GITHUB_WORKSPACE/out/arm64-v8a
           CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
-          CFLAGS="-O2 -fPIC -DARG_MAX=131072 -I. -I.."
-          LDFLAGS="-fPIE -pie"
+          CFLAGS="-O2 -fPIC -DARG_MAX=131072 -I. -I.. -I$GITHUB_WORKSPACE/talloc-out/include"
+          LDFLAGS="-fPIE -pie -L$GITHUB_WORKSPACE/talloc-out/lib"
           make -j$(nproc) \
             CC=$CC \
             LD=$CC \
