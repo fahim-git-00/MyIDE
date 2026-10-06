@@ -79,7 +79,8 @@ jobs:
             OBJCOPY=$OBJCOPY \
             READELF=$READELF \
             CFLAGS="$CFLAGS" \
-            LDFLAGS="$LDFLAGS" \
+            LDFLAGS="$LDFLAGS -ltalloc" \
+            LDLIBS="-ltalloc" \
             PREFIX=/data/data/com.fahim.myide/files/usr \
             V=1 || (echo "--- build failed ---"; ls; exit 1)
 
