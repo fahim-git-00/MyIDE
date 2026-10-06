@@ -1,9 +1,11 @@
 package com.fahim.myide;
 
 import android.content.Context;
+import android.os.Build;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,19 +50,15 @@ public final class LinuxEnv {
         deleteRecursive(libDir);
         libDir.mkdirs();
 
-        // Extract proot's helper libs from assets
         extractAsset(ctx, "proot/libtalloc.so.2", new File(libDir, "libtalloc.so.2"));
         extractAsset(ctx, "proot/libandroid-shmem.so", new File(libDir, "libandroid-shmem.so"));
 
-        // Copy rootfs tar.gz to a real file, then extract
         File tar = new File(ctx.getFilesDir(), "alpine.tar.gz");
         extractAsset(ctx, "rootfs/alpine-rootfs.tgz", tar);
 
         if (cb != null) cb.onProgress("Extracting Alpine Linux…");
         int n = TarGzExtractor.extract(tar, root, new TarGzExtractor.Progress() {
-            @Override public void onProgress(String p) {
-                if (cb != null && p != null && !p.startsWith("extract:")) {}
-            }
+            @Override public void onProgress(String p) {}
         });
         tar.delete();
         if (cb != null) cb.onProgress("Extracted " + n + " entries");
@@ -73,31 +71,31 @@ public final class LinuxEnv {
             throw new RuntimeException("rootfs extract failed: no /bin/sh or /bin/busybox");
         }
 
-        // Heal missing symlinks that TarGzExtractor may have dropped.
-        // /usr/bin/env is the one proot needs to spawn processes.
+        diagnoseElf(binBb, "busybox", cb);
+
+        ensureRealFile(root, "bin/sh",      "bin/busybox");
         ensureRealFile(root, "usr/bin/env", "bin/busybox");
         ensureRealFile(root, "bin/env",     "bin/busybox");
         ensureRealFile(root, "usr/bin/sh",  "bin/busybox");
-        ensureRealFile(root, "bin/sh",      "bin/busybox");
 
-        // Make all files under /bin, /usr, /sbin readable/executable
+        healMuslLoader(root, cb);
+
         try {
             ProcessBuilder chmod = new ProcessBuilder(
                     "/system/bin/sh", "-c",
                     "chmod -R 755 " + new File(root, "bin").getAbsolutePath()
                     + " " + new File(root, "usr").getAbsolutePath()
-                    + " " + new File(root, "sbin").getAbsolutePath());
+                    + " " + new File(root, "sbin").getAbsolutePath()
+                    + " " + new File(root, "lib").getAbsolutePath());
             chmod.redirectErrorStream(true);
             chmod.start().waitFor();
         } catch (Throwable ignored) {}
 
-        // Point apk at repositories
         File apkRepo = new File(root, "etc/apk/repositories");
         writeText(apkRepo,
                 "https://dl-cdn.alpinelinux.org/alpine/v3.19/main\n" +
                 "https://dl-cdn.alpinelinux.org/alpine/v3.19/community\n");
 
-        // DNS
         File resolv = new File(root, "etc/resolv.conf");
         writeText(resolv, "nameserver 1.1.1.1\nnameserver 8.8.8.8\n");
 
@@ -108,7 +106,6 @@ public final class LinuxEnv {
                 cb);
         if (apkRc != 0) throw new RuntimeException("apk add failed: " + apkRc);
 
-        // Sanity check
         exec(ctx,
                 new String[]{"/bin/sh", "-c", "kotlinc -version 2>&1 || true"},
                 cb);
@@ -116,24 +113,96 @@ public final class LinuxEnv {
         new File(root, MARKER).createNewFile();
     }
 
-    /**
-     * Copy {@code relSource} over {@code relPath} when the latter is missing
-     * or is not a real file. Needed because TarGzExtractor materialises
-     * symlinks as copies of their target; when the target wasn't yet present
-     * at extract time, the symlink got dropped entirely.
-     */
+    private static void diagnoseElf(File f, String label, Progress cb) {
+        if (cb == null || f == null || !f.isFile()) return;
+        try {
+            FileInputStream fis = new FileInputStream(f);
+            byte[] magic = new byte[4];
+            int r = fis.read(magic);
+            fis.close();
+            boolean isElf = r == 4 && (magic[0] & 0xff) == 0x7f
+                    && magic[1] == 'E' && magic[2] == 'L' && magic[3] == 'F';
+            cb.onProgress("  " + label + ": elf=" + isElf + " size=" + f.length());
+        } catch (Throwable t) {}
+    }
+
+    private static void healMuslLoader(File root, Progress cb) {
+        String abi = "arm64-v8a";
+        try {
+            if (Build.SUPPORTED_ABIS != null && Build.SUPPORTED_ABIS.length > 0) {
+                abi = Build.SUPPORTED_ABIS[0];
+            }
+        } catch (Throwable ignored) {}
+
+        String[] archNames;
+        if (abi.startsWith("arm64") || abi.equals("aarch64")) {
+            archNames = new String[]{"aarch64", "arm64"};
+        } else if (abi.startsWith("armeabi") || abi.equals("arm")) {
+            archNames = new String[]{"armhf", "arm"};
+        } else if (abi.equals("x86_64") || abi.equals("x64")) {
+            archNames = new String[]{"x86_64", "x86-64"};
+        } else if (abi.equals("x86") || abi.equals("i386") || abi.equals("i686")) {
+            archNames = new String[]{"i386", "i686", "x86"};
+        } else {
+            archNames = new String[]{"aarch64", "arm64", "armhf"};
+        }
+
+        File libRoot = new File(root, "lib");
+        File usrLib  = new File(root, "usr/lib");
+
+        // 1) Ensure loader exists as real file
+        for (String a : archNames) {
+            File loader = new File(libRoot, "ld-musl-" + a + ".so.1");
+            if (loader.isFile() && loader.length() > 0) continue;
+
+            File libc = new File(libRoot, "libc.musl-" + a + ".so.1");
+            if (libc.isFile() && libc.length() > 0) {
+                try {
+                    copyFile(libc, loader);
+                    loader.setExecutable(true, false);
+                    if (cb != null) cb.onProgress("  healed loader: " + loader.getName());
+                    continue;
+                } catch (Throwable ignored) {}
+            }
+            File usrLibc = new File(usrLib, "libc.musl-" + a + ".so.1");
+            if (usrLibc.isFile()) {
+                try {
+                    copyFile(usrLibc, loader);
+                    loader.setExecutable(true, false);
+                    if (cb != null) cb.onProgress("  healed loader (usr): " + loader.getName());
+                } catch (Throwable ignored) {}
+            }
+        }
+
+        // 2) Ensure libc.musl-*.so.1 exists as real file too
+        for (String a : archNames) {
+            File libc = new File(libRoot, "libc.musl-" + a + ".so.1");
+            if (libc.isFile() && libc.length() > 0) continue;
+            File loader = new File(libRoot, "ld-musl-" + a + ".so.1");
+            if (loader.isFile() && loader.length() > 0) {
+                try {
+                    copyFile(loader, libc);
+                    if (cb != null) cb.onProgress("  healed libc: " + libc.getName());
+                } catch (Throwable ignored) {}
+            }
+        }
+
+        // 3) Dump /lib listing for diagnosis
+        if (cb != null) {
+            File[] kids = libRoot.listFiles();
+            StringBuilder sb = new StringBuilder("rootfs /lib: ");
+            if (kids != null) for (File f : kids) {
+                sb.append(f.getName()).append('(').append(f.length()).append(") ");
+            }
+            cb.onProgress(sb.toString());
+        }
+    }
+
     private static void ensureRealFile(File root, String relPath, String relSource) {
         File dst = new File(root, relPath);
         File src = new File(root, relSource);
         if (!src.isFile()) return;
-        if (dst.isFile()) {
-            // Both exist; still re-copy busybox shims to be safe if zero-length
-            if (dst.length() == 0) {
-                try { copyFile(src, dst); dst.setExecutable(true, false); }
-                catch (Throwable ignored) {}
-            }
-            return;
-        }
+        if (dst.isFile() && dst.length() > 0) return;
         try {
             File p = dst.getParentFile();
             if (p != null && !p.exists()) p.mkdirs();
@@ -143,7 +212,7 @@ public final class LinuxEnv {
     }
 
     private static void copyFile(File src, File dst) throws IOException {
-        InputStream in = new java.io.FileInputStream(src);
+        InputStream in = new FileInputStream(src);
         FileOutputStream out = new FileOutputStream(dst);
         byte[] buf = new byte[65536];
         int n;
@@ -152,7 +221,6 @@ public final class LinuxEnv {
         in.close();
     }
 
-    /** Runs a command inside the Alpine rootfs. Returns exit code. */
     public static int exec(Context ctx, String[] cmd, Progress cb) throws Exception {
         File proot = prootBin(ctx);
         File root = rootfsDir(ctx);
@@ -168,19 +236,18 @@ public final class LinuxEnv {
         full.add("-b"); full.add("/dev");
         full.add("-b"); full.add("/proc");
         full.add("-b"); full.add("/sys");
+        full.add("/bin/sh");
+        full.add("-c");
 
-        // Use busybox directly, then ask it to run its "env" applet.
-        // Avoids proot's execve("/usr/bin/env") path which fails when
-        // the env symlink was dropped during tarball extraction.
-        full.add("/bin/busybox");
-        full.add("env");
-        full.add("-i");
-        full.add("HOME=/root");
-        full.add("PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
-        full.add("TERM=xterm");
-        full.add("LANG=C.UTF-8");
-        full.add("JAVA_HOME=/usr/lib/jvm/java-17-openjdk");
-        full.addAll(Arrays.asList(cmd));
+        StringBuilder script = new StringBuilder();
+        script.append("export HOME=/root ")
+              .append("PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin ")
+              .append("TERM=xterm LANG=C.UTF-8 ")
+              .append("JAVA_HOME=/usr/lib/jvm/java-17-openjdk ; ");
+        for (String c : cmd) {
+            script.append(shellQuote(c)).append(' ');
+        }
+        full.add(script.toString());
 
         ProcessBuilder pb = new ProcessBuilder(full);
         pb.redirectErrorStream(true);
@@ -192,6 +259,11 @@ public final class LinuxEnv {
         Process p = pb.start();
         drain(p, cb);
         return p.waitFor();
+    }
+
+    private static String shellQuote(String s) {
+        if (s == null) return "''";
+        return "'" + s.replace("'", "'\\''") + "'";
     }
 
     private static void drain(Process p, Progress cb) throws IOException {
