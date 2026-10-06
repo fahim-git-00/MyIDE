@@ -27,8 +27,11 @@ jobs:
           cd talloc-2.4.2
           export CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
           export AR=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+          export CFLAGS="-fPIE -fPIC"
+          export LDFLAGS="-pie"
           ./configure --host=aarch64-linux-android --prefix=$GITHUB_WORKSPACE/talloc-out \
-            --disable-python --without-gettext
+            --disable-python --without-gettext --disable-rpath \
+            --builtin-libraries=replace
           make -j$(nproc)
           make install
           ls -la $GITHUB_WORKSPACE/talloc-out/include $GITHUB_WORKSPACE/talloc-out/lib
