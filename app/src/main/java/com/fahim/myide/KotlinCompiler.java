@@ -20,13 +20,6 @@ public class KotlinCompiler {
 
     public interface Progress { void onProgress(String message); }
 
-    private static final String[] JAR_NAMES = {
-            "kotlin-compiler-embeddable.jar",
-            "kotlin-stdlib.jar",
-            "kotlin-reflect.jar",
-            "kotlin-script-runtime.jar"
-    };
-
     private final Context ctx;
     private final Progress progress;
 
@@ -43,67 +36,33 @@ public class KotlinCompiler {
                         File classesDir,
                         File androidJar) throws Exception {
 
-        // ---- 1) Materialise dexed Kotlin jars from assets ----
         File dexDir = new File(ctx.getFilesDir(), "kotlin-dex");
         if (!dexDir.exists()) dexDir.mkdirs();
 
-        List<File> jarFiles = new ArrayList<File>();
-        for (String name : JAR_NAMES) {
-            File f = new File(dexDir, name);
-            if (!f.exists() || f.length() == 0) {
-                try {
-                    copyAsset("kotlin/" + name, f);
-                } catch (IOException e) {
-                    say("asset kotlin/" + name + " missing ("
-                            + e.getMessage() + ")");
-                    if ("kotlin-compiler-embeddable.jar".equals(name)
-                            || "kotlin-stdlib.jar".equals(name)) {
-                        throw new RuntimeException(
-                                "Required Kotlin jar missing from assets: " + name
-                                + ". Make sure app/src/main/assets/kotlin/ contains it "
-                                + "and that CI dexes it.");
-                    }
-                    continue;
-                }
-            }
-            jarFiles.add(f);
-            say("  " + name + " (" + f.length() + " bytes)");
-        }
+        // ---- 1) Materialise jars from assets ----
+        // Loaded into DexClassLoader:  ONLY the embeddable compiler.
+        // Used as -classpath for the compiled code:  stdlib.
+        // Deliberately NOT loaded:  kotlin-reflect (duplicate of shaded copy),
+        //                           kotlin-script-runtime (not needed).
+        File embeddable = ensureAsset("kotlin/kotlin-compiler-embeddable.jar", dexDir);
+        File stdlib     = ensureAsset("kotlin/kotlin-stdlib.jar", dexDir);
 
-        if (jarFiles.isEmpty()) {
-            throw new RuntimeException("No Kotlin jars in assets/kotlin/. "
-                    + "Switch Kotlin Mode to Remote in Settings.");
-        }
+        say("  embeddable: " + embeddable.length() + " bytes");
+        say("  stdlib:     " + stdlib.length() + " bytes");
 
-        // ---- 2) Collect .kt sources ----
+        // ---- 2) Sources ----
         List<File> ktFiles = new ArrayList<File>();
         for (File src : sourceRoots) findKtFiles(src, ktFiles);
-        if (ktFiles.isEmpty()) {
-            say("No .kt files found");
-            return;
-        }
+        if (ktFiles.isEmpty()) { say("No .kt files found"); return; }
         say("Compiling " + ktFiles.size() + " Kotlin file(s) in-process");
-
-        // ---- 3) Classpath ----
-        StringBuilder cp = new StringBuilder();
-        cp.append(androidJar.getAbsolutePath());
-        for (File f : jarFiles) {
-            cp.append(File.pathSeparator).append(f.getAbsolutePath());
-        }
-
-        StringBuilder dexPath = new StringBuilder();
-        for (File f : jarFiles) {
-            if (dexPath.length() > 0) dexPath.append(File.pathSeparator);
-            dexPath.append(f.getAbsolutePath());
-        }
 
         if (!classesDir.exists()) classesDir.mkdirs();
 
-        // ---- 4) Load compiler through DexClassLoader ----
+        // ---- 3) DexClassLoader with ONLY the embeddable jar ----
         DexClassLoader loader;
         try {
             loader = new DexClassLoader(
-                    dexPath.toString(),
+                    embeddable.getAbsolutePath(),
                     ctx.getCacheDir().getAbsolutePath(),
                     null,
                     ctx.getClassLoader());
@@ -117,42 +76,47 @@ public class KotlinCompiler {
                     "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler");
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(
-                    "K2JVMCompiler not found in dexed jars. "
-                    + "kotlin-compiler-embeddable.jar may not be dexed or is corrupt.",
-                    e);
+                    "K2JVMCompiler not found in dexed embeddable jar. "
+                    + "Is app/src/main/assets/kotlin/kotlin-compiler-embeddable.jar "
+                    + "the dexed one produced by CI?", e);
         }
 
         Object compiler = compilerClass.getDeclaredConstructor().newInstance();
 
-        // ---- 5) Args ----
+        // ---- 4) Arguments ----
+        // -classpath goes to the code being compiled.
+        // -no-stdlib stops kotlinc from auto-appending; we append manually.
+        String cp = androidJar.getAbsolutePath()
+                  + File.pathSeparator + stdlib.getAbsolutePath();
+
         List<String> args = new ArrayList<String>();
         args.add("-no-stdlib");
         args.add("-no-reflect");
         args.add("-jvm-target"); args.add("1.8");
-        args.add("-classpath"); args.add(cp.toString());
+        args.add("-classpath"); args.add(cp);
         args.add("-d"); args.add(classesDir.getAbsolutePath());
         for (File kt : ktFiles) args.add(kt.getAbsolutePath());
 
         String[] argArr = args.toArray(new String[0]);
 
-        // ---- 6) Prefer exec() — doesn't call System.exit ----
-        ByteArrayOutputStream outBuf = new ByteArrayOutputStream();
-        PrintStream errStream = new PrintStream(outBuf, true);
+        // ---- 5) exec() — does not call System.exit ----
+        ByteArrayOutputStream buf = new ByteArrayOutputStream();
+        PrintStream errStream = new PrintStream(buf, true);
 
-        Object exitCodeObj = null;
+        Object exitObj = null;
         boolean usedExec = false;
 
         try {
             Method exec = compilerClass.getMethod(
                     "exec", PrintStream.class, String[].class);
-            exitCodeObj = exec.invoke(compiler, errStream, (Object) argArr);
+            exitObj = exec.invoke(compiler, errStream, (Object) argArr);
             usedExec = true;
         } catch (NoSuchMethodException nsme) {
-            say("K2JVMCompiler.exec() not available — falling back to main()");
+            say("K2JVMCompiler.exec() unavailable — falling back to main()");
         } catch (InvocationTargetException ite) {
-            dumpCompilerOutput(outBuf, errStream);
-            throw new RuntimeException("Kotlin exec() threw: "
-                    + ite.getTargetException(), ite.getTargetException());
+            flush(buf, errStream);
+            Throwable cause = ite.getTargetException();
+            throw new RuntimeException("Kotlin exec() threw: " + cause, cause);
         }
 
         if (!usedExec) {
@@ -160,19 +124,17 @@ public class KotlinCompiler {
             try {
                 main.invoke(compiler, (Object) argArr);
             } catch (InvocationTargetException ite) {
-                dumpCompilerOutput(outBuf, errStream);
-                throw new RuntimeException("Kotlin main() threw: "
-                        + ite.getTargetException(), ite.getTargetException());
+                flush(buf, errStream);
+                Throwable cause = ite.getTargetException();
+                throw new RuntimeException("Kotlin main() threw: " + cause, cause);
             }
         }
 
         errStream.flush();
-        String compilerOut = outBuf.toString("UTF-8");
-        if (!compilerOut.isEmpty()) {
-            for (String line : compilerOut.split("\n")) say(line);
-        }
+        String out = buf.toString("UTF-8");
+        if (!out.isEmpty()) for (String line : out.split("\n")) say(line);
 
-        String exitStr = exitCodeObj == null ? "" : exitCodeObj.toString();
+        String exitStr = exitObj == null ? "" : exitObj.toString();
         if (exitStr.contains("COMPILATION_ERROR")
                 || exitStr.contains("INTERNAL_ERROR")
                 || exitStr.contains("SCRIPT_EXECUTION_ERROR")) {
@@ -187,7 +149,7 @@ public class KotlinCompiler {
         }
     }
 
-    private void dumpCompilerOutput(ByteArrayOutputStream buf, PrintStream ps) {
+    private void flush(ByteArrayOutputStream buf, PrintStream ps) {
         try {
             ps.flush();
             String s = buf.toString("UTF-8");
@@ -207,9 +169,11 @@ public class KotlinCompiler {
         return n;
     }
 
-    private void copyAsset(String assetPath, File out) throws IOException {
-        File p = out.getParentFile();
-        if (p != null && !p.exists()) p.mkdirs();
+    private File ensureAsset(String assetPath, File dir) throws IOException {
+        String name = assetPath.substring(assetPath.lastIndexOf('/') + 1);
+        File out = new File(dir, name);
+        if (out.exists() && out.length() > 0) return out;
+
         InputStream in = ctx.getAssets().open(assetPath);
         OutputStream os = new FileOutputStream(out);
         byte[] buf = new byte[65536];
@@ -217,6 +181,7 @@ public class KotlinCompiler {
         while ((n = in.read(buf)) > 0) os.write(buf, 0, n);
         os.close();
         in.close();
+        return out;
     }
 
     private void findKtFiles(File dir, List<File> out) {
