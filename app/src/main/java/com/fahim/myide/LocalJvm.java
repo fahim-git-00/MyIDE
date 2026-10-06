@@ -258,9 +258,12 @@ public class LocalJvm {
         for (String[] e : map) {
             File src = new File(nd, e[1]);
             if (!src.isFile()) continue;
-            File dst = new File(libDir, e[0]);
-            if (dst.isFile() && dst.length() == src.length()) continue;
-            copy(src, dst);
+            // Copy under original name (JVM looks this up)
+            File dst1 = new File(libDir, e[0]);
+            if (!(dst1.isFile() && dst1.length() == src.length())) copy(src, dst1);
+            // Also copy under prefixed name (other .so NEED this name)
+            File dst2 = new File(libDir, e[1]);
+            if (!(dst2.isFile() && dst2.length() == src.length())) copy(src, dst2);
         }
         // jvm needs libjvm.so in lib/server
         File srcJvm = new File(nd, "libjdk_libjvm.so");
