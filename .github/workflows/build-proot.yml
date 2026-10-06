@@ -28,12 +28,13 @@ jobs:
           export CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
           export AR=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
           export RANLIB=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib
-          export CFLAGS="-fPIE -fPIC"
-          export LDFLAGS="-pie"
+          export CFLAGS="-fPIE -fPIC -DHAVE_SYS_AUXV_H=1"
+          export LDFLAGS="-pie -Wl,--undefined-version"
           ./configure \
             --host=aarch64-linux-android \
             --prefix=$GITHUB_WORKSPACE/talloc-out \
             --disable-python --without-gettext --disable-rpath \
+            --without-ldconfig \
             --cross-compile --cross-execute=/bin/true \
             --builtin-libraries=replace
           make -j$(nproc) || (echo "--- talloc build log ---"; cat bin/config.log | tail -80; exit 1)
