@@ -20,30 +20,9 @@ jobs:
       - name: Install deps
         run: sudo apt-get update && sudo apt-get install -y libtalloc-dev
 
-      - name: Build talloc for Android
-        run: |
-          wget -q https://download.samba.org/pub/talloc/talloc-2.4.2.tar.gz
-          tar xf talloc-2.4.2.tar.gz
-          cd talloc-2.4.2
-          export CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
-          export AR=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
-          export RANLIB=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib
-          export CFLAGS="-fPIE -fPIC -DHAVE_SYS_AUXV_H=1"
-          export LDFLAGS="-pie -Wl,--undefined-version"
-          ./configure \
-            --host=aarch64-linux-android \
-            --prefix=$GITHUB_WORKSPACE/talloc-out \
-            --disable-python --without-gettext --disable-rpath \
-            --disable-symbol-versions \
-            --cross-compile --cross-execute=/bin/true \
-            --builtin-libraries=replace
-          make -j$(nproc) || (echo "--- talloc build log ---"; cat bin/config.log | tail -80; exit 1)
-          make install
-          ls -la $GITHUB_WORKSPACE/talloc-out/include $GITHUB_WORKSPACE/talloc-out/lib
-
       - name: Clone proot
         run: |
-          git clone --depth=1 --branch v5.1.0 https://github.com/proot-me/proot.git proot
+          git clone --depth=1 --recursive https://github.com/termux/proot.git proot
           cd proot
           sed -i 's|/data/data/com.termux/files/applib|/data/data/com.fahim.myide/files/applib|g' src/*.c src/*.h 2>/dev/null || true
           grep -rn "com.termux" src/ || true
@@ -53,8 +32,8 @@ jobs:
           cd proot/src
           mkdir -p $GITHUB_WORKSPACE/out/arm64-v8a
           CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
-          CFLAGS="-O2 -fPIC -DARG_MAX=131072 -I. -I.. -I$GITHUB_WORKSPACE/talloc-out/include"
-          LDFLAGS="-fPIE -pie -L$GITHUB_WORKSPACE/talloc-out/lib"
+          CFLAGS="-O2 -fPIC -DARG_MAX=131072 -I. -I.."
+          LDFLAGS="-fPIE -pie"
           make -j$(nproc) \
             CC=$CC \
             LD=$CC \
