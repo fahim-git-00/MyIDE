@@ -41,7 +41,7 @@ android {
     }
 
     androidResources {
-        noCompress 'jar', 'zip', 'so', 'dex', 'gz', 'tgz'
+        noCompress 'jar', 'zip', 'so', 'dex', 'gz', 'tgz', 'modules', 'dat', 'cfg', 'sym', 'jimage'
     }
 
     lint {
