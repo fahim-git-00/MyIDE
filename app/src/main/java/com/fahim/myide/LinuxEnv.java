@@ -287,6 +287,9 @@ public final class LinuxEnv {
         env.put("LD_LIBRARY_PATH", libDir.getAbsolutePath());
         env.put("PROOT_TMP_DIR", ctx.getCacheDir().getAbsolutePath());
         env.put("PROOT_NO_SECCOMP", "1");
+        File loader = new File(ctx.getApplicationInfo().nativeLibraryDir,
+                "libproot-loader.so");
+        env.put("PROOT_LOADER", loader.getAbsolutePath());
 
         Process p = pb.start();
         drain(p, cb);
