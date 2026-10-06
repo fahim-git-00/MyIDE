@@ -55,9 +55,13 @@ jobs:
           CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
           CFLAGS="-O2 -fPIC -DARG_MAX=131072 -I. -I.. -I$GITHUB_WORKSPACE/talloc-out/include"
           LDFLAGS="-fPIE -pie -L$GITHUB_WORKSPACE/talloc-out/lib"
+          STRIP=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip
           make -j$(nproc) \
             CC=$CC \
             LD=$CC \
+            STRIP=$STRIP \
+            OBJCOPY=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-objcopy \
+            READELF=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf \
             CFLAGS="$CFLAGS" \
             LDFLAGS="$LDFLAGS" \
             PREFIX=/data/data/com.fahim.myide/files/usr \
