@@ -98,6 +98,15 @@ public final class LinuxEnv {
         File resolv = new File(root, "etc/resolv.conf");
         writeText(resolv, "nameserver 1.1.1.1\nnameserver 8.8.8.8\n");
 
+        // Make sure every file inside the rootfs is executable.
+        try {
+            new ProcessBuilder("/system/bin/sh", "-c",
+                    "chmod -R 0755 " + root.getAbsolutePath())
+                .redirectErrorStream(true).start().waitFor();
+        } catch (Throwable t) {
+            if (cb != null) cb.onProgress("chmod failed: " + t);
+        }
+
         if (cb != null) cb.onProgress("proot smoke test…");
 
         try {
