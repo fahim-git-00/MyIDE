@@ -83,6 +83,17 @@ public class LocalJvm {
 
         wireNativeLibs();
 
+        File jLib = new File(jdkDir, "lib/libjava.so");
+        say("  jdk/lib/libjava.so exists=" + jLib.isFile()
+                + " len=" + (jLib.isFile() ? jLib.length() : -1));
+        File jJli = new File(jdkDir, "lib/libjli.so");
+        say("  jdk/lib/libjli.so exists=" + jJli.isFile()
+                + " len=" + (jJli.isFile() ? jJli.length() : -1));
+        File jJvm = new File(jdkDir, "lib/server/libjvm.so");
+        say("  jdk/lib/server/libjvm.so exists=" + jJvm.isFile()
+                + " len=" + (jJvm.isFile() ? jJvm.length() : -1));
+        say("  nativeLibraryDir=" + ctx.getApplicationInfo().nativeLibraryDir);
+
         String nativeDir = ctx.getApplicationInfo().nativeLibraryDir;
         File javaLauncher = new File(nativeDir, "libjava-launcher.so");
         if (!javaLauncher.isFile()) {
