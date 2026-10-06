@@ -294,7 +294,7 @@ public final class LinuxEnv {
         pb.redirectErrorStream(true);
         Map<String,String> env = pb.environment();
         env.put("LD_LIBRARY_PATH", libDir.getAbsolutePath());
-        env.put("PROOT_TMP_DIR", ctx.getCacheDir().getAbsolutePath());
+        env.put("PROOT_TMP_DIR", rootfsDir(ctx).getAbsolutePath());
         env.put("PROOT_NO_SECCOMP", "1");
 
         Process p = pb.start();
