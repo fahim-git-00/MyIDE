@@ -45,7 +45,7 @@ jobs:
         run: |
           git clone --depth=1 --recursive https://github.com/termux/proot.git proot
           cd proot
-          sed -i 's|/data/data/com.termux/files/applib|/data/data/com.fahim.myide/files/applib|g' src/*.c src/*.h 2>/dev/null || true
+          sed -i "s|/data/data/com.termux/files/applib|/data/data/com.fahim.myide/files/applib|g" src/*.c src/*.h 2>/dev/null || true; sed -i "1i #include <string.h>" src/extension/ashmem_memfd/ashmem_memfd.c
           grep -rn "com.termux" src/ || true
 
       - name: Build
