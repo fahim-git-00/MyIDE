@@ -296,6 +296,12 @@ public final class LinuxEnv {
         env.put("LD_LIBRARY_PATH", libDir.getAbsolutePath());
         env.put("PROOT_TMP_DIR", rootfsDir(ctx).getAbsolutePath());
         env.put("PROOT_NO_SECCOMP", "1");
+        env.put("PROOT_VERBOSE", "1");
+        if (cb != null) {
+            StringBuilder dbg = new StringBuilder("$ proot");
+            for (String a : full) dbg.append(' ').append(a);
+            cb.onProgress(dbg.toString());
+        }
 
         Process p = pb.start();
         drain(p, cb);
