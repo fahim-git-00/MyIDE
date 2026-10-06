@@ -34,7 +34,7 @@ jobs:
             --host=aarch64-linux-android \
             --prefix=$GITHUB_WORKSPACE/talloc-out \
             --disable-python --without-gettext --disable-rpath \
-            --without-ldconfig \
+            --disable-symbol-versions \
             --cross-compile --cross-execute=/bin/true \
             --builtin-libraries=replace
           make -j$(nproc) || (echo "--- talloc build log ---"; cat bin/config.log | tail -80; exit 1)
