@@ -265,6 +265,13 @@ public final class LinuxEnv {
         full.add("-b"); full.add("/proc");
         full.add("-b"); full.add("/sys");
 
+        // Kernel resolves ELF interpreter path *before* proot sees the exec,
+        // so /lib and /usr/lib must resolve on the host at the same path.
+        full.add("-b");
+        full.add(new File(rootfsDir(ctx), "lib").getAbsolutePath() + ":/lib");
+        full.add("-b");
+        full.add(new File(rootfsDir(ctx), "usr/lib").getAbsolutePath() + ":/usr/lib");
+
 
         full.add("/bin/sh");
         full.add("-c");
