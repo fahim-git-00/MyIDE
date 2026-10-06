@@ -1,6 +1,7 @@
 package com.fahim.myide;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Environment;
 
 import java.io.ByteArrayOutputStream;
@@ -16,9 +17,6 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -226,21 +224,11 @@ public class ApkBuilder {
             File classesDir = new File(workDir, "classes");
             classesDir.mkdirs();
 
-            // Kotlin support via embedded Alpine + OpenJDK + kotlinc
+            // ---- Kotlin ----
             boolean hasKt = false;
             for (File src : sourceRoots) if (hasKtFiles(src)) { hasKt = true; break; }
             if (hasKt) {
-                try {
-                    say("Kotlin detected — compiling via embedded Linux…");
-                    KotlinCompiler kc = new KotlinCompiler(ctx,
-                            new KotlinCompiler.Progress() {
-                                @Override public void onProgress(String m) { say(m); }
-                            });
-                    kc.compile(sourceRoots, classesDir, androidJar);
-                } catch (Throwable t) {
-                    say("Kotlin compile failed: " + causeChain(t));
-                    throw new RuntimeException("Kotlin compile failed", t);
-                }
+                compileKotlin(sourceRoots, classesDir, androidJar);
             }
 
             jarDeps.add(lambdaStubs);
@@ -271,6 +259,68 @@ public class ApkBuilder {
             say(err);
             writeBuildLog();
             return new Result(false, null, fullLog.toString());
+        }
+    }
+
+    /**
+     * Dispatches Kotlin compilation by the user's kotlin_mode setting:
+     *   local  → embedded Alpine + kotlinc via proot
+     *   remote → GitHub Actions workflow
+     *   auto   → try local, fall back to remote
+     * If remote is selected but no GitHub token is set, falls through to local.
+     */
+    private void compileKotlin(List<File> sourceRoots, File classesDir, File androidJar) {
+        SharedPreferences prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE);
+        String mode = prefs.getString("kotlin_mode", "auto");
+        String token = ctx.getSharedPreferences("github", Context.MODE_PRIVATE)
+                .getString("token", "");
+        boolean hasToken = token != null && token.trim().length() > 0;
+
+        if ("remote".equals(mode) && !hasToken) {
+            say("Kotlin remote requested but no GitHub token — using local instead");
+            mode = "local";
+        }
+
+        if ("remote".equals(mode)) {
+            say("Kotlin mode: remote (GitHub Actions)");
+            try {
+                RemoteKotlinCompiler rkc = new RemoteKotlinCompiler(ctx,
+                        new RemoteKotlinCompiler.Progress() {
+                            @Override public void onProgress(String m) { say(m); }
+                        });
+                rkc.compile(sourceRoots, classesDir);
+                return;
+            } catch (Throwable t) {
+                say("Remote Kotlin compile failed: " + causeChain(t));
+                throw new RuntimeException("Kotlin compile failed", t);
+            }
+        }
+
+        // local or auto-fallback
+        say("Kotlin mode: local (embedded Alpine)");
+        try {
+            KotlinCompiler kc = new KotlinCompiler(ctx,
+                    new KotlinCompiler.Progress() {
+                        @Override public void onProgress(String m) { say(m); }
+                    });
+            kc.compile(sourceRoots, classesDir, androidJar);
+        } catch (Throwable t) {
+            say("Local Kotlin compile failed: " + causeChain(t));
+            if ("auto".equals(mode) && hasToken) {
+                say("Falling back to remote…");
+                try {
+                    RemoteKotlinCompiler rkc = new RemoteKotlinCompiler(ctx,
+                            new RemoteKotlinCompiler.Progress() {
+                                @Override public void onProgress(String m) { say(m); }
+                            });
+                    rkc.compile(sourceRoots, classesDir);
+                    return;
+                } catch (Throwable t2) {
+                    say("Remote fallback also failed: " + causeChain(t2));
+                    throw new RuntimeException("Kotlin compile failed", t2);
+                }
+            }
+            throw new RuntimeException("Kotlin compile failed", t);
         }
     }
 
@@ -444,7 +494,6 @@ public class ApkBuilder {
 
         StringBuilder cp = new StringBuilder();
         cp.append(androidJar.getAbsolutePath());
-        // Put classesDir on the classpath so Java can reference Kotlin types.
         if (classesDir != null && classesDir.exists()) {
             cp.append(File.pathSeparator).append(classesDir.getAbsolutePath());
         }
@@ -599,8 +648,7 @@ public class ApkBuilder {
         List<String> args = new ArrayList<String>();
         args.add("sign");
 
-        android.content.SharedPreferences _prefs =
-                ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE);
+        SharedPreferences _prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE);
         String _mode = _prefs.getString("sign_key_mode", "bundled");
         boolean _custom = false;
         if ("pk8pem".equals(_mode)) {
@@ -797,11 +845,6 @@ public class ApkBuilder {
         }
         return sb.toString();
     }
-
-    // ---------------- Kotlin stdlib ----------------
-
-    private static final String KOTLIN_STDLIB_VERSION = "1.9.24";
-    private static final String MAVEN_CENTRAL = "https://repo1.maven.org/maven2/";
 
     private static void deleteRecursive(File f) {
         if (f == null || !f.exists()) return;

@@ -73,12 +73,31 @@ public class KotlinCompiler {
         File ajInRoot = new File(tmpInRoot, "android.jar");
         copyFile(androidJar, ajInRoot);
 
-        // kotlinc inside
+        // Auto-detect stdlib location inside Alpine rootfs
+        say("Locating kotlin-stdlib inside rootfs…");
+        File kHome = findKotlinHome(rootfs);
+        if (kHome == null) {
+            throw new RuntimeException("kotlin-stdlib.jar not found inside rootfs. "
+                    + "Did 'apk add kotlin' succeed?");
+        }
+        File stdlibInRoot = findKotlinStdlib(kHome);
+        if (stdlibInRoot == null) {
+            throw new RuntimeException("kotlin-stdlib.jar not found under " + kHome);
+        }
+        say("  kotlin home: " + kHome.getAbsolutePath());
+        say("  stdlib: " + stdlibInRoot.getAbsolutePath());
+
+        String kotlinHomeRel = "/" + relativize(rootfs, kHome);
+        String stdlibRel = "/" + relativize(rootfs, stdlibInRoot);
+
+        // kotlinc inside — do NOT pass -no-stdlib; explicitly add the jar
+        // in case the auto-detect via KOTLIN_HOME fails.
         String script =
             "cd /tmp/myide && " +
+            "KOTLIN_HOME=" + shQuote(kotlinHomeRel) + " " +
             "/usr/bin/kotlinc src " +
-            "-classpath /tmp/myide/android.jar " +
-            "-jvm-target 1.8 -no-stdlib -no-reflect " +
+            "-classpath /tmp/myide/android.jar:" + shQuote(stdlibRel) + " " +
+            "-jvm-target 1.8 -no-reflect " +
             "-d out 2>&1";
 
         say("Running kotlinc inside Alpine…");
@@ -98,6 +117,46 @@ public class KotlinCompiler {
         say("Kotlin compiled: " + n + " classes");
 
         LinuxEnv.deleteRecursive(tmpInRoot);
+    }
+
+    // ---------- helpers ----------
+
+    private static File findKotlinHome(File rootfs) {
+        File[] candidates = {
+                new File(rootfs, "usr/lib/kotlin"),
+                new File(rootfs, "usr/share/kotlin"),
+                new File(rootfs, "opt/kotlin"),
+                new File(rootfs, "usr/local/lib/kotlin"),
+                new File(rootfs, "usr/lib/kotlin-compiler")
+        };
+        for (File c : candidates) {
+            if (c.isDirectory() && findKotlinStdlib(c) != null) return c;
+        }
+        // Fallback: search /usr/lib shallowly
+        File usrLib = new File(rootfs, "usr/lib");
+        File[] kids = usrLib.listFiles();
+        if (kids != null) {
+            for (File k : kids) {
+                if (k.isDirectory() && k.getName().startsWith("kotlin")) {
+                    if (findKotlinStdlib(k) != null) return k;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static File findKotlinStdlib(File kotlinHome) {
+        File[] candidates = {
+                new File(kotlinHome, "lib/kotlin-stdlib.jar"),
+                new File(kotlinHome, "lib/kotlin-stdlib-jdk8.jar"),
+                new File(kotlinHome, "kotlin-stdlib.jar")
+        };
+        for (File c : candidates) if (c.isFile()) return c;
+        return null;
+    }
+
+    private static String shQuote(String s) {
+        return "'" + s.replace("'", "'\\''") + "'";
     }
 
     private int copyTree(File src, File dst) throws IOException {
