@@ -141,6 +141,8 @@ public class LocalJvm {
         say("Running kotlinc via bundled JVM…");
         ProcessBuilder pb = new ProcessBuilder(args);
         pb.redirectErrorStream(true);
+        pb.environment().put("JAVA_HOME", javaHome.getAbsolutePath());
+        pb.environment().put("LD_LIBRARY_PATH", nativeDir);
         Process p = pb.start();
         java.io.BufferedReader r = new java.io.BufferedReader(
                 new java.io.InputStreamReader(p.getInputStream()));
@@ -170,6 +172,20 @@ public class LocalJvm {
         for (String k : kids) {
             copyAssetTree(assetPath + "/" + k, new File(destDir, k));
         }
+    }
+
+    private static void copy(File src, File dst) {
+        try {
+            File parent = dst.getParentFile();
+            if (parent != null && !parent.exists()) parent.mkdirs();
+            java.io.FileInputStream in = new java.io.FileInputStream(src);
+            java.io.FileOutputStream out = new java.io.FileOutputStream(dst);
+            byte[] buf = new byte[65536];
+            int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            out.close();
+            in.close();
+        } catch (Throwable ignored) {}
     }
 
     /**
@@ -232,25 +248,18 @@ public class LocalJvm {
         if (!real.exists()) real.mkdirs();
 
         for (String[] e : map) {
-            File target = new File(nd, e[1]);
-            if (!target.isFile()) continue;
-            File link = new File(real, e[0]);
-            if (link.exists()) continue;
-            try {
-                Runtime.getRuntime().exec(new String[]{
-                        "ln", "-sf", target.getAbsolutePath(), link.getAbsolutePath()
-                }).waitFor();
-            } catch (Throwable ignored) {}
+            File src = new File(nd, e[1]);
+            if (!src.isFile()) continue;
+            File dst = new File(real, e[0]);
+            if (dst.isFile() && dst.length() == src.length()) continue;
+            copy(src, dst);
         }
         // jvm needs libjvm.so in lib/server
-        File targetJvm = new File(nd, "libjdk_libjvm.so");
-        File serverLink = new File(serverDir, "libjvm.so");
-        if (!serverLink.exists() && targetJvm.isFile()) {
-            try {
-                Runtime.getRuntime().exec(new String[]{
-                        "ln", "-sf", targetJvm.getAbsolutePath(), serverLink.getAbsolutePath()
-                }).waitFor();
-            } catch (Throwable ignored) {}
+        File srcJvm = new File(nd, "libjdk_libjvm.so");
+        File serverDst = new File(serverDir, "libjvm.so");
+        if (srcJvm.isFile() && (!serverDst.isFile()
+                || serverDst.length() != srcJvm.length())) {
+            copy(srcJvm, serverDst);
         }
     }
 
