@@ -99,39 +99,6 @@ public final class LinuxEnv {
         writeText(resolv, "nameserver 1.1.1.1\nnameserver 8.8.8.8\n");
 
         if (cb != null) cb.onProgress("proot smoke test…");
-
-        try {
-            File libDirDbg = new File(root, "lib");
-            File[] libs = libDirDbg.listFiles();
-            if (libs != null) {
-                for (File f : libs) {
-                    cb.onProgress("  lib: " + f.getName()
-                            + " len=" + f.length()
-                            + " canExec=" + f.canExecute());
-                }
-            } else {
-                cb.onProgress("  lib: (empty or missing)");
-            }
-            File busyboxDbg = new File(root, "bin/busybox");
-            cb.onProgress("  busybox: len=" + busyboxDbg.length()
-                    + " canExec=" + busyboxDbg.canExecute());
-            File binShDbg = new File(root, "bin/sh");
-            cb.onProgress("  bin/sh: len=" + binShDbg.length()
-                    + " canExec=" + binShDbg.canExecute());
-            byte[] hdr = new byte[64];
-            FileInputStream fis = new FileInputStream(busyboxDbg);
-            fis.read(hdr);
-            fis.close();
-            if (hdr[0] == 0x7f && hdr[1] == 'E' && hdr[2] == 'L' && hdr[3] == 'F') {
-                cb.onProgress("  busybox: ELF class=" + hdr[4]
-                        + " machine=" + (hdr[18] & 0xff) + "," + (hdr[19] & 0xff));
-            } else {
-                cb.onProgress("  busybox: NOT ELF");
-            }
-        } catch (Throwable t) {
-            cb.onProgress("  debug dump failed: " + t);
-        }
-
         int probe = exec(ctx, new String[]{"/bin/sh", "-c", "echo proot_ok"}, cb);
         if (probe != 0) {
             throw new RuntimeException("proot cannot exec /bin/sh — local Kotlin "
