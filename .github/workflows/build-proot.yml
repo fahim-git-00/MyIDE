@@ -88,8 +88,9 @@ jobs:
         run: |
           cd proot
           mkdir -p $GITHUB_WORKSPACE/out/arm64-v8a
-          cp src/proot $GITHUB_WORKSPACE/out/arm64-v8a/libproot.so || true
-          cp src/loader $GITHUB_WORKSPACE/out/arm64-v8a/libproot-loader.so || true
+          cp src/proot            $GITHUB_WORKSPACE/out/arm64-v8a/libproot.so || true
+          cp src/loader/loader    $GITHUB_WORKSPACE/out/arm64-v8a/libproot-loader.so || true
+          ls -la $GITHUB_WORKSPACE/out/arm64-v8a/
           ls -la $GITHUB_WORKSPACE/out/arm64-v8a/
 
       - name: Upload
