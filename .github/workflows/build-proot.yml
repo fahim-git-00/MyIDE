@@ -56,12 +56,16 @@ jobs:
           CFLAGS="-O2 -fPIC -DARG_MAX=131072 -I. -I.. -I$GITHUB_WORKSPACE/talloc-out/include"
           LDFLAGS="-fPIE -pie -L$GITHUB_WORKSPACE/talloc-out/lib"
           STRIP=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip
+          # The Makefile embeds loader.exe as a binary blob into a target-arch
+          # .o by shelling out to objdump/objcopy. Force the target format so
+          # host objdump on an aarch64 .o does not fail.
           make -j$(nproc) \
             CC=$CC \
             LD=$CC \
             STRIP=$STRIP \
             OBJCOPY=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-objcopy \
             READELF=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf \
+            FORMAT_ELF=elf64-littleaarch64 \
             CFLAGS="$CFLAGS" \
             LDFLAGS="$LDFLAGS" \
             PREFIX=/data/data/com.fahim.myide/files/usr \
