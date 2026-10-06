@@ -71,8 +71,6 @@ public final class LinuxEnv {
             throw new RuntimeException("rootfs extract failed: no /bin/sh or /bin/busybox");
         }
 
-        diagnoseElf(binBb, "busybox", cb);
-
         ensureRealFile(root, "bin/sh",      "bin/busybox");
         ensureRealFile(root, "usr/bin/env", "bin/busybox");
         ensureRealFile(root, "bin/env",     "bin/busybox");
@@ -80,15 +78,18 @@ public final class LinuxEnv {
 
         healMuslLoader(root, cb);
 
+        // Ensure the loader and libc have broad permissions (kernel must mmap them)
         try {
-            ProcessBuilder chmod = new ProcessBuilder(
-                    "/system/bin/sh", "-c",
-                    "chmod -R 755 " + new File(root, "bin").getAbsolutePath()
-                    + " " + new File(root, "usr").getAbsolutePath()
-                    + " " + new File(root, "sbin").getAbsolutePath()
-                    + " " + new File(root, "lib").getAbsolutePath());
-            chmod.redirectErrorStream(true);
-            chmod.start().waitFor();
+            String[] chmodPaths = {
+                    new File(root, "bin").getAbsolutePath(),
+                    new File(root, "usr").getAbsolutePath(),
+                    new File(root, "sbin").getAbsolutePath(),
+                    new File(root, "lib").getAbsolutePath()
+            };
+            for (String p : chmodPaths) {
+                new ProcessBuilder("/system/bin/sh", "-c", "chmod -R 0755 '" + p + "'")
+                        .redirectErrorStream(true).start().waitFor();
+            }
         } catch (Throwable ignored) {}
 
         File apkRepo = new File(root, "etc/apk/repositories");
@@ -98,6 +99,16 @@ public final class LinuxEnv {
 
         File resolv = new File(root, "etc/resolv.conf");
         writeText(resolv, "nameserver 1.1.1.1\nnameserver 8.8.8.8\n");
+
+        // Quick proot smoke test — runs /bin/sh -c "true". If this fails,
+        // we bail with a clear message instead of pretending we're downloading.
+        if (cb != null) cb.onProgress("proot smoke test…");
+        int probe = exec(ctx, new String[]{"/bin/sh", "-c", "echo proot_ok"}, cb);
+        if (probe != 0) {
+            throw new RuntimeException("proot cannot exec /bin/sh — local Kotlin "
+                    + "compilation is unavailable on this device. Use Kotlin mode = "
+                    + "Remote in Settings, or install a Termux proot build.");
+        }
 
         if (cb != null) cb.onProgress("Installing OpenJDK 17 + Kotlin (~350 MB, one-time)…");
         int apkRc = exec(ctx,
@@ -111,19 +122,6 @@ public final class LinuxEnv {
                 cb);
 
         new File(root, MARKER).createNewFile();
-    }
-
-    private static void diagnoseElf(File f, String label, Progress cb) {
-        if (cb == null || f == null || !f.isFile()) return;
-        try {
-            FileInputStream fis = new FileInputStream(f);
-            byte[] magic = new byte[4];
-            int r = fis.read(magic);
-            fis.close();
-            boolean isElf = r == 4 && (magic[0] & 0xff) == 0x7f
-                    && magic[1] == 'E' && magic[2] == 'L' && magic[3] == 'F';
-            cb.onProgress("  " + label + ": elf=" + isElf + " size=" + f.length());
-        } catch (Throwable t) {}
     }
 
     private static void healMuslLoader(File root, Progress cb) {
@@ -150,11 +148,9 @@ public final class LinuxEnv {
         File libRoot = new File(root, "lib");
         File usrLib  = new File(root, "usr/lib");
 
-        // 1) Ensure loader exists as real file
         for (String a : archNames) {
             File loader = new File(libRoot, "ld-musl-" + a + ".so.1");
             if (loader.isFile() && loader.length() > 0) continue;
-
             File libc = new File(libRoot, "libc.musl-" + a + ".so.1");
             if (libc.isFile() && libc.length() > 0) {
                 try {
@@ -174,7 +170,6 @@ public final class LinuxEnv {
             }
         }
 
-        // 2) Ensure libc.musl-*.so.1 exists as real file too
         for (String a : archNames) {
             File libc = new File(libRoot, "libc.musl-" + a + ".so.1");
             if (libc.isFile() && libc.length() > 0) continue;
@@ -185,16 +180,6 @@ public final class LinuxEnv {
                     if (cb != null) cb.onProgress("  healed libc: " + libc.getName());
                 } catch (Throwable ignored) {}
             }
-        }
-
-        // 3) Dump /lib listing for diagnosis
-        if (cb != null) {
-            File[] kids = libRoot.listFiles();
-            StringBuilder sb = new StringBuilder("rootfs /lib: ");
-            if (kids != null) for (File f : kids) {
-                sb.append(f.getName()).append('(').append(f.length()).append(") ");
-            }
-            cb.onProgress(sb.toString());
         }
     }
 
@@ -221,6 +206,7 @@ public final class LinuxEnv {
         in.close();
     }
 
+    /** Runs a command inside the Alpine rootfs. Returns exit code. */
     public static int exec(Context ctx, String[] cmd, Progress cb) throws Exception {
         File proot = prootBin(ctx);
         File root = rootfsDir(ctx);
@@ -230,12 +216,23 @@ public final class LinuxEnv {
 
         List<String> full = new ArrayList<String>();
         full.add(proot.getAbsolutePath());
+
+        // Termux proot needs this for musl rootfs loader handling
+        full.add("--link2symlink");
+        full.add("--kill-on-exit");
+
         full.add("-r"); full.add(root.getAbsolutePath());
         full.add("-0");
         full.add("-w"); full.add("/root");
         full.add("-b"); full.add("/dev");
         full.add("-b"); full.add("/proc");
         full.add("-b"); full.add("/sys");
+
+        // Expose the rootfs's /lib and /usr/lib directly as host paths.
+        // Some proot builds don't remap the musl loader otherwise.
+        full.add("-b"); full.add(new File(root, "lib").getAbsolutePath() + ":/lib");
+        full.add("-b"); full.add(new File(root, "usr/lib").getAbsolutePath() + ":/usr/lib");
+
         full.add("/bin/sh");
         full.add("-c");
 
