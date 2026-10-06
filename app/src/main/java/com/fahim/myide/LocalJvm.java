@@ -81,6 +81,8 @@ public class LocalJvm {
         File ktDir  = new File(ctx.getFilesDir(), "kotlin");
         File javaHome = jdkDir;
 
+        wireNativeLibs();
+
         String nativeDir = ctx.getApplicationInfo().nativeLibraryDir;
         File javaLauncher = new File(nativeDir, "libjava-launcher.so");
         if (!javaLauncher.isFile()) {
@@ -116,6 +118,8 @@ public class LocalJvm {
         args.add(javaLauncher.getAbsolutePath());
         args.add("-Djava.home=" + javaHome.getAbsolutePath());
         args.add("-Djava.io.tmpdir=" + ctx.getCacheDir().getAbsolutePath());
+        args.add("-Djava.library.path=" + new File(jdkDir, "lib/real").getAbsolutePath()
+                + File.pathSeparator + nativeDir);
         args.add("-Dkotlin.home=" + ktDir.getAbsolutePath());
         args.add("-Dfile.encoding=UTF-8");
         args.add("-Xmx1024m");
@@ -165,6 +169,88 @@ public class LocalJvm {
         if (!destDir.exists()) destDir.mkdirs();
         for (String k : kids) {
             copyAssetTree(assetPath + "/" + k, new File(destDir, k));
+        }
+    }
+
+    /**
+     * Creates symlinks in filesDir/jdk/lib/ and filesDir/jdk/lib/server/
+     * pointing at the renamed .so files inside the APK native lib dir, using
+     * the original names the JVM expects (libjava.so, libjvm.so, etc).
+     */
+    private void wireNativeLibs() throws Exception {
+        String nd = ctx.getApplicationInfo().nativeLibraryDir;
+        File libDir    = new File(ctx.getFilesDir(), "jdk/lib");
+        File serverDir = new File(libDir, "server");
+        if (!libDir.exists()) libDir.mkdirs();
+        if (!serverDir.exists()) serverDir.mkdirs();
+
+        // name we need → file in nativeLibraryDir
+        String[][] map = {
+            {"libjava.so",            "libjdk_libjava.so"},
+            {"libjvm.so",             "libjdk_libjvm.so"},
+            {"libjli.so",             "libjdk_libjli.so"},
+            {"libjsig.so",            "libjdk_libjsig.so"},
+            {"libverify.so",          "libjdk_libverify.so"},
+            {"libzip.so",             "libjdk_libzip.so"},
+            {"libnet.so",             "libjdk_libnet.so"},
+            {"libnio.so",             "libjdk_libnio.so"},
+            {"libextnet.so",          "libjdk_libextnet.so"},
+            {"librmi.so",             "libjdk_librmi.so"},
+            {"libjaas.so",            "libjdk_libjaas.so"},
+            {"libmanagement.so",      "libjdk_libmanagement.so"},
+            {"libmanagement_ext.so",  "libjdk_libmanagement_ext.so"},
+            {"libmanagement_agent.so","libjdk_libmanagement_agent.so"},
+            {"libinstrument.so",      "libjdk_libinstrument.so"},
+            {"libjimage.so",          "libjdk_libjimage.so"},
+            {"libattach.so",          "libjdk_libattach.so"},
+            {"libjdwp.so",            "libjdk_libjdwp.so"},
+            {"libdt_socket.so",       "libjdk_libdt_socket.so"},
+            {"libsyslookup.so",       "libjdk_libsyslookup.so"},
+            {"libprefs.so",           "libjdk_libprefs.so"},
+            {"libj2gss.so",           "libjdk_libj2gss.so"},
+            {"libj2pcsc.so",          "libjdk_libj2pcsc.so"},
+            {"libj2pkcs11.so",        "libjdk_libj2pkcs11.so"},
+            {"libsctp.so",            "libjdk_libsctp.so"},
+            {"libjavajpeg.so",        "libjdk_libjavajpeg.so"},
+            {"liblcms.so",            "libjdk_liblcms.so"},
+            {"lible.so",              "libjdk_lible.so"},
+            {"libfontmanager.so",     "libjdk_libfontmanager.so"},
+            {"libmlib_image.so",      "libjdk_libmlib_image.so"},
+            {"libawt.so",             "libjdk_libawt.so"},
+            {"libawt_headless.so",    "libjdk_libawt_headless.so"},
+            {"libawt_xawt.so",        "libjdk_libawt_xawt.so"},
+            {"libjawt.so",            "libjdk_libjawt.so"},
+            {"libjsound.so",          "libjdk_libjsound.so"},
+            {"libsplashscreen.so",    "libjdk_libsplashscreen.so"},
+            {"libz.so.1",             "libtermux_z.so"},
+            {"libcrypto.so.3",        "libtermux_crypto.so"},
+            {"libssl.so.3",           "libtermux_ssl.so"},
+            {"libandroid-shmem.so",   "libtermux_android-shmem.so"}
+        };
+
+        File real = new File(libDir, "real");
+        if (!real.exists()) real.mkdirs();
+
+        for (String[] e : map) {
+            File target = new File(nd, e[1]);
+            if (!target.isFile()) continue;
+            File link = new File(real, e[0]);
+            if (link.exists()) continue;
+            try {
+                Runtime.getRuntime().exec(new String[]{
+                        "ln", "-sf", target.getAbsolutePath(), link.getAbsolutePath()
+                }).waitFor();
+            } catch (Throwable ignored) {}
+        }
+        // jvm needs libjvm.so in lib/server
+        File targetJvm = new File(nd, "libjdk_libjvm.so");
+        File serverLink = new File(serverDir, "libjvm.so");
+        if (!serverLink.exists() && targetJvm.isFile()) {
+            try {
+                Runtime.getRuntime().exec(new String[]{
+                        "ln", "-sf", targetJvm.getAbsolutePath(), serverLink.getAbsolutePath()
+                }).waitFor();
+            } catch (Throwable ignored) {}
         }
     }
 
