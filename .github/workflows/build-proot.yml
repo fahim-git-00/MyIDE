@@ -22,7 +22,7 @@ jobs:
 
       - name: Clone proot
         run: |
-          git clone --depth=1 https://github.com/termux/proot.git proot
+          git clone --depth=1 --recursive https://github.com/proot-me/proot.git proot
           cd proot
           # Apply the path patch so it does not hardcode Termux paths
           sed -i 's|/data/data/com.termux/files/applib|/data/data/com.fahim.myide/files/applib|g' src/*.c src/*.h 2>/dev/null || true
@@ -33,7 +33,7 @@ jobs:
           cd proot/src
           mkdir -p $GITHUB_WORKSPACE/out/arm64-v8a
           CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
-          CFLAGS="-O2 -fPIC -DARG_MAX=131072 -I."
+          CFLAGS="-O2 -fPIC -DARG_MAX=131072 -I. -I.."
           LDFLAGS="-fPIE -pie"
           make -j$(nproc) \
             CC=$CC \
@@ -41,7 +41,7 @@ jobs:
             CFLAGS="$CFLAGS" \
             LDFLAGS="$LDFLAGS" \
             PREFIX=/data/data/com.fahim.myide/files/usr \
-            V=1 || (echo "--- build failed, dumping log ---"; ls; exit 1)
+            V=1 || (echo "--- build failed ---"; ls; exit 1)
 
       - name: Collect artifacts
         run: |
