@@ -20,7 +20,7 @@ public final class TarGzExtractor {
     private static class PendingLink {
         File file;
         String target;
-        char type;
+        char type;   // '1' = hardlink, '2' = symlink
     }
 
     public static int extract(File targz, File dest, Progress cb) throws IOException {
@@ -36,7 +36,7 @@ public final class TarGzExtractor {
         String longName = null;
         String longLink = null;
         int fileCount = 0;
-        List<PendingLink> links = new ArrayList<>();
+        List<PendingLink> links = new ArrayList<PendingLink>();
 
         while (true) {
             int read = readFully(in, header, 512);
@@ -109,10 +109,10 @@ public final class TarGzExtractor {
         }
         in.close();
 
-        // Second pass: resolve links by COPYING the target file.
-        // No symlinks — Android + chroot makes them unreliable to create and verify.
+        // ---- Second pass: materialise every link as a copy of the target ----
         int linkCount = 0;
-        for (int pass = 0; pass < 12; pass++) {
+        int initialLinks = links.size();
+        for (int pass = 0; pass < 20; pass++) {
             boolean progressed = false;
             Iterator<PendingLink> it = links.iterator();
             while (it.hasNext()) {
@@ -121,8 +121,10 @@ public final class TarGzExtractor {
                 if (target == null || !target.isFile()) continue;
 
                 try {
-                    pl.file.getParentFile().mkdirs();
-                    try { java.nio.file.Files.deleteIfExists(pl.file.toPath()); } catch (Throwable ignored) {}
+                    File parent = pl.file.getParentFile();
+                    if (parent != null) parent.mkdirs();
+                    try { java.nio.file.Files.deleteIfExists(pl.file.toPath()); }
+                    catch (Throwable ignored) {}
                     copy(target, pl.file);
                     linkCount++;
                     it.remove();
@@ -132,9 +134,26 @@ public final class TarGzExtractor {
             if (!progressed) break;
         }
 
+        // Last-ditch: guess common busybox locations by basename
+        for (PendingLink pl : new ArrayList<PendingLink>(links)) {
+            File target = resolveTargetByName(dest, pl.target);
+            if (target == null || !target.isFile()) continue;
+            try {
+                File parent = pl.file.getParentFile();
+                if (parent != null) parent.mkdirs();
+                try { java.nio.file.Files.deleteIfExists(pl.file.toPath()); }
+                catch (Throwable ignored) {}
+                copy(target, pl.file);
+                linkCount++;
+                links.remove(pl);
+            } catch (Throwable ignored) {}
+        }
+
+        int unresolved = initialLinks - linkCount;
         if (cb != null) {
-            cb.onProgress("extract: " + fileCount + " files, " + linkCount + " links, "
-                    + links.size() + " unresolved");
+            cb.onProgress("extract: " + fileCount + " files, "
+                    + linkCount + " links materialised, "
+                    + unresolved + " unresolved");
         }
         return fileCount + linkCount;
     }
@@ -147,6 +166,24 @@ public final class TarGzExtractor {
         try { return t.getCanonicalFile(); } catch (IOException e) { return t; }
     }
 
+    private static File resolveTargetByName(File dest, String target) {
+        if (target == null || target.isEmpty()) return null;
+        String base = target;
+        int s = base.lastIndexOf('/');
+        if (s >= 0) base = base.substring(s + 1);
+        if (base.isEmpty()) return null;
+
+        File[] guesses = {
+                new File(dest, "bin/" + base),
+                new File(dest, "sbin/" + base),
+                new File(dest, "usr/bin/" + base),
+                new File(dest, "usr/sbin/" + base),
+                new File(dest, "usr/local/bin/" + base)
+        };
+        for (File g : guesses) if (g.isFile()) return g;
+        return null;
+    }
+
     private static void copy(File src, File dst) throws IOException {
         InputStream in = new FileInputStream(src);
         FileOutputStream out = new FileOutputStream(dst);
@@ -155,7 +192,8 @@ public final class TarGzExtractor {
         while ((n = in.read(b)) > 0) out.write(b, 0, n);
         out.close();
         in.close();
-        try { if (src.canExecute()) dst.setExecutable(true, false); } catch (Throwable ignored) {}
+        try { if (src.canExecute()) dst.setExecutable(true, false); }
+        catch (Throwable ignored) {}
     }
 
     private static int readFully(InputStream in, byte[] buf, int len) throws IOException {
