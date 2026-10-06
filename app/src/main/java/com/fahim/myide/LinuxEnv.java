@@ -52,13 +52,15 @@ public final class LinuxEnv {
         extractAsset(ctx, "proot/libtalloc.so.2", new File(libDir, "libtalloc.so.2"));
         extractAsset(ctx, "proot/libandroid-shmem.so", new File(libDir, "libandroid-shmem.so"));
 
-        // Copy rootfs tar.gz to a real file, then extract with toybox tar
+        // Copy rootfs tar.gz to a real file, then extract
         File tar = new File(ctx.getFilesDir(), "alpine.tar.gz");
         extractAsset(ctx, "rootfs/alpine-rootfs.tgz", tar);
 
         if (cb != null) cb.onProgress("Extracting Alpine Linux…");
         int n = TarGzExtractor.extract(tar, root, new TarGzExtractor.Progress() {
-            @Override public void onProgress(String p) {}
+            @Override public void onProgress(String p) {
+                if (cb != null && p != null && !p.startsWith("extract:")) {}
+            }
         });
         tar.delete();
         if (cb != null) cb.onProgress("Extracted " + n + " entries");
@@ -71,7 +73,14 @@ public final class LinuxEnv {
             throw new RuntimeException("rootfs extract failed: no /bin/sh or /bin/busybox");
         }
 
-        // Make all files under /bin, /usr readable/executable
+        // Heal missing symlinks that TarGzExtractor may have dropped.
+        // /usr/bin/env is the one proot needs to spawn processes.
+        ensureRealFile(root, "usr/bin/env", "bin/busybox");
+        ensureRealFile(root, "bin/env",     "bin/busybox");
+        ensureRealFile(root, "usr/bin/sh",  "bin/busybox");
+        ensureRealFile(root, "bin/sh",      "bin/busybox");
+
+        // Make all files under /bin, /usr, /sbin readable/executable
         try {
             ProcessBuilder chmod = new ProcessBuilder(
                     "/system/bin/sh", "-c",
@@ -99,13 +108,48 @@ public final class LinuxEnv {
                 cb);
         if (apkRc != 0) throw new RuntimeException("apk add failed: " + apkRc);
 
-        // Sanity
-        int v = exec(ctx,
+        // Sanity check
+        exec(ctx,
                 new String[]{"/bin/sh", "-c", "kotlinc -version 2>&1 || true"},
                 cb);
-        // no strict check — if kotlinc runs, good enough
 
         new File(root, MARKER).createNewFile();
+    }
+
+    /**
+     * Copy {@code relSource} over {@code relPath} when the latter is missing
+     * or is not a real file. Needed because TarGzExtractor materialises
+     * symlinks as copies of their target; when the target wasn't yet present
+     * at extract time, the symlink got dropped entirely.
+     */
+    private static void ensureRealFile(File root, String relPath, String relSource) {
+        File dst = new File(root, relPath);
+        File src = new File(root, relSource);
+        if (!src.isFile()) return;
+        if (dst.isFile()) {
+            // Both exist; still re-copy busybox shims to be safe if zero-length
+            if (dst.length() == 0) {
+                try { copyFile(src, dst); dst.setExecutable(true, false); }
+                catch (Throwable ignored) {}
+            }
+            return;
+        }
+        try {
+            File p = dst.getParentFile();
+            if (p != null && !p.exists()) p.mkdirs();
+            copyFile(src, dst);
+            dst.setExecutable(true, false);
+        } catch (Throwable ignored) {}
+    }
+
+    private static void copyFile(File src, File dst) throws IOException {
+        InputStream in = new java.io.FileInputStream(src);
+        FileOutputStream out = new FileOutputStream(dst);
+        byte[] buf = new byte[65536];
+        int n;
+        while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+        out.close();
+        in.close();
     }
 
     /** Runs a command inside the Alpine rootfs. Returns exit code. */
@@ -116,7 +160,7 @@ public final class LinuxEnv {
 
         if (!proot.isFile()) throw new RuntimeException("proot missing: " + proot);
 
-        List<String> full = new ArrayList<>();
+        List<String> full = new ArrayList<String>();
         full.add(proot.getAbsolutePath());
         full.add("-r"); full.add(root.getAbsolutePath());
         full.add("-0");
@@ -124,7 +168,12 @@ public final class LinuxEnv {
         full.add("-b"); full.add("/dev");
         full.add("-b"); full.add("/proc");
         full.add("-b"); full.add("/sys");
-        full.add("/usr/bin/env");
+
+        // Use busybox directly, then ask it to run its "env" applet.
+        // Avoids proot's execve("/usr/bin/env") path which fails when
+        // the env symlink was dropped during tarball extraction.
+        full.add("/bin/busybox");
+        full.add("env");
         full.add("-i");
         full.add("HOME=/root");
         full.add("PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
