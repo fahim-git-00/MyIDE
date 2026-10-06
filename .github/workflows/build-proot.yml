@@ -59,7 +59,17 @@ jobs:
           # Put NDK bin on PATH so `objdump` = llvm-objdump, which understands
           # aarch64 object files and emits an output format name that
           # llvm-objcopy accepts.
-          export PATH=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
+          # Make `objdump` resolve to llvm-objdump via a wrapper dir so the
+          # Makefile's `objdump -f cli/cli.o` reports elf64-littleaarch64
+          # (which llvm-objcopy accepts), not elf64-little.
+          mkdir -p $GITHUB_WORKSPACE/binwrap
+          ln -sf $NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-objdump   $GITHUB_WORKSPACE/binwrap/objdump
+          ln -sf $NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-objcopy   $GITHUB_WORKSPACE/binwrap/objcopy
+          ln -sf $NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf   $GITHUB_WORKSPACE/binwrap/readelf
+          ln -sf $NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip     $GITHUB_WORKSPACE/binwrap/strip
+          ln -sf $NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar        $GITHUB_WORKSPACE/binwrap/ar
+          ln -sf $NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib    $GITHUB_WORKSPACE/binwrap/ranlib
+          export PATH=$GITHUB_WORKSPACE/binwrap:$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
           OBJCOPY=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-objcopy
           READELF=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf
           make -j$(nproc) \
