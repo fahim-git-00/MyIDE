@@ -118,7 +118,7 @@ public class LocalJvm {
         args.add(javaLauncher.getAbsolutePath());
         args.add("-Djava.home=" + javaHome.getAbsolutePath());
         args.add("-Djava.io.tmpdir=" + ctx.getCacheDir().getAbsolutePath());
-        args.add("-Djava.library.path=" + new File(jdkDir, "lib/real").getAbsolutePath()
+        args.add("-Djava.library.path=" + new File(jdkDir, "lib").getAbsolutePath()
                 + File.pathSeparator + nativeDir);
         args.add("-Dkotlin.home=" + ktDir.getAbsolutePath());
         args.add("-Dfile.encoding=UTF-8");
@@ -244,13 +244,10 @@ public class LocalJvm {
             {"libandroid-shmem.so",   "libtermux_android-shmem.so"}
         };
 
-        File real = new File(libDir, "real");
-        if (!real.exists()) real.mkdirs();
-
         for (String[] e : map) {
             File src = new File(nd, e[1]);
             if (!src.isFile()) continue;
-            File dst = new File(real, e[0]);
+            File dst = new File(libDir, e[0]);
             if (dst.isFile() && dst.length() == src.length()) continue;
             copy(src, dst);
         }
