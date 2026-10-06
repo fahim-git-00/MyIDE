@@ -1,0 +1,60 @@
+name: Build proot for Android arm64
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Android NDK
+        run: |
+          mkdir -p $HOME/ndk
+          cd $HOME/ndk
+          wget -q https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
+          unzip -q android-ndk-r26d-linux.zip
+          echo "NDK=$HOME/ndk/android-ndk-r26d" >> $GITHUB_ENV
+
+      - name: Install deps
+        run: sudo apt-get update && sudo apt-get install -y libtalloc-dev talloc
+
+      - name: Clone proot
+        run: |
+          git clone --depth=1 https://github.com/termux/proot.git proot
+          cd proot
+          # Apply the path patch so it does not hardcode Termux paths
+          sed -i 's|/data/data/com.termux/files/applib|/data/data/com.fahim.myide/files/applib|g' src/*.c src/*.h 2>/dev/null || true
+          grep -rn "com.termux" src/ || true
+
+      - name: Configure
+        run: |
+          cd proot
+          ./configure \
+            --host=aarch64-linux-android \
+            --prefix=/data/data/com.fahim.myide/files/usr \
+            --without-ptrace \
+            CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang \
+            CFLAGS="-O2 -fPIC" \
+            LDFLAGS="-fPIE -pie"
+
+      - name: Build
+        run: |
+          cd proot
+          make -j$(nproc)
+
+      - name: Collect artifacts
+        run: |
+          cd proot
+          mkdir -p $GITHUB_WORKSPACE/out/arm64-v8a
+          cp src/proot $GITHUB_WORKSPACE/out/arm64-v8a/libproot.so || true
+          cp src/loader $GITHUB_WORKSPACE/out/arm64-v8a/libproot-loader.so || true
+          ls -la $GITHUB_WORKSPACE/out/arm64-v8a/
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: proot-arm64
+          path: out/arm64-v8a/
+          if-no-files-found: error
