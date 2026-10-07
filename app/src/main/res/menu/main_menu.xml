@@ -53,7 +53,6 @@
     <item android:id="@+id/menu_kotlin_mode" android:title="@string/action_kotlin_mode" />
     <item android:id="@+id/menu_build_settings" android:title="@string/action_build_settings" />
     <item android:id="@+id/menu_signing_key" android:title="@string/action_signing_key" />
-    <item android:id="@+id/menu_select_ndk" android:title="@string/action_select_ndk" />
 
     <!-- Tools -->
     <item android:id="@+id/menu_logcat" android:title="@string/action_logcat" />

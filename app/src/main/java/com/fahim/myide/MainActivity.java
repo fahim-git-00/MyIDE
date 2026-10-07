@@ -1804,7 +1804,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         if (id == R.id.menu_kotlin_mode)   { showKotlinMode(); return true; }
         if (id == R.id.menu_build_settings){ showBuildSettings(); return true; }
         if (id == R.id.menu_signing_key)   { SigningKeyDialog.show(this); return true; }
-        if (id == R.id.menu_select_ndk)    { NdkPicker.launch(this); return true; }
 
         // TOOLS
         if (id == R.id.menu_logcat)       { showPanel(PANEL_LOGCAT); return true; }
@@ -2371,30 +2370,4 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         int line;
     }
 
-    @Override
-    protected void onActivityResult(int req, int res, Intent data) {
-        super.onActivityResult(req, res, data);
-        if (req == NdkPicker.REQ_PICK_NDK && res == RESULT_OK && data != null) {
-            Uri uri = data.getData();
-            if (uri != null) {
-                try {
-                    getContentResolver().takePersistableUriPermission(
-                            uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                } catch (Throwable ignored) {}
-            }
-            String path = NdkPicker.resolveToPath(this, uri);
-            if (path == null) {
-                toast("Cannot resolve path - pick inside /sdcard");
-                return;
-            }
-            File f = new File(path);
-            if (!NdkConfig.isValid(f)) {
-                toast(getString(R.string.ndk_invalid) + ": " + path);
-                return;
-            }
-            NdkConfig.setPath(this, path);
-            String pre = NdkConfig.findPrebuilt(f);
-            toast("NDK: " + f.getName() + " (" + pre + ")");
-        }
     }
-}
