@@ -50,6 +50,7 @@ jobs:
               quickjs-src/libregexp.c \
               quickjs-src/libunicode.c \
               quickjs-src/cutils.c \
+              quickjs-src/dtoa.c \
               quickjs-src/quickjs-libc.c \
               quickjs_jni.c \
               -lm -ldl
@@ -66,6 +67,7 @@ jobs:
               quickjs-src/libregexp.c \
               quickjs-src/libunicode.c \
               quickjs-src/cutils.c \
+              quickjs-src/dtoa.c \
               quickjs-src/quickjs-libc.c \
               quickjs_jni.c \
               -lm -ldl
