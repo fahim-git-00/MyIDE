@@ -89,6 +89,9 @@ jobs:
             MICROPY_VFS_LFS1=0 \
             MICROPY_VFS_LFS2=0 \
             FROZEN_MANIFEST="" 2>&1 | tail -20
+          
+          $TC/bin/llvm-ar rcs build-standard/libmicropython.a build-standard/py/*.o build-standard/extmod/*.o build-standard/shared/runtime/*.o build-standard/shared/readline/*.o build-standard/shared/timeutils/*.o 2>/dev/null || true
+          
           cd ../../..
           
           $CC -O2 -fPIC -shared \
