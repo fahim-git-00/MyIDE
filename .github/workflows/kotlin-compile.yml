@@ -33,6 +33,13 @@ jobs:
           unzip -q k.zip
           echo "$PWD/kotlinc/bin" >> $GITHUB_PATH
 
+      - name: Fetch android.jar (platform 34)
+        run: |
+          mkdir -p sdk
+          curl -sSL -o sdk/platform-34.zip https://dl.google.com/android/repository/platform-34_r03.zip
+          unzip -q sdk/platform-34.zip -d sdk
+          ls -la sdk/android-14/android.jar || ls -la sdk/*/android.jar
+
       - name: Decode payload
         env:
           CNT: ${{ inputs.chunk_count }}
@@ -62,7 +69,10 @@ jobs:
           PY
 
       - name: Compile
-        run: kotlinc src -d classes -jvm-target 1.8
+        run: |
+          AJ=$(find sdk -name android.jar | head -1)
+          echo "using $AJ"
+          kotlinc src -d classes -jvm-target 1.8 -classpath "$AJ"
 
       - name: Pack
         run: |
