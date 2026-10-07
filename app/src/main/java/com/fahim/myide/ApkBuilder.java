@@ -186,13 +186,6 @@ public class ApkBuilder {
                 }
             }
 
-            // ---- NDK (optional, AIDE-style) ----
-            try {
-                    @Override public void onProgress(String m) { say(m); }
-            } catch (Throwable ndkErr) {
-                throw ndkErr;
-            }
-
             File patchedManifest = new File(workDir, "AndroidManifest.xml");
             patchManifest(appManifest, patchedManifest, minSdk, targetSdk);
 
