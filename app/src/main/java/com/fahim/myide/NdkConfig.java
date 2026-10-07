@@ -10,7 +10,6 @@ public final class NdkConfig {
 
     private static final String PREF = "settings";
     private static final String KEY  = "ndk_path";
-    private static final String KEY_PREBUILT = "ndk_prebuilt";
 
     private NdkConfig() {}
 
@@ -24,18 +23,7 @@ public final class NdkConfig {
     }
 
     public static void setPath(Context ctx, String path) {
-        String v = (path == null) ? "" : path;
-        prefs(ctx).edit().putString(KEY, v).apply();
-    }
-
-    public static String getPrebuilt(Context ctx) {
-        String v = prefs(ctx).getString(KEY_PREBUILT, "");
-        return v == null ? "" : v;
-    }
-
-    public static void setPrebuilt(Context ctx, String name) {
-        String v = (name == null) ? "" : name;
-        prefs(ctx).edit().putString(KEY_PREBUILT, v).apply();
+        prefs(ctx).edit().putString(KEY, path == null ? "" : path).apply();
     }
 
     public static File getDir(Context ctx) {
@@ -48,7 +36,6 @@ public final class NdkConfig {
     public static boolean isValid(File ndkRoot) {
         if (ndkRoot == null || !ndkRoot.isDirectory()) return false;
         if (!new File(ndkRoot, "ndk-build").isFile()) return false;
-        if (!new File(ndkRoot, "toolchains").isDirectory()) return false;
         return findPrebuilt(ndkRoot) != null;
     }
 

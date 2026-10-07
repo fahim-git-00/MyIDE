@@ -136,6 +136,17 @@ public class NdkBuilder {
         File proot = new File(ctx.getApplicationInfo().nativeLibraryDir, "libproot.so");
         if (!proot.isFile()) throw new RuntimeException("proot missing");
 
+        File libDir = new File(ctx.getFilesDir(), "proot-lib");
+        libDir.mkdirs();
+        File talloc = new File(libDir, "libtalloc.so.2");
+        if (!talloc.isFile()) {
+            say("Extracting proot libs (one-time)...");
+            extractAsset("proot/libtalloc.so.2", talloc);
+            extractAsset("proot/libandroid-shmem.so",
+                    new File(libDir, "libandroid-shmem.so"));
+            say("proot libs ready.");
+        }
+
         String binDir = new File(ndkUsable,
                 "toolchains/llvm/prebuilt/" + prebuiltUsable + "/bin").getAbsolutePath();
 
@@ -180,5 +191,17 @@ public class NdkBuilder {
         if (so != null) for (File f : so) if (f.getName().endsWith(".so")) n++;
         say("NDK produced " + n + " .so");
         return true;
+    }
+
+    private void extractAsset(String asset, File out) throws Exception {
+        File p = out.getParentFile();
+        if (p != null && !p.exists()) p.mkdirs();
+        java.io.InputStream in = ctx.getAssets().open(asset);
+        java.io.FileOutputStream fos = new java.io.FileOutputStream(out);
+        byte[] buf = new byte[65536];
+        int n;
+        while ((n = in.read(buf)) > 0) fos.write(buf, 0, n);
+        fos.close();
+        in.close();
     }
 }
