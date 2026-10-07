@@ -185,6 +185,15 @@ public class LocalJvm {
         }
     }
 
+    private static boolean hardLink(File src, File dst) {
+        try {
+            android.system.Os.link(src.getAbsolutePath(), dst.getAbsolutePath());
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
     private static void copy(File src, File dst) {
         try {
             File parent = dst.getParentFile();
@@ -220,10 +229,12 @@ public class LocalJvm {
             if (name.equals("libaapt2.so")) continue;
             if (name.equals("libproot.so")) continue;
             File dst = new File(libDir, name);
-            if (dst.isFile() && dst.length() == lib.length()) continue;
-            copy(lib, dst);
+            if (dst.exists()) dst.delete();
+            if (!hardLink(lib, dst)) copy(lib, dst);
             if (name.equals("libjvm.so")) {
-                copy(lib, new File(serverDir, "libjvm.so"));
+                File srv = new File(serverDir, "libjvm.so");
+                if (srv.exists()) srv.delete();
+                if (!hardLink(lib, srv)) copy(lib, srv);
             }
         }
     }
