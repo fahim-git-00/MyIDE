@@ -1,0 +1,91 @@
+name: micropython-build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup NDK
+        run: |
+          curl -sSL -o ndk.zip https://dl.google.com/android/repository/android-ndk-r27c-linux.zip
+          unzip -q ndk.zip
+          echo "NDK=$PWD/android-ndk-r27c" >> $GITHUB_ENV
+
+      - name: Clone MicroPython
+        run: |
+          git clone --depth=1 https://github.com/micropython/micropython.git mp-src
+          cd mp-src
+          git submodule update --init lib/berkeley-db-1.xx 2>/dev/null || true
+
+      - name: Copy JNI bridge
+        run: |
+          curl -sSL -o micropython_jni.c https://raw.githubusercontent.com/fahim-git-00/MyIDE/main/app/src/main/jni/micropython_jni.c
+
+      - name: Build for arm64-v8a
+        run: |
+          TC=$NDK/toolchains/llvm/prebuilt/linux-x86_64
+          CC=$TC/bin/aarch64-linux-android24-clang
+          mkdir -p out/arm64-v8a
+          
+          # Build mpy-cross on host first (needed for cross-compiling)
+          cd mp-src/mpy-cross
+          make CC="gcc" -j$(nproc) 2>&1 | tail -5
+          cd ../..
+          
+          # Build unix port with Android toolchain
+          cd mp-src/ports/unix
+          make clean 2>/dev/null || true
+          make -j$(nproc) \
+            CC="$CC" \
+            CFLAGS_EXTRA="-fPIC -D__ANDROID_API__=24 -DMICROPY_NLR_SETJMP=1" \
+            LDFLAGS_EXTRA="-Wl,--export-dynamic" \
+            VARIANT=standard \
+            DEBUG=0 \
+            MICROPY_PY_THREAD=0 \
+            FROZEN_MANIFEST="" 2>&1 | tail -20
+          cd ../../..
+          
+          $CC -O2 -fPIC -shared \
+            -I mp-src \
+            -I mp-src/ports/unix \
+            -I mp-src/ports/unix/build-standard \
+            -o out/arm64-v8a/libmicropython.so \
+            micropython_jni.c \
+            mp-src/ports/unix/build-standard/libmicropython.a \
+            -lm -ldl
+
+      - name: Build for armeabi-v7a
+        run: |
+          TC=$NDK/toolchains/llvm/prebuilt/linux-x86_64
+          CC=$TC/bin/armv7a-linux-androideabi24-clang
+          mkdir -p out/armeabi-v7a
+          
+          cd mp-src/ports/unix
+          make clean 2>/dev/null || true
+          make -j$(nproc) \
+            CC="$CC" \
+            CFLAGS_EXTRA="-fPIC -D__ANDROID_API__=24 -DMICROPY_NLR_SETJMP=1" \
+            LDFLAGS_EXTRA="-Wl,--export-dynamic" \
+            VARIANT=standard \
+            DEBUG=0 \
+            MICROPY_PY_THREAD=0 \
+            FROZEN_MANIFEST="" 2>&1 | tail -20
+          cd ../../..
+          
+          $CC -O2 -fPIC -shared \
+            -I mp-src \
+            -I mp-src/ports/unix \
+            -I mp-src/ports/unix/build-standard \
+            -o out/armeabi-v7a/libmicropython.so \
+            micropython_jni.c \
+            mp-src/ports/unix/build-standard/libmicropython.a \
+            -lm -ldl
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: micropython-libs
+          path: out/
+          if-no-files-found: error
