@@ -422,6 +422,32 @@
                     android:inputType="textVisiblePassword" />
             </LinearLayout>
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Compiler repo (fork of MyIDE)"
+                    android:textColor="@color/text_primary"
+                    android:textSize="@dimen/text_md" />
+
+                <EditText
+                    android:id="@+id/prefCompileRepo"
+                    style="@style/DialogInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:hint="fahim-git-00/MyIDE"
+                    android:inputType="text" />
+            </LinearLayout>
+
             <TextView
                 android:id="@+id/btnClearRecent"
                 style="@style/GhostButton"

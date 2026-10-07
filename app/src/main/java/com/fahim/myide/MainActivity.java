@@ -1634,16 +1634,21 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             for (String line : lines) {
                 String trimmed = line.trim();
                 if (trimmed.isEmpty()) continue;
-                if (trimmed.startsWith("ERROR") || trimmed.contains("error:")
-                        || trimmed.contains("ERROR:")) {
+                if (trimmed.startsWith("##[error]")
+                        || trimmed.contains("error:")
+                        || trimmed.contains("ERROR:")
+                        || trimmed.startsWith("ERROR")
+                        || trimmed.contains("RuntimeException")
+                        || trimmed.contains("ld.lld: error")
+                        || trimmed.contains("clang++: error")
+                        || trimmed.contains("make: ***")
+                        || trimmed.contains("Remote C build failed")
+                        || trimmed.contains("Remote Kotlin build failed")) {
                     Problem p = new Problem();
-                    p.msg = trimmed;
+                    p.msg = trimmed.length() > 300
+                            ? trimmed.substring(0, 300) + "..."
+                            : trimmed;
                     p.severity = Problem.ERROR;
-                    problems.add(p);
-                } else if (trimmed.startsWith("warning:") || trimmed.contains("warning:")) {
-                    Problem p = new Problem();
-                    p.msg = trimmed;
-                    p.severity = Problem.WARNING;
                     problems.add(p);
                 }
             }

@@ -51,6 +51,7 @@ public final class SettingsDialog {
 
         // Advanced
         final EditText token = root.findViewById(R.id.prefGithubToken);
+        final EditText repoEt = root.findViewById(R.id.prefCompileRepo);
 
         // ---- initial values ----
         int fs = ThemeHelper.getFontSize(ctx);
@@ -91,6 +92,10 @@ public final class SettingsDialog {
         String gh = ctx.getSharedPreferences("github", Context.MODE_PRIVATE)
                 .getString("token", "");
         if (gh != null) token.setText(gh);
+
+        String cr = prefs.getString("compile_repo", "fahim-git-00/MyIDE");
+        if (cr == null || cr.isEmpty()) cr = "fahim-git-00/MyIDE";
+        repoEt.setText(cr);
 
         // ---- actions ----
         root.findViewById(R.id.btnSettingsClose).setOnClickListener(new View.OnClickListener() {
@@ -148,6 +153,10 @@ public final class SettingsDialog {
                 // Advanced
                 ctx.getSharedPreferences("github", Context.MODE_PRIVATE).edit()
                     .putString("token", token.getText().toString().trim()).apply();
+
+                String rv = repoEt.getText().toString().trim();
+                if (rv.isEmpty()) rv = "fahim-git-00/MyIDE";
+                prefs.edit().putString("compile_repo", rv).apply();
 
                 Toast.makeText(ctx, "Settings saved", Toast.LENGTH_SHORT).show();
                 dlg.dismiss();

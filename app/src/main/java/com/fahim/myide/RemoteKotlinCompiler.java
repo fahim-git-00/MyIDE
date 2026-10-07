@@ -25,12 +25,17 @@ public class RemoteKotlinCompiler {
         void onProgress(String message);
     }
 
-    private static final String REPO = "fahim-git-00/MyIDE";
     private static final String WORKFLOW_FILE = "kotlin-compile.yml";
     private static final String API = "https://api.github.com";
 
     private final Context ctx;
     private final Progress progress;
+
+    private String repo() {
+        SharedPreferences sp = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE);
+        String r = sp.getString("compile_repo", "fahim-git-00/MyIDE");
+        return r == null || r.isEmpty() ? "fahim-git-00/MyIDE" : r;
+    }
 
     public RemoteKotlinCompiler(Context ctx, Progress progress) {
         this.ctx = ctx;
@@ -120,7 +125,7 @@ public class RemoteKotlinCompiler {
     }
 
     private long triggerWorkflow(String payload) throws Exception {
-        URL url = new URL(API + "/repos/" + REPO + "/actions/workflows/" + WORKFLOW_FILE + "/dispatches");
+        URL url = new URL(API + "/repos/" + repo() + "/actions/workflows/" + WORKFLOW_FILE + "/dispatches");
         HttpURLConnection c = (HttpURLConnection) url.openConnection();
         c.setRequestMethod("POST");
         c.setRequestProperty("Authorization", "token " + token());
@@ -161,7 +166,7 @@ public class RemoteKotlinCompiler {
     }
 
     private long findRecentRun() throws Exception {
-        URL url = new URL(API + "/repos/" + REPO + "/actions/workflows/" + WORKFLOW_FILE + "/runs?per_page=1");
+        URL url = new URL(API + "/repos/" + repo() + "/actions/workflows/" + WORKFLOW_FILE + "/runs?per_page=1");
         HttpURLConnection c = (HttpURLConnection) url.openConnection();
         c.setRequestProperty("Authorization", "token " + token());
         c.setRequestProperty("Accept", "application/vnd.github+json");
@@ -177,7 +182,7 @@ public class RemoteKotlinCompiler {
         long timeoutMs = 10 * 60 * 1000;
 
         while (System.currentTimeMillis() - start < timeoutMs) {
-            URL url = new URL(API + "/repos/" + REPO + "/actions/runs/" + runId);
+            URL url = new URL(API + "/repos/" + repo() + "/actions/runs/" + runId);
             HttpURLConnection c = (HttpURLConnection) url.openConnection();
             c.setRequestProperty("Authorization", "token " + token());
             c.setRequestProperty("Accept", "application/vnd.github+json");
@@ -188,7 +193,9 @@ public class RemoteKotlinCompiler {
 
             if ("completed".equals(status)) {
                 if ("success".equals(conclusion)) return;
-                throw new RuntimeException("Remote build failed: " + conclusion);
+                String log = fetchRunLog(runId);
+                throw new RuntimeException("Remote Kotlin build failed: " + conclusion
+                        + "\n--- GitHub log ---\n" + log);
             }
             say("Remote: " + status + "...");
             Thread.sleep(5000);
@@ -197,7 +204,7 @@ public class RemoteKotlinCompiler {
     }
 
     private File downloadArtifact(long runId) throws Exception {
-        URL url = new URL(API + "/repos/" + REPO + "/actions/runs/" + runId + "/artifacts");
+        URL url = new URL(API + "/repos/" + repo() + "/actions/runs/" + runId + "/artifacts");
         HttpURLConnection c = (HttpURLConnection) url.openConnection();
         c.setRequestProperty("Authorization", "token " + token());
         c.setRequestProperty("Accept", "application/vnd.github+json");
@@ -216,7 +223,7 @@ public class RemoteKotlinCompiler {
         }
         if (artifactId < 0) throw new RuntimeException("kotlin-classes artifact not found");
 
-        URL dl = new URL(API + "/repos/" + REPO + "/actions/artifacts/" + artifactId + "/zip");
+        URL dl = new URL(API + "/repos/" + repo() + "/actions/artifacts/" + artifactId + "/zip");
         HttpURLConnection dc = (HttpURLConnection) dl.openConnection();
         dc.setRequestProperty("Authorization", "token " + token());
         dc.setRequestProperty("Accept", "application/vnd.github+json");
@@ -231,6 +238,50 @@ public class RemoteKotlinCompiler {
         fos.close();
         in.close();
         return out;
+    }
+
+    private String fetchRunLog(long runId) {
+        try {
+            URL url = new URL(API + "/repos/" + repo()
+                    + "/actions/runs/" + runId + "/jobs");
+            HttpURLConnection c = (HttpURLConnection) url.openConnection();
+            c.setRequestProperty("Authorization", "token " + token());
+            c.setRequestProperty("Accept", "application/vnd.github+json");
+            JSONObject j = new JSONObject(readAll(c));
+            JSONArray jobs = j.optJSONArray("jobs");
+            if (jobs == null || jobs.length() == 0) return "(no jobs)";
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < jobs.length(); i++) {
+                JSONObject job = jobs.getJSONObject(i);
+                long jobId = job.getLong("id");
+                sb.append(fetchJobLog(jobId));
+            }
+            return sb.toString();
+        } catch (Throwable t) {
+            return "(log fetch failed: " + t.getMessage() + ")";
+        }
+    }
+
+    private String fetchJobLog(long jobId) {
+        try {
+            URL url = new URL(API + "/repos/" + repo()
+                    + "/actions/jobs/" + jobId + "/logs");
+            HttpURLConnection c = (HttpURLConnection) url.openConnection();
+            c.setRequestProperty("Authorization", "token " + token());
+            c.setRequestProperty("Accept", "application/vnd.github+json");
+            c.setInstanceFollowRedirects(true);
+            int code = c.getResponseCode();
+            if (code >= 400) return "(job log HTTP " + code + ")";
+            InputStream in = c.getInputStream();
+            ByteArrayOutputStream bo = new ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) bo.write(buf, 0, n);
+            in.close();
+            return bo.toString("UTF-8");
+        } catch (Throwable t) {
+            return "(job log failed: " + t.getMessage() + ")";
+        }
     }
 
     private String readAll(HttpURLConnection c) throws Exception {
