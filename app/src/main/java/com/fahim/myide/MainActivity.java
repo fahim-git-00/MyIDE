@@ -282,8 +282,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                     showJsFileMenu(n.file);
                 } else if (!n.isDirectory && n.name.toLowerCase().endsWith(".lua")) {
                     showLuaFileMenu(n.file);
-                } else if (!n.isDirectory && n.name.toLowerCase().endsWith(".py")) {
-                    showPyFileMenu(n.file);
                 } else {
                     showFileMenu(n.file);
                 }
@@ -399,7 +397,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             @Override public void onClick(View v) {
                 if (isJsFile()) runJs();
                 else if (isLuaFile()) runLua();
-                else if (isPyFile()) runPy();
                 else runBuild();
             }
         });
@@ -2411,11 +2408,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         return n.endsWith(".lua");
     }
 
-    private boolean isPyFile() {
-        if (tabs.isEmpty() || activeTab < 0) return false;
-        String n = tabs.get(activeTab).name().toLowerCase();
-        return n.endsWith(".py");
-    }
 
     private void runJs() {
         if (tabs.isEmpty() || activeTab < 0) return;
@@ -2577,74 +2569,4 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             .show();
     }
 
-    private void runPy() {
-        if (tabs.isEmpty() || activeTab < 0) return;
-        flushActiveTab();
-        EditorTab t = tabs.get(activeTab);
-        runPyText(t.text, t.name());
-    }
-
-    private void runPyFile(final File f) {
-        new Thread(new Runnable() {
-            @Override public void run() {
-                try {
-                    String code = readTextFile(f);
-                    runPyText(code, f.getName());
-                } catch (Throwable t) {
-                    ui.post(new Runnable() {
-                        @Override public void run() {
-                            toast("Python read failed: " + t.getMessage());
-                        }
-                    });
-                }
-            }
-        }).start();
-    }
-
-    private void runPyText(final String code, final String name) {
-        showPanel(PANEL_TERMINAL);
-        terminalPanel.setCwd(projectRoot);
-        terminalPanel.appendExternal("$ python " + name);
-
-        new Thread(new Runnable() {
-            @Override public void run() {
-                PythonRunner.runSource(code, name, new PythonRunner.Callback() {
-                    @Override public void onResult(final String out) {
-                        ui.post(new Runnable() {
-                            @Override public void run() {
-                                terminalPanel.appendExternal(out);
-                                showJsResultDialog(name, out, null);
-                            }
-                        });
-                    }
-                    @Override public void onError(final String err) {
-                        ui.post(new Runnable() {
-                            @Override public void run() {
-                                terminalPanel.appendExternal("[ERROR] " + err);
-                                showJsResultDialog(name, null, err);
-                            }
-                        });
-                    }
-                });
-            }
-        }).start();
-    }
-
-    private void showPyFileMenu(final File f) {
-        final String[] items = new String[]{"Run Python", "Open", "Rename", "Duplicate", "Delete"};
-        new AlertDialog.Builder(this, R.style.AppDialogTheme)
-            .setTitle(f.getName())
-            .setItems(items, new DialogInterface.OnClickListener() {
-                @Override public void onClick(DialogInterface d, int w) {
-                    String c = items[w];
-                    if ("Run Python".equals(c)) runPyFile(f);
-                    else if ("Open".equals(c)) openFile(f);
-                    else if ("Rename".equals(c)) FileTreeOps.rename(MainActivity.this, f, afterTree());
-                    else if ("Duplicate".equals(c)) FileTreeOps.duplicate(f, afterTree());
-                    else if ("Delete".equals(c)) FileTreeOps.delete(MainActivity.this, f, afterTree());
-                }
-            })
-            .setNegativeButton("Cancel", null)
-            .show();
-    }
 }
