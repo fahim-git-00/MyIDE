@@ -11,7 +11,7 @@
 #include "py/builtin.h"
 #include "genhdr/mpversion.h"
 
-extern const mp_print_t mp_stderr_print;
+extern const mp_print_t mp_plat_print;
 
 typedef struct {
     char *buf;
@@ -94,7 +94,7 @@ Java_com_fahim_myide_PythonRunner_runScript(JNIEnv *env, jclass clazz,
     } else {
         // Exception
         mp_obj_t exc = (mp_obj_t)nlr.ret_val;
-        mp_obj_print_exception(&mp_stderr_print, exc);
+        mp_obj_print_exception(&mp_plat_print, exc);
         if (g_buf) {
             buf_append(g_buf, "ERROR: exception\n", 17);
         }
