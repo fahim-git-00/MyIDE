@@ -113,6 +113,7 @@ public class ProjectScaffold {
             "public class MainActivity extends Activity {\n" +
             "    static {\n" +
             "        System.loadLibrary(\"native\");\n" +
+            "        System.loadLibrary(\"nativecpp\");\n" +
             "    }\n\n" +
             "    public native String helloFromC();\n" +
             "    public native String helloFromCpp();\n\n" +
@@ -152,8 +153,13 @@ public class ProjectScaffold {
             "LOCAL_PATH := $(call my-dir)\n\n" +
             "include $(CLEAR_VARS)\n" +
             "LOCAL_MODULE    := native\n" +
-            "LOCAL_SRC_FILES := native.c native.cpp\n" +
+            "LOCAL_SRC_FILES := native.c\n" +
             "LOCAL_LDLIBS    := -llog\n" +
+            "include $(BUILD_SHARED_LIBRARY)\n\n" +
+            "include $(CLEAR_VARS)\n" +
+            "LOCAL_MODULE    := nativecpp\n" +
+            "LOCAL_SRC_FILES := native.cpp\n" +
+            "LOCAL_CPP_FEATURES := exceptions rtti\n" +
             "include $(BUILD_SHARED_LIBRARY)\n");
 
         write(new File(jniDir, "Application.mk"),
