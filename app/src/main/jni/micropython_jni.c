@@ -49,8 +49,9 @@ static void buf_free(Buf *b) {
 static Buf *g_buf = NULL;
 
 // Override mp_hal_stdout_tx_strn to capture output
-void mp_hal_stdout_tx_strn(const char *str, size_t len) {
+mp_uint_t mp_hal_stdout_tx_strn(const char *str, size_t len) {
     if (g_buf) buf_append(g_buf, str, len);
+    return len;
 }
 
 void mp_hal_stdout_tx_strn_cooked(const char *str, size_t len) {
@@ -82,7 +83,7 @@ Java_com_fahim_myide_PythonRunner_runScript(JNIEnv *env, jclass clazz,
     nlr_buf_t nlr;
     if (nlr_push(&nlr) == 0) {
         mp_lexer_t *lex = mp_lexer_new_from_str_len(
-            mp_qstr__lt_stdin_gt_, code, strlen(code), 0);
+            MP_QSTR__lt_stdin_gt_, code, strlen(code), 0);
         mp_parse_tree_t parse_tree = mp_parse(lex, MP_PARSE_FILE_INPUT);
         mp_obj_t code_obj = mp_compile(&parse_tree, lex->source_name, false);
         ret = mp_call_function_0(code_obj);
