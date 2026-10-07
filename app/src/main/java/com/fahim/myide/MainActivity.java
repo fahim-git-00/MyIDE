@@ -2453,8 +2453,9 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
 
     private void showJsResultDialog(String name, String output, String error) {
         String title = "JS: " + name;
-        final String body = error != null ? ("Error: " + error) : output;
-        if (body == null || body.isEmpty()) body = "(no output)";
+        String tmp = error != null ? ("Error: " + error) : output;
+        if (tmp == null || tmp.isEmpty()) tmp = "(no output)";
+        final String body = tmp;
         new AlertDialog.Builder(this, R.style.AppDialogTheme)
             .setTitle(title)
             .setMessage(body)
