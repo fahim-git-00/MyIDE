@@ -42,34 +42,30 @@ jobs:
         run: |
           mkdir -p out/arm64-v8a
           CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
-          $CC -O2 -fPIC -shared -fvisibility=default -Wl,-u,u32toa -Wl,-u,u64toa -Wl,-u,i32toa -Wl,-u,i64toa \
+          cd quickjs-src
+          make clean 2>/dev/null || true
+          make libquickjs.a CC="$CC" AR=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar CFLAGS="-O2 -fPIC -D CONFIG_BIGNUM" 2>&1 | tail -5
+          cd ..
+          $CC -O2 -fPIC -shared \
               -I quickjs-src -include quickjs-src/config.h \
-              -D CONFIG_BIGNUM \
-              -I $JAVA_HOME/include -I $JAVA_HOME/include/linux \
               -o out/arm64-v8a/libquickjs.so \
-              quickjs-src/quickjs.c \
-              quickjs-src/libregexp.c \
-              quickjs-src/libunicode.c \
-              quickjs-src/cutils.c \
-              quickjs-src/quickjs-libc.c \
               quickjs_jni.c \
+              quickjs-src/libquickjs.a \
               -lm -ldl
 
       - name: Build for armeabi-v7a
         run: |
           mkdir -p out/armeabi-v7a
           CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi24-clang
-          $CC -O2 -fPIC -shared -fvisibility=default -Wl,-u,u32toa -Wl,-u,u64toa -Wl,-u,i32toa -Wl,-u,i64toa \
+          cd quickjs-src
+          make clean 2>/dev/null || true
+          make libquickjs.a CC="$CC" AR=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar CFLAGS="-O2 -fPIC -D CONFIG_BIGNUM" 2>&1 | tail -5
+          cd ..
+          $CC -O2 -fPIC -shared \
               -I quickjs-src -include quickjs-src/config.h \
-              -D CONFIG_BIGNUM \
-              -I $JAVA_HOME/include -I $JAVA_HOME/include/linux \
               -o out/armeabi-v7a/libquickjs.so \
-              quickjs-src/quickjs.c \
-              quickjs-src/libregexp.c \
-              quickjs-src/libunicode.c \
-              quickjs-src/cutils.c \
-              quickjs-src/quickjs-libc.c \
               quickjs_jni.c \
+              quickjs-src/libquickjs.a \
               -lm -ldl
 
       - name: Upload
