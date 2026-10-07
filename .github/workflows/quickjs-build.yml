@@ -17,6 +17,23 @@ jobs:
         run: |
           git clone --depth=1 https://github.com/bellard/quickjs.git quickjs-src
 
+      - name: Generate config.h
+        run: |
+          cd quickjs-src
+          # Generate config.h / version header without full build
+          make -n > /dev/null 2>&1 || true
+          # Fallback: write minimal config
+          if [ ! -f config.h ]; then
+            cat > config.h << 'CFG'
+          #ifndef CONFIG_VERSION
+          #define CONFIG_VERSION "2024-01-13"
+          #endif
+          #define CONFIG_BIGNUM 1
+          #define CONFIG_ATOMICS 1
+          CFG
+          fi
+          cd ..
+
       - name: Copy JNI bridge
         run: |
           curl -sSL -o quickjs_jni.c https://raw.githubusercontent.com/fahim-git-00/MyIDE/main/app/src/main/jni/quickjs_jni.c
