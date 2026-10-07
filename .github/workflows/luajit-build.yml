@@ -34,7 +34,7 @@ jobs:
             HOST_CC="/usr/bin/gcc -m64" \
             TARGET_SYS=Linux \
             TARGET_FLAGS="" \
-            XCFLAGS="-DLUAJIT_ENABLE_LUA52COMPAT -DLUAJIT_OS=Linux -fPIC" \
+            XCFLAGS="-DLUAJIT_ENABLE_LUA52COMPAT -DLUAJIT_OS=Linux -DLUAJIT_SECURITY_PRNG=0 -fPIC" \
             TARGET_AR="$TC/bin/llvm-ar rcus" \
             TARGET_STRIP="$TC/bin/llvm-strip" \
             BUILDMODE=static 2>&1 | tail -30
@@ -58,7 +58,7 @@ jobs:
             HOST_CC="/usr/bin/gcc -m64" \
             TARGET_SYS=Linux \
             TARGET_FLAGS="" \
-            XCFLAGS="-DLUAJIT_ENABLE_LUA52COMPAT -DLUAJIT_OS=Linux -fPIC" \
+            XCFLAGS="-DLUAJIT_ENABLE_LUA52COMPAT -DLUAJIT_OS=Linux -DLUAJIT_SECURITY_PRNG=0 -fPIC" \
             TARGET_AR="$TC/bin/llvm-ar rcus" \
             TARGET_STRIP="$TC/bin/llvm-strip" \
             BUILDMODE=static 2>&1 | tail -30
