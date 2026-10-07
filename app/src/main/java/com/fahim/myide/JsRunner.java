@@ -13,11 +13,15 @@ public final class JsRunner {
 
     private JsRunner() {}
 
+    private static String LOAD_ERROR = null;
     static {
         try {
             System.loadLibrary("quickjs");
-        } catch (Throwable ignored) {}
+        } catch (Throwable t) {
+            LOAD_ERROR = t.toString();
+        }
     }
+    public static String getLoadError() { return LOAD_ERROR; }
 
     /** Native method — implemented in quickjs_jni.c */
     public static native String runScript(String code, String name);
@@ -35,6 +39,10 @@ public final class JsRunner {
     }
 
     public static void runSource(String code, String name, Callback cb) {
+        if (LOAD_ERROR != null) {
+            if (cb != null) cb.onError("quickjs load failed: " + LOAD_ERROR);
+            return;
+        }
         try {
             String out = runScript(code, name == null ? "script.js" : name);
             if (cb != null) cb.onResult(out == null ? "" : out);
