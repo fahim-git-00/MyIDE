@@ -1840,6 +1840,14 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         pkgEt.setTextColor(0xFFD4D4D4);
         root.addView(pkgEt);
 
+        final android.widget.CheckBox cppBox = new android.widget.CheckBox(this);
+        cppBox.setText("Include C / C++ (JNI) support");
+        cppBox.setTextColor(0xFFD4D4D4);
+        cppBox.setTextSize(13f);
+        cppBox.setChecked(false);
+        cppBox.setPadding(0, dp(10), 0, dp(4));
+        root.addView(cppBox);
+
         root.addView(label("Location"));
         final TextView locTv = new TextView(this);
         locTv.setText("(not selected)");
@@ -1881,7 +1889,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                         if (chosen[0] == null) { toast("Pick a location"); return; }
                         File proj = new File(chosen[0], name);
                         if (proj.exists()) { toast("Already exists"); return; }
-                        File created = ProjectScaffold.create(proj, name, pkg);
+                        File created = ProjectScaffold.create(proj, name, pkg, cppBox.isChecked());
                         if (created == null) { toast("Create failed"); return; }
                         dlg.dismiss();
                         projectRoot = created;

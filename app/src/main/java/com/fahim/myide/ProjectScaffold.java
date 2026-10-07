@@ -6,6 +6,10 @@ import java.io.FileOutputStream;
 public class ProjectScaffold {
 
     public static File create(File projDir, String appName, String pkg) {
+        return create(projDir, appName, pkg, false);
+    }
+
+    public static File create(File projDir, String appName, String pkg, boolean withCpp) {
         try {
             String pkgPath = pkg.replace('.', '/');
             File srcDir      = new File(projDir, "src/" + pkgPath);
@@ -38,17 +42,11 @@ public class ProjectScaffold {
                 "    </application>\n" +
                 "</manifest>\n");
 
-            write(new File(srcDir, "MainActivity.java"),
-                "package " + pkg + ";\n\n" +
-                "import android.app.Activity;\n" +
-                "import android.os.Bundle;\n\n" +
-                "public class MainActivity extends Activity {\n" +
-                "    @Override\n" +
-                "    protected void onCreate(Bundle savedInstanceState) {\n" +
-                "        super.onCreate(savedInstanceState);\n" +
-                "        setContentView(R.layout.main);\n" +
-                "    }\n" +
-                "}\n");
+            if (withCpp) {
+                writeCppProject(projDir, pkg, appName);
+            } else {
+                writeJavaOnly(srcDir, pkg, appName);
+            }
 
             write(new File(resValues, "strings.xml"),
                 "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
@@ -86,6 +84,82 @@ public class ProjectScaffold {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private static void writeJavaOnly(File srcDir, String pkg, String appName) throws Exception {
+        write(new File(srcDir, "MainActivity.java"),
+            "package " + pkg + ";\n\n" +
+            "import android.app.Activity;\n" +
+            "import android.os.Bundle;\n\n" +
+            "public class MainActivity extends Activity {\n" +
+            "    @Override\n" +
+            "    protected void onCreate(Bundle savedInstanceState) {\n" +
+            "        super.onCreate(savedInstanceState);\n" +
+            "        setContentView(R.layout.main);\n" +
+            "    }\n" +
+            "}\n");
+    }
+
+    private static void writeCppProject(File projDir, String pkg, String appName) throws Exception {
+        // Java sources
+        File srcDir = new File(projDir, "src/" + pkg.replace('.', '/'));
+        String javaPkg = pkg;
+
+        write(new File(srcDir, "MainActivity.java"),
+            "package " + javaPkg + ";\n\n" +
+            "import android.app.Activity;\n" +
+            "import android.os.Bundle;\n" +
+            "import android.widget.TextView;\n\n" +
+            "public class MainActivity extends Activity {\n" +
+            "    static {\n" +
+            "        System.loadLibrary(\"native\");\n" +
+            "    }\n\n" +
+            "    public native String helloFromC();\n" +
+            "    public native String helloFromCpp();\n\n" +
+            "    @Override\n" +
+            "    protected void onCreate(Bundle savedInstanceState) {\n" +
+            "        super.onCreate(savedInstanceState);\n" +
+            "        String msg = helloFromC() + \"\\n\" + helloFromCpp();\n" +
+            "        TextView tv = new TextView(this);\n" +
+            "        tv.setText(msg);\n" +
+            "        tv.setTextSize(18f);\n" +
+            "        tv.setPadding(32, 32, 32, 32);\n" +
+            "        setContentView(tv);\n" +
+            "    }\n" +
+            "}\n");
+
+        // JNI folder
+        File jniDir = new File(projDir, "jni");
+        jniDir.mkdirs();
+
+        String jniBase = javaPkg.replace('.', '_');
+
+        write(new File(jniDir, "native.c"),
+            "#include <jni.h>\n\n" +
+            "JNIEXPORT jstring JNICALL\n" +
+            "Java_" + jniBase + "_MainActivity_helloFromC(JNIEnv *env, jobject thiz) {\n" +
+            "    return (*env)->NewStringUTF(env, \"Hello from C\");\n" +
+            "}\n");
+
+        write(new File(jniDir, "native.cpp"),
+            "#include <jni.h>\n\n" +
+            "extern \"C\" JNIEXPORT jstring JNICALL\n" +
+            "Java_" + jniBase + "_MainActivity_helloFromCpp(JNIEnv *env, jobject thiz) {\n" +
+            "    return env->NewStringUTF(\"Hello from C++\");\n" +
+            "}\n");
+
+        write(new File(jniDir, "Android.mk"),
+            "LOCAL_PATH := $(call my-dir)\n\n" +
+            "include $(CLEAR_VARS)\n" +
+            "LOCAL_MODULE    := native\n" +
+            "LOCAL_SRC_FILES := native.c native.cpp\n" +
+            "LOCAL_LDLIBS    := -llog\n" +
+            "include $(BUILD_SHARED_LIBRARY)\n");
+
+        write(new File(jniDir, "Application.mk"),
+            "APP_ABI := arm64-v8a\n" +
+            "APP_PLATFORM := android-24\n" +
+            "APP_STL := c++_static\n");
     }
 
     private static void write(File f, String content) throws Exception {
