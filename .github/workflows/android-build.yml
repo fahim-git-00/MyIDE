@@ -46,30 +46,6 @@ jobs:
           grep -v "aapt2FromMavenOverride" gradle.properties > gradle.properties.new || true
           mv gradle.properties.new gradle.properties
 
-      - name: Dex Kotlin jars
-        run: |
-          cd app/src/main/assets/kotlin
-          D8=$HOME/android-sdk/build-tools/34.0.0/d8
-          LIB=$HOME/android-sdk/platforms/android-34/android.jar
-
-          dexjar() {
-            J=$1; M=$2
-            [ ! -f "$J" ] && { echo "skip $J"; return; }
-            mv "$J" orig.jar
-            rm -rf tmp && mkdir tmp
-            $D8 --min-api $M --lib $LIB --output tmp/ orig.jar
-            unzip -q -o orig.jar -d tmp
-            (cd tmp && zip -q -X -r "../$J" .)
-            rm -rf tmp orig.jar
-            echo "dexed $J (min-api=$M): $(ls -lh $J | awk '{print $5}')"
-          }
-
-          dexjar kotlin-compiler-embeddable.jar 26
-          dexjar kotlin-stdlib.jar 24
-          dexjar kotlin-reflect.jar 24
-          dexjar kotlin-script-runtime.jar 24
-          ls -lh
-
       - name: Build Debug APK
         run: gradle assembleDebug --stacktrace
 
