@@ -44,6 +44,12 @@ jobs:
             VARIANT=standard \
             DEBUG=0 \
             MICROPY_PY_THREAD=0 \
+            MICROPY_PY_SSL=0 \
+            MICROPY_PY_FFI=0 \
+            MICROPY_PY_BTREE=0 \
+            MICROPY_VFS_FAT=0 \
+            MICROPY_VFS_LFS1=0 \
+            MICROPY_VFS_LFS2=0 \
             FROZEN_MANIFEST="" 2>&1 | tail -20
           cd ../../..
           
@@ -71,6 +77,12 @@ jobs:
             VARIANT=standard \
             DEBUG=0 \
             MICROPY_PY_THREAD=0 \
+            MICROPY_PY_SSL=0 \
+            MICROPY_PY_FFI=0 \
+            MICROPY_PY_BTREE=0 \
+            MICROPY_VFS_FAT=0 \
+            MICROPY_VFS_LFS1=0 \
+            MICROPY_VFS_LFS2=0 \
             FROZEN_MANIFEST="" 2>&1 | tail -20
           cd ../../..
           
