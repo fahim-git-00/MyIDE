@@ -81,21 +81,8 @@ public class LocalJvm {
         File ktDir  = new File(ctx.getFilesDir(), "kotlin");
         File javaHome = jdkDir;
 
-        wireNativeLibs();
-
-        File jLib = new File(jdkDir, "lib/libjava.so");
-        say("  jdk/lib/libjava.so exists=" + jLib.isFile()
-                + " len=" + (jLib.isFile() ? jLib.length() : -1));
-        File jJli = new File(jdkDir, "lib/libjli.so");
-        say("  jdk/lib/libjli.so exists=" + jJli.isFile()
-                + " len=" + (jJli.isFile() ? jJli.length() : -1));
-        File jJvm = new File(jdkDir, "lib/server/libjvm.so");
-        say("  jdk/lib/server/libjvm.so exists=" + jJvm.isFile()
-                + " len=" + (jJvm.isFile() ? jJvm.length() : -1));
-        say("  nativeLibraryDir=" + ctx.getApplicationInfo().nativeLibraryDir);
-
         String nativeDir = ctx.getApplicationInfo().nativeLibraryDir;
-        File javaLauncher = new File(nativeDir, "libjava-launcher.so");
+        File javaLauncher = new File(nativeDir, "liblauncher_java.so");
         if (!javaLauncher.isFile()) {
             throw new RuntimeException("java launcher not found: " + javaLauncher);
         }
@@ -204,76 +191,6 @@ public class LocalJvm {
      * pointing at the renamed .so files inside the APK native lib dir, using
      * the original names the JVM expects (libjava.so, libjvm.so, etc).
      */
-    private void wireNativeLibs() throws Exception {
-        String nd = ctx.getApplicationInfo().nativeLibraryDir;
-        File libDir    = new File(ctx.getFilesDir(), "jdk/lib");
-        File serverDir = new File(libDir, "server");
-        if (!libDir.exists()) libDir.mkdirs();
-        if (!serverDir.exists()) serverDir.mkdirs();
-
-        // name we need → file in nativeLibraryDir
-        String[][] map = {
-            {"libjava.so",            "libjdk_libjava.so"},
-            {"libjvm.so",             "libjdk_libjvm.so"},
-            {"libjli.so",             "libjdk_libjli.so"},
-            {"libjsig.so",            "libjdk_libjsig.so"},
-            {"libverify.so",          "libjdk_libverify.so"},
-            {"libzip.so",             "libjdk_libzip.so"},
-            {"libnet.so",             "libjdk_libnet.so"},
-            {"libnio.so",             "libjdk_libnio.so"},
-            {"libextnet.so",          "libjdk_libextnet.so"},
-            {"librmi.so",             "libjdk_librmi.so"},
-            {"libjaas.so",            "libjdk_libjaas.so"},
-            {"libmanagement.so",      "libjdk_libmanagement.so"},
-            {"libmanagement_ext.so",  "libjdk_libmanagement_ext.so"},
-            {"libmanagement_agent.so","libjdk_libmanagement_agent.so"},
-            {"libinstrument.so",      "libjdk_libinstrument.so"},
-            {"libjimage.so",          "libjdk_libjimage.so"},
-            {"libattach.so",          "libjdk_libattach.so"},
-            {"libjdwp.so",            "libjdk_libjdwp.so"},
-            {"libdt_socket.so",       "libjdk_libdt_socket.so"},
-            {"libsyslookup.so",       "libjdk_libsyslookup.so"},
-            {"libprefs.so",           "libjdk_libprefs.so"},
-            {"libj2gss.so",           "libjdk_libj2gss.so"},
-            {"libj2pcsc.so",          "libjdk_libj2pcsc.so"},
-            {"libj2pkcs11.so",        "libjdk_libj2pkcs11.so"},
-            {"libsctp.so",            "libjdk_libsctp.so"},
-            {"libjavajpeg.so",        "libjdk_libjavajpeg.so"},
-            {"liblcms.so",            "libjdk_liblcms.so"},
-            {"lible.so",              "libjdk_lible.so"},
-            {"libfontmanager.so",     "libjdk_libfontmanager.so"},
-            {"libmlib_image.so",      "libjdk_libmlib_image.so"},
-            {"libawt.so",             "libjdk_libawt.so"},
-            {"libawt_headless.so",    "libjdk_libawt_headless.so"},
-            {"libawt_xawt.so",        "libjdk_libawt_xawt.so"},
-            {"libjawt.so",            "libjdk_libjawt.so"},
-            {"libjsound.so",          "libjdk_libjsound.so"},
-            {"libsplashscreen.so",    "libjdk_libsplashscreen.so"},
-            {"libz.so.1",             "libtermux_z.so"},
-            {"libcrypto.so.3",        "libtermux_crypto.so"},
-            {"libssl.so.3",           "libtermux_ssl.so"},
-            {"libandroid-shmem.so",   "libtermux_android-shmem.so"}
-        };
-
-        for (String[] e : map) {
-            File src = new File(nd, e[1]);
-            if (!src.isFile()) continue;
-            // Copy under original name (JVM looks this up)
-            File dst1 = new File(libDir, e[0]);
-            if (!(dst1.isFile() && dst1.length() == src.length())) copy(src, dst1);
-            // Also copy under prefixed name (other .so NEED this name)
-            File dst2 = new File(libDir, e[1]);
-            if (!(dst2.isFile() && dst2.length() == src.length())) copy(src, dst2);
-        }
-        // jvm needs libjvm.so in lib/server
-        File srcJvm = new File(nd, "libjdk_libjvm.so");
-        File serverDst = new File(serverDir, "libjvm.so");
-        if (srcJvm.isFile() && (!serverDst.isFile()
-                || serverDst.length() != srcJvm.length())) {
-            copy(srcJvm, serverDst);
-        }
-    }
-
     private void findKtFiles(File dir, List<File> out) {
         if (dir == null || !dir.exists()) return;
         File[] kids = dir.listFiles();
