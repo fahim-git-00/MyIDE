@@ -39,7 +39,7 @@ jobs:
           make clean 2>/dev/null || true
           make -j$(nproc) \
             CC="$CC" \
-            CFLAGS_EXTRA="-fPIC -include mp-src/py/mpconfig.h -DMICROPY_NLR_SETJMP=1" \
+            CFLAGS_EXTRA="-fPIC -DMICROPY_NLR_SETJMP=1 -DMICROPY_NLR_OS_LINUX=1" \
             LDFLAGS_EXTRA="-Wl,--export-dynamic" \
             VARIANT=standard \
             DEBUG=0 \
@@ -56,6 +56,7 @@ jobs:
             FROZEN_MANIFEST="" 2>&1 | tail -20
           
           # Collect all .o files into a static lib
+          $CC -fPIC -DMICROPY_NLR_SETJMP=1 -I mp-src -I mp-src/ports/unix -I mp-src/ports/unix/build-standard -I mp-src/ports/unix/variants/standard -c mp-src/py/nlr.c -o build-standard/py/nlr.o 2>&1 | tail -5
           $TC/bin/llvm-ar rcs build-standard/libmicropython.a build-standard/py/*.o build-standard/extmod/*.o build-standard/shared/runtime/*.o build-standard/shared/readline/*.o build-standard/shared/timeutils/*.o 2>/dev/null || true
           
           cd ../../..
@@ -80,7 +81,7 @@ jobs:
           make clean 2>/dev/null || true
           make -j$(nproc) \
             CC="$CC" \
-            CFLAGS_EXTRA="-fPIC -include mp-src/py/mpconfig.h -DMICROPY_NLR_SETJMP=1" \
+            CFLAGS_EXTRA="-fPIC -DMICROPY_NLR_SETJMP=1 -DMICROPY_NLR_OS_LINUX=1" \
             LDFLAGS_EXTRA="-Wl,--export-dynamic" \
             VARIANT=standard \
             DEBUG=0 \
@@ -96,6 +97,7 @@ jobs:
             MICROPY_PY_READLINE=0 \
             FROZEN_MANIFEST="" 2>&1 | tail -20
           
+          $CC -fPIC -DMICROPY_NLR_SETJMP=1 -I mp-src -I mp-src/ports/unix -I mp-src/ports/unix/build-standard -I mp-src/ports/unix/variants/standard -c mp-src/py/nlr.c -o build-standard/py/nlr.o 2>&1 | tail -5
           $TC/bin/llvm-ar rcs build-standard/libmicropython.a build-standard/py/*.o build-standard/extmod/*.o build-standard/shared/runtime/*.o build-standard/shared/readline/*.o build-standard/shared/timeutils/*.o 2>/dev/null || true
           
           cd ../../..
