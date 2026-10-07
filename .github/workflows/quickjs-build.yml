@@ -42,7 +42,7 @@ jobs:
         run: |
           mkdir -p out/arm64-v8a
           CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
-          $CC -O2 -fPIC -shared \
+          $CC -O2 -fPIC -shared -fvisibility=default -Wl,--export-dynamic -Wl,--allow-shlib-undefined \
               -I quickjs-src \
               -DCONFIG_VERSION='"2024-01-13"' \
                             -o out/arm64-v8a/libquickjs.so \
@@ -58,7 +58,7 @@ jobs:
         run: |
           mkdir -p out/armeabi-v7a
           CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi24-clang
-          $CC -O2 -fPIC -shared \
+          $CC -O2 -fPIC -shared -fvisibility=default -Wl,--export-dynamic -Wl,--allow-shlib-undefined \
               -I quickjs-src \
               -DCONFIG_VERSION='"2024-01-13"' \
                             -o out/armeabi-v7a/libquickjs.so \
