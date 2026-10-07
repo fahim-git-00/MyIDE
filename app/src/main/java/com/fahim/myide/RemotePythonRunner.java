@@ -63,6 +63,9 @@ public class RemotePythonRunner {
 
     public void run(String scriptName, String code, String stdin, Callback cb) {
         try {
+            say("run() start: " + scriptName);
+            say("token present: " + hasToken());
+            say("repo: " + repo());
             if (!hasToken()) throw new RuntimeException(
                     "GitHub token not set. Open menu -> GitHub Token.");
 
@@ -83,8 +86,11 @@ public class RemotePythonRunner {
 
             if (cb != null) cb.onResult(exit, body, exit == 0 ? null : body);
         } catch (Throwable t) {
-            if (cb != null) cb.onResult(-1, null,
-                    t.getMessage() == null ? t.getClass().getSimpleName() : t.getMessage());
+            java.io.StringWriter sw = new java.io.StringWriter();
+            t.printStackTrace(new java.io.PrintWriter(sw));
+            String trace = t.getClass().getName() + ": " + t.getMessage() + "\n" + sw.toString();
+            say("ERROR: " + trace);
+            if (cb != null) cb.onResult(-1, null, trace);
         }
     }
 
@@ -114,8 +120,11 @@ public class RemotePythonRunner {
 
             if (cb != null) cb.onResult(exit, body, exit == 0 ? null : body);
         } catch (Throwable t) {
-            if (cb != null) cb.onResult(-1, null,
-                    t.getMessage() == null ? t.getClass().getSimpleName() : t.getMessage());
+            java.io.StringWriter sw = new java.io.StringWriter();
+            t.printStackTrace(new java.io.PrintWriter(sw));
+            String trace = t.getClass().getName() + ": " + t.getMessage() + "\n" + sw.toString();
+            say("ERROR: " + trace);
+            if (cb != null) cb.onResult(-1, null, trace);
         }
     }
 
