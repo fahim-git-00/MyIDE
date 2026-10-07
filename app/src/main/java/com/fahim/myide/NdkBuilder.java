@@ -7,7 +7,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 
 public class NdkBuilder {
@@ -26,14 +25,12 @@ public class NdkBuilder {
         if (progress != null) progress.onProgress(s);
     }
 
-    /** Picks the prebuilt folder matching the device ABI (arm64 -> linux-aarch64). */
     private static String pickPrebuilt(File ndkRoot) {
         File pre = new File(ndkRoot, "toolchains/llvm/prebuilt");
         if (!pre.isDirectory()) return null;
         File[] kids = pre.listFiles();
         if (kids == null) return null;
 
-        // Prefer aarch64 on arm64 devices
         boolean arm64 = false;
         try {
             for (String abi : Build.SUPPORTED_ABIS) {
@@ -52,10 +49,9 @@ public class NdkBuilder {
         return fallback;
     }
 
-    /** Copy directory recursively. */
     private static void copyDir(File src, File dst) throws Exception {
         if (src.isDirectory()) {
-            if (!dst.exists() && !dst.mkdirs()) throw new Exception("mkdir failed: " + dst);
+            if (!dst.exists() && !dst.mkdirs()) throw new Exception("mkdir " + dst);
             File[] kids = src.listFiles();
             if (kids == null) return;
             for (File k : kids) copyDir(k, new File(dst, k.getName()));
@@ -69,12 +65,10 @@ public class NdkBuilder {
             while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
             in.close();
             out.close();
-            if (src.canExecute()) dst.setExecutable(true, false);
         }
     }
 
-    /** Ensure the NDK lives somewhere executable (not /sdcard). Returns the usable path. */
-    private File ensureExecutable(File ndk) {
+    private File ensureLocal(File ndk) {
         String abs = ndk.getAbsolutePath();
         boolean onSdcard = abs.startsWith("/sdcard")
                 || abs.startsWith("/storage/emulated")
@@ -83,52 +77,22 @@ public class NdkBuilder {
         File local = new File(ctx.getFilesDir(), "ndk/" + ndk.getName());
         File marker = new File(local, ".copied");
 
-        if (!onSdcard && new File(ndk, "ndk-build").canExecute()) {
-            return ndk;
-        }
-
-        if (marker.exists() && new File(local, "ndk-build").canExecute()) {
-            say("Using cached NDK at " + local.getAbsolutePath());
+        if (!onSdcard) return ndk;
+        if (marker.exists()) {
+            say("Using cached NDK: " + local.getAbsolutePath());
             return local;
         }
 
         say("Copying NDK to app storage (one-time, ~344 MB)...");
-        say("  from: " + abs);
-        say("  to:   " + local.getAbsolutePath());
-
         try {
             if (local.exists()) deleteRecursive(local);
             copyDir(ndk, local);
-
-            File ndkBuild = new File(local, "ndk-build");
-            if (ndkBuild.exists()) ndkBuild.setExecutable(true, false);
-
-            File pre = new File(local, "toolchains/llvm/prebuilt");
-            if (pre.isDirectory()) {
-                File[] kids = pre.listFiles();
-                if (kids != null) for (File k : kids) {
-                    File bin = new File(k, "bin");
-                    if (bin.isDirectory()) chmodR(bin);
-                }
-            }
-
             marker.createNewFile();
             say("NDK copied.");
         } catch (Exception e) {
-            say("NDK copy failed: " + e);
-            throw new RuntimeException("NDK copy failed", e);
+            throw new RuntimeException("NDK copy failed: " + e);
         }
         return local;
-    }
-
-    private static void chmodR(File dir) {
-        if (dir.isDirectory()) {
-            dir.setExecutable(true, false);
-            File[] kids = dir.listFiles();
-            if (kids != null) for (File k : kids) chmodR(k);
-        } else {
-            dir.setExecutable(true, false);
-        }
     }
 
     private static void deleteRecursive(File f) {
@@ -142,8 +106,7 @@ public class NdkBuilder {
 
     public boolean buildIfNeeded(File projectRoot) throws Exception {
         File jni = new File(projectRoot, "jni");
-        File mk  = new File(jni, "Android.mk");
-        if (!jni.isDirectory() || !mk.isFile()) {
+        if (!jni.isDirectory() || !new File(jni, "Android.mk").isFile()) {
             say("No jni/Android.mk — skipping NDK");
             return false;
         }
@@ -157,36 +120,51 @@ public class NdkBuilder {
             throw new RuntimeException("NDK missing toolchains/llvm/prebuilt/*");
         say("NDK: " + ndk.getName() + " (" + prebuilt + ")");
 
-        // Move to app storage if needed (noexec on /sdcard)
-        File ndkUsable = ensureExecutable(ndk);
+        File ndkUsable = ensureLocal(ndk);
         String prebuiltUsable = pickPrebuilt(ndkUsable);
         if (prebuiltUsable == null)
-            throw new RuntimeException("Copied NDK missing prebuilt tools");
+            throw new RuntimeException("NDK missing prebuilt after copy");
 
-        String ndkBuild = new File(ndkUsable, "ndk-build").getAbsolutePath();
-        new File(ndkBuild).setExecutable(true, false);
+        File ndkBuild = new File(ndkUsable, "ndk-build");
+        if (!ndkBuild.isFile())
+            throw new RuntimeException("ndk-build missing: " + ndkBuild);
 
         File libs = new File(projectRoot, "libs");
         if (!libs.exists()) libs.mkdirs();
 
+        // proot binary
+        File proot = new File(ctx.getApplicationInfo().nativeLibraryDir, "libproot.so");
+        if (!proot.isFile()) throw new RuntimeException("proot missing");
+
         String binDir = new File(ndkUsable,
                 "toolchains/llvm/prebuilt/" + prebuiltUsable + "/bin").getAbsolutePath();
-        String path = binDir + ":" + (System.getenv("PATH") == null ? "" : System.getenv("PATH"));
 
-        ProcessBuilder pb = new ProcessBuilder(
-                "/system/bin/sh", "-c",
-                "cd '" + projectRoot.getAbsolutePath() + "' && "
-                + "chmod +x '" + ndkBuild + "' 2>/dev/null; "
-                + "'" + ndkBuild + "'"
-                + " NDK_PROJECT_PATH=."
-                + " APP_BUILD_SCRIPT=./jni/Android.mk"
-                + " NDK_APPLICATION_MK=./jni/Application.mk"
-                + " NDK_OUT=./.ndk-obj"
-                + " NDK_LIBS_OUT=./libs"
-        );
+        // Build proot command: bind rootfs paths so ndk-build can run.
+        StringBuilder cmd = new StringBuilder();
+        cmd.append("'").append(proot.getAbsolutePath()).append("'")
+           .append(" -0 --link2symlink --kill-on-exit")
+           .append(" -r /")
+           .append(" -w '").append(projectRoot.getAbsolutePath()).append("'")
+           .append(" -b /dev -b /proc -b /sys")
+           .append(" -b '").append(ctx.getFilesDir().getAbsolutePath()).append("'")
+           .append(" -b '").append(projectRoot.getAbsolutePath()).append("'")
+           .append(" /system/bin/sh -c \"")
+           .append("export PATH='").append(binDir).append("':$PATH; ")
+           .append("export NDK_ROOT='").append(ndkUsable.getAbsolutePath()).append("'; ")
+           .append("cd '").append(projectRoot.getAbsolutePath()).append("'; ")
+           .append("'").append(ndkBuild.getAbsolutePath()).append("'")
+           .append(" NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./jni/Android.mk")
+           .append(" NDK_APPLICATION_MK=./jni/Application.mk")
+           .append(" NDK_OUT=./.ndk-obj NDK_LIBS_OUT=./libs\"");
+
+        say("$ proot ndk-build");
+
+        ProcessBuilder pb = new ProcessBuilder("/system/bin/sh", "-c", cmd.toString());
         pb.redirectErrorStream(true);
-        pb.environment().put("NDK_ROOT", ndkUsable.getAbsolutePath());
-        pb.environment().put("PATH", path);
+        pb.environment().put("PROOT_TMP_DIR", ctx.getCacheDir().getAbsolutePath());
+        pb.environment().put("PROOT_NO_SECCOMP", "1");
+        pb.environment().put("LD_LIBRARY_PATH",
+                new File(ctx.getFilesDir(), "proot-lib").getAbsolutePath());
 
         Process p = pb.start();
         BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -196,12 +174,11 @@ public class NdkBuilder {
         if (code != 0) throw new RuntimeException("ndk-build exited " + code);
 
         File arm = new File(libs, "arm64-v8a");
-        if (!arm.isDirectory()) throw new RuntimeException("ndk-build produced no libs/arm64-v8a");
-
+        if (!arm.isDirectory()) throw new RuntimeException("No libs/arm64-v8a");
         File[] so = arm.listFiles();
         int n = 0;
         if (so != null) for (File f : so) if (f.getName().endsWith(".so")) n++;
-        say("NDK produced " + n + " .so in libs/arm64-v8a");
+        say("NDK produced " + n + " .so");
         return true;
     }
 }
