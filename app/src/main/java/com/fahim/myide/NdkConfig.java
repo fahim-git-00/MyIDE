@@ -18,24 +18,28 @@ public final class NdkConfig {
     }
 
     public static String getPath(Context ctx) {
-        return prefs(ctx).getString(KEY, "");
+        String v = prefs(ctx).getString(KEY, "");
+        return v == null ? "" : v;
     }
 
     public static void setPath(Context ctx, String path) {
-        prefs(ctx).putString(KEY, path == null ? "" : path).apply();
+        String v = (path == null) ? "" : path;
+        prefs(ctx).edit().putString(KEY, v).apply();
     }
 
     public static String getPrebuilt(Context ctx) {
-        return prefs(ctx).getString(KEY_PREBUILT, "");
+        String v = prefs(ctx).getString(KEY_PREBUILT, "");
+        return v == null ? "" : v;
     }
 
     public static void setPrebuilt(Context ctx, String name) {
-        prefs(ctx).putString(KEY_PREBUILT, name == null ? "" : name).apply();
+        String v = (name == null) ? "" : name;
+        prefs(ctx).edit().putString(KEY_PREBUILT, v).apply();
     }
 
     public static File getDir(Context ctx) {
         String p = getPath(ctx);
-        if (p == null || p.isEmpty()) return null;
+        if (p.isEmpty()) return null;
         File f = new File(p);
         return f.isDirectory() ? f : null;
     }
