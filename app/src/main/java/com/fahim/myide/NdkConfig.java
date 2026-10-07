@@ -2,6 +2,7 @@ package com.fahim.myide;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Build;
 
 import java.io.File;
 
@@ -56,11 +57,22 @@ public final class NdkConfig {
         if (!pre.isDirectory()) return null;
         File[] kids = pre.listFiles();
         if (kids == null) return null;
+
+        boolean arm64 = false;
+        try {
+            for (String abi : Build.SUPPORTED_ABIS) {
+                if (abi != null && abi.startsWith("arm64")) { arm64 = true; break; }
+            }
+        } catch (Throwable ignored) {}
+
+        String fallback = null;
         for (File k : kids) {
             if (!k.isDirectory()) continue;
-            File bin = new File(k, "bin");
-            if (bin.isDirectory()) return k.getName();
+            if (!new File(k, "bin").isDirectory()) continue;
+            String n = k.getName();
+            if (fallback == null) fallback = n;
+            if (arm64 && (n.contains("aarch64") || n.contains("arm64"))) return n;
         }
-        return null;
+        return fallback;
     }
 }
