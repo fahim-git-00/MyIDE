@@ -137,6 +137,11 @@ public class LocalJvm {
         args.add(classesDir.getAbsolutePath());
         for (File kt : ktFiles) args.add(kt.getAbsolutePath());
 
+        // Register JDK libs with the Android linker so dlopen(bare-name) works.
+        try { System.loadLibrary("jli"); } catch (Throwable ignored) {}
+        try { System.loadLibrary("java"); } catch (Throwable ignored) {}
+        try { System.loadLibrary("jvm"); } catch (Throwable ignored) {}
+
         say("Running kotlinc via bundled JVM…");
         ProcessBuilder pb = new ProcessBuilder(args);
         pb.redirectErrorStream(true);
