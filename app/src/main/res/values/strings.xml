@@ -272,4 +272,8 @@
     <string name="perm_grant">Grant</string>
 
     <string name="action_signing_key">Signing Key\u2026</string>
+
+    <string name="action_select_ndk">Select NDK Folder\u2026</string>
+    <string name="ndk_selected">NDK: %1$s</string>
+    <string name="ndk_invalid">Invalid NDK folder</string>
 </resources>

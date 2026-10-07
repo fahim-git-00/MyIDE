@@ -4,6 +4,9 @@
     <item android:id="@+id/menu_build_apk" android:title="@string/action_build_apk" />
     <item android:id="@+id/menu_gradle_build" android:title="@string/action_gradle_build" />
 
+    <item android:id="@+id/menu_sep_ndk" android:title="" />
+    <item android:id="@+id/menu_select_ndk" android:title="@string/action_select_ndk" />
+
     <item android:id="@+id/menu_sep_1" android:title="" />
 
     <item android:id="@+id/menu_clean" android:title="@string/action_clean" />

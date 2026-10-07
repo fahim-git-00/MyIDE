@@ -84,7 +84,6 @@ public class ApkBuilder {
                 if (sibRes.exists() && !sibRes.equals(appRes)) resRoots.add(sibRes);
             }
 
-            // .myide/deps.txt → maven
             File depsFile = new File(projectRoot, ".myide/deps.txt");
             if (depsFile.exists()) {
                 File mavenDir = new File(workDir, "maven_libs");
@@ -187,6 +186,16 @@ public class ApkBuilder {
                 }
             }
 
+            // ---- NDK (optional, AIDE-style) ----
+            try {
+                new NdkBuilder(ctx, new NdkBuilder.Progress() {
+                    @Override public void onProgress(String m) { say(m); }
+                }).buildIfNeeded(projectRoot);
+            } catch (Throwable ndkErr) {
+                say("NDK step: " + causeChain(ndkErr));
+                throw ndkErr;
+            }
+
             File patchedManifest = new File(workDir, "AndroidManifest.xml");
             patchManifest(appManifest, patchedManifest, minSdk, targetSdk);
 
@@ -224,7 +233,6 @@ public class ApkBuilder {
             File classesDir = new File(workDir, "classes");
             classesDir.mkdirs();
 
-            // ---- Kotlin ----
             boolean hasKt = false;
             for (File src : sourceRoots) if (hasKtFiles(src)) { hasKt = true; break; }
             if (hasKt) {
@@ -245,9 +253,13 @@ public class ApkBuilder {
             File withDex = new File(workDir, "app-withdex.apk");
             addDexToApk(unsignedApk, dexDir, withDex);
 
+            say("Packing native libs...");
+            File withSo = new File(workDir, "app-withso.apk");
+            SoPacker.pack(projectRoot, withDex, withSo);
+
             say("Signing APK...");
             File signedApk = new File(workDir, "app-signed.apk");
-            signApk(apksigner, keyPk8, keyPem, withDex, signedApk);
+            signApk(apksigner, keyPk8, keyPem, withSo, signedApk);
 
             say("Build complete.");
             writeBuildLog();
@@ -262,13 +274,6 @@ public class ApkBuilder {
         }
     }
 
-    /**
-     * Dispatches Kotlin compilation by the user's kotlin_mode setting:
-     *   local  → embedded Alpine + kotlinc via proot
-     *   remote → GitHub Actions workflow
-     *   auto   → try local, fall back to remote
-     * If remote is selected but no GitHub token is set, falls through to local.
-     */
     private void compileKotlin(List<File> sourceRoots, File classesDir, File androidJar) {
         SharedPreferences prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE);
         String mode = prefs.getString("kotlin_mode", "auto");
@@ -296,7 +301,6 @@ public class ApkBuilder {
             }
         }
 
-        // local or auto-fallback
         say("Kotlin mode: local (embedded Alpine)");
         try {
             KotlinCompiler kc = new KotlinCompiler(ctx,
@@ -323,8 +327,6 @@ public class ApkBuilder {
             throw new RuntimeException("Kotlin compile failed", t);
         }
     }
-
-    // ---------------- helpers ----------------
 
     private void writeBuildLog() {
         try {
