@@ -188,11 +188,8 @@ public class ApkBuilder {
 
             // ---- NDK (optional, AIDE-style) ----
             try {
-                new NdkBuilder(ctx, new NdkBuilder.Progress() {
                     @Override public void onProgress(String m) { say(m); }
-                }).buildIfNeeded(projectRoot);
             } catch (Throwable ndkErr) {
-                say("NDK step: " + causeChain(ndkErr));
                 throw ndkErr;
             }
 
