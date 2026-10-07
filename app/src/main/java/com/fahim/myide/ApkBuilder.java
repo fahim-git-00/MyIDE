@@ -186,6 +186,19 @@ public class ApkBuilder {
                 }
             }
 
+            // ---- Remote C/C++ compile (GitHub Actions) ----
+            try {
+                if (RemoteCCompiler.hasNativeSources(projectRoot)) {
+                    say("C/C++ sources detected — remote compile");
+                    new RemoteCCompiler(ctx, new RemoteCCompiler.Progress() {
+                        @Override public void onProgress(String m) { say(m); }
+                    }).compile(projectRoot);
+                }
+            } catch (Throwable ce) {
+                say("Remote C compile failed: " + causeChain(ce));
+                throw new RuntimeException("C compile failed", ce);
+            }
+
             File patchedManifest = new File(workDir, "AndroidManifest.xml");
             patchManifest(appManifest, patchedManifest, minSdk, targetSdk);
 

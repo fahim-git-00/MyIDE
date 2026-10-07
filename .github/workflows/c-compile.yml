@@ -1,0 +1,74 @@
+name: c-compile
+
+on:
+  workflow_dispatch:
+    inputs:
+      chunk_count:
+        required: true
+        default: '1'
+      chunk_0: { required: false, default: '' }
+      chunk_1: { required: false, default: '' }
+      chunk_2: { required: false, default: '' }
+      chunk_3: { required: false, default: '' }
+      chunk_4: { required: false, default: '' }
+      chunk_5: { required: false, default: '' }
+      chunk_6: { required: false, default: '' }
+      chunk_7: { required: false, default: '' }
+      chunk_8: { required: false, default: '' }
+      chunk_9: { required: false, default: '' }
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install NDK
+        run: |
+          curl -sSL -o ndk.zip https://dl.google.com/android/repository/android-ndk-r27c-linux.zip
+          unzip -q ndk.zip
+          echo "NDK=$PWD/android-ndk-r27c" >> $GITHUB_ENV
+
+      - name: Decode payload
+        env:
+          CNT: ${{ inputs.chunk_count }}
+          C0:  ${{ inputs.chunk_0 }}
+          C1:  ${{ inputs.chunk_1 }}
+          C2:  ${{ inputs.chunk_2 }}
+          C3:  ${{ inputs.chunk_3 }}
+          C4:  ${{ inputs.chunk_4 }}
+          C5:  ${{ inputs.chunk_5 }}
+          C6:  ${{ inputs.chunk_6 }}
+          C7:  ${{ inputs.chunk_7 }}
+          C8:  ${{ inputs.chunk_8 }}
+          C9:  ${{ inputs.chunk_9 }}
+        run: |
+          mkdir -p project/jni project/libs
+          python3 - "$CNT" "$C0" "$C1" "$C2" "$C3" "$C4" "$C5" "$C6" "$C7" "$C8" "$C9" << 'PY'
+          import sys, base64, pathlib
+          cnt = int(sys.argv[1])
+          payload = "".join(sys.argv[2:2+cnt])
+          for entry in payload.split("~"):
+              if not entry: continue
+              rel, _, b64 = entry.partition("|")
+              p = pathlib.Path("project/jni") / rel
+              p.parent.mkdir(parents=True, exist_ok=True)
+              p.write_bytes(base64.b64decode(b64))
+          print("files:", len(list(pathlib.Path("project/jni").rglob("*"))))
+          PY
+
+      - name: Build
+        run: |
+          cd project
+          $NDK/ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./jni/Android.mk NDK_LIBS_OUT=./libs
+
+      - name: Pack
+        run: |
+          mkdir -p out
+          cp -r project/libs/* out/ 2>/dev/null || true
+          find out -type f
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: c-libs
+          path: out/
+          if-no-files-found: error
