@@ -31,15 +31,13 @@ jobs:
           make clean 2>/dev/null || true
           make -j$(nproc) \
             CC="$TC/bin/aarch64-linux-android24-clang" \
+            HOST_CC="/usr/bin/gcc -m64" \
             TARGET_SYS=Linux \
-            TARGET_FLAGS="-D__ANDROID_API__=24" \
-            XCFLAGS="-DLUAJIT_ENABLE_LUA52COMPAT -DLUAJIT_OS=Linux -fPIC -I$TC/sysroot/usr/include" \
-            HOST_CC="gcc -m64 -fno-stack-protector" \
-            HOST_CFLAGS="-O2 -I/usr/include" \
-            TARGET_CFLAGS="-D__ANDROID_API__=24 -fPIC" \
+            TARGET_FLAGS="" \
+            XCFLAGS="-DLUAJIT_ENABLE_LUA52COMPAT -DLUAJIT_OS=Linux -fPIC" \
             TARGET_AR="$TC/bin/llvm-ar rcus" \
             TARGET_STRIP="$TC/bin/llvm-strip" \
-            BUILDMODE=static 2>&1 | tail -20
+            BUILDMODE=static 2>&1 | tail -30
           cd ..
           $TC/bin/aarch64-linux-android24-clang \
             -O2 -fPIC -shared \
@@ -57,15 +55,13 @@ jobs:
           make clean 2>/dev/null || true
           make -j$(nproc) \
             CC="$TC/bin/armv7a-linux-androideabi24-clang" \
+            HOST_CC="/usr/bin/gcc -m64" \
             TARGET_SYS=Linux \
-            TARGET_FLAGS="-D__ANDROID_API__=24" \
-            XCFLAGS="-DLUAJIT_ENABLE_LUA52COMPAT -DLUAJIT_OS=Linux -fPIC -I$TC/sysroot/usr/include" \
-            HOST_CC="gcc -m64 -fno-stack-protector" \
-            HOST_CFLAGS="-O2 -I/usr/include" \
-            TARGET_CFLAGS="-D__ANDROID_API__=24 -fPIC" \
+            TARGET_FLAGS="" \
+            XCFLAGS="-DLUAJIT_ENABLE_LUA52COMPAT -DLUAJIT_OS=Linux -fPIC" \
             TARGET_AR="$TC/bin/llvm-ar rcus" \
             TARGET_STRIP="$TC/bin/llvm-strip" \
-            BUILDMODE=static 2>&1 | tail -20
+            BUILDMODE=static 2>&1 | tail -30
           cd ..
           $TC/bin/armv7a-linux-androideabi24-clang \
             -O2 -fPIC -shared \
