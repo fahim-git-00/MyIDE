@@ -50,6 +50,9 @@ jobs:
             MICROPY_VFS_FAT=0 \
             MICROPY_VFS_LFS1=0 \
             MICROPY_VFS_LFS2=0 \
+            MICROPY_PY_TERMIOS=0 \
+            MICROPY_PY_SOCKET=0 \
+            MICROPY_PY_READLINE=0 \
             FROZEN_MANIFEST="" 2>&1 | tail -20
           
           # Collect all .o files into a static lib
@@ -88,6 +91,9 @@ jobs:
             MICROPY_VFS_FAT=0 \
             MICROPY_VFS_LFS1=0 \
             MICROPY_VFS_LFS2=0 \
+            MICROPY_PY_TERMIOS=0 \
+            MICROPY_PY_SOCKET=0 \
+            MICROPY_PY_READLINE=0 \
             FROZEN_MANIFEST="" 2>&1 | tail -20
           
           $TC/bin/llvm-ar rcs build-standard/libmicropython.a build-standard/py/*.o build-standard/extmod/*.o build-standard/shared/runtime/*.o build-standard/shared/readline/*.o build-standard/shared/timeutils/*.o 2>/dev/null || true
