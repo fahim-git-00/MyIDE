@@ -1,0 +1,103 @@
+name: Kotlin compile
+
+on:
+  workflow_dispatch:
+    inputs:
+      chunk_count:
+        description: 'number of chunks'
+        required: true
+      chunk_0:
+        description: 'payload chunk 0'
+        required: false
+      chunk_1:
+        description: 'payload chunk 1'
+        required: false
+      chunk_2:
+        description: 'payload chunk 2'
+        required: false
+      chunk_3:
+        description: 'payload chunk 3'
+        required: false
+      chunk_4:
+        description: 'payload chunk 4'
+        required: false
+      chunk_5:
+        description: 'payload chunk 5'
+        required: false
+      chunk_6:
+        description: 'payload chunk 6'
+        required: false
+      chunk_7:
+        description: 'payload chunk 7'
+        required: false
+      chunk_8:
+        description: 'payload chunk 8'
+        required: false
+      chunk_9:
+        description: 'payload chunk 9'
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Kotlin
+        run: |
+          curl -sSL -o kotlin.zip \
+            https://github.com/JetBrains/kotlin/releases/download/v1.9.24/kotlin-compiler-1.9.24.zip
+          unzip -q kotlin.zip
+          echo "$PWD/kotlinc/bin" >> $GITHUB_PATH
+
+      - name: Decode payload
+        id: decode
+        env:
+          CNT: ${{ github.event.inputs.chunk_count }}
+          C0: ${{ github.event.inputs.chunk_0 }}
+          C1: ${{ github.event.inputs.chunk_1 }}
+          C2: ${{ github.event.inputs.chunk_2 }}
+          C3: ${{ github.event.inputs.chunk_3 }}
+          C4: ${{ github.event.inputs.chunk_4 }}
+          C5: ${{ github.event.inputs.chunk_5 }}
+          C6: ${{ github.event.inputs.chunk_6 }}
+          C7: ${{ github.event.inputs.chunk_7 }}
+          C8: ${{ github.event.inputs.chunk_8 }}
+          C9: ${{ github.event.inputs.chunk_9 }}
+        run: |
+          mkdir -p src out classes
+          python3 - "$CNT" "$C0" "$C1" "$C2" "$C3" "$C4" "$C5" "$C6" "$C7" "$C8" "$C9" << 'PY'
+import os, sys, base64, pathlib
+cnt = int(sys.argv[1])
+chunks = sys.argv[2:2+cnt]
+payload = "".join(chunks)
+for entry in payload.split("~"):
+    if not entry: continue
+    rel, _, b64 = entry.partition("|")
+    p = pathlib.Path("src") / rel
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_bytes(base64.b64decode(b64))
+print("files:", len(list(pathlib.Path("src").rglob("*.kt"))))
+PY
+
+      - name: Compile
+        run: |
+          kotlinc src -d classes -no-stdlib -no-reflect -jvm-target 1.8 2>&1 || \
+          kotlinc src -d classes -no-stdlib -no-reflect 2>&1
+
+      - name: Pack classes
+        run: |
+          mkdir -p kotlin-classes
+          cp -r classes/* kotlin-classes/ 2>/dev/null || true
+          ls -la kotlin-classes | head
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: kotlin-classes
+          path: kotlin-classes/
+          if-no-files-found: error

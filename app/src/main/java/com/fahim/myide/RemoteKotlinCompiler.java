@@ -25,7 +25,7 @@ public class RemoteKotlinCompiler {
         void onProgress(String message);
     }
 
-    private static final String REPO = "fahim-git-00/myide-buildtools";
+    private static final String REPO = "fahim-git-00/MyIDE";
     private static final String WORKFLOW_FILE = "kotlin-compile.yml";
     private static final String API = "https://api.github.com";
 
