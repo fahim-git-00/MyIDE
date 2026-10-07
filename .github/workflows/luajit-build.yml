@@ -33,8 +33,10 @@ jobs:
             CC="$TC/bin/aarch64-linux-android24-clang" \
             TARGET_SYS=Linux \
             TARGET_FLAGS="-D__ANDROID_API__=24" \
-            XCFLAGS="-DLUAJIT_ENABLE_LUA52COMPAT -fPIC -I$TC/sysroot/usr/include" \
-            HOST_CC="gcc -m64" \
+            XCFLAGS="-DLUAJIT_ENABLE_LUA52COMPAT -DLUAJIT_OS=Linux -fPIC -I$TC/sysroot/usr/include" \
+            HOST_CC="gcc -m64 -fno-stack-protector" \
+            HOST_CFLAGS="-O2 -I/usr/include" \
+            TARGET_CFLAGS="-D__ANDROID_API__=24 -fPIC" \
             TARGET_AR="$TC/bin/llvm-ar rcus" \
             TARGET_STRIP="$TC/bin/llvm-strip" \
             BUILDMODE=static 2>&1 | tail -20
@@ -57,8 +59,10 @@ jobs:
             CC="$TC/bin/armv7a-linux-androideabi24-clang" \
             TARGET_SYS=Linux \
             TARGET_FLAGS="-D__ANDROID_API__=24" \
-            XCFLAGS="-DLUAJIT_ENABLE_LUA52COMPAT -fPIC -I$TC/sysroot/usr/include" \
-            HOST_CC="gcc -m64" \
+            XCFLAGS="-DLUAJIT_ENABLE_LUA52COMPAT -DLUAJIT_OS=Linux -fPIC -I$TC/sysroot/usr/include" \
+            HOST_CC="gcc -m64 -fno-stack-protector" \
+            HOST_CFLAGS="-O2 -I/usr/include" \
+            TARGET_CFLAGS="-D__ANDROID_API__=24 -fPIC" \
             TARGET_AR="$TC/bin/llvm-ar rcus" \
             TARGET_STRIP="$TC/bin/llvm-strip" \
             BUILDMODE=static 2>&1 | tail -20
