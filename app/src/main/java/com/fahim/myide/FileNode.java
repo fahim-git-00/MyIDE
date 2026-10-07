@@ -29,6 +29,7 @@ public class FileNode {
         if (l.endsWith(".xml"))                             return "\uD83D\uDCD0";
         if (l.endsWith(".gradle") || l.endsWith(".gradle.kts")) return "\uD83D\uDC18";
         if (l.endsWith(".json"))                            return "{}";
+        if (l.endsWith(".py") || l.endsWith(".pyw"))      return "\uD83D\uDC0D";
         if (l.endsWith(".md"))                              return "\uD83D\uDCDD";
         if (l.endsWith(".png") || l.endsWith(".jpg")
                 || l.endsWith(".jpeg") || l.endsWith(".webp")) return "\uD83D\uDDBC";

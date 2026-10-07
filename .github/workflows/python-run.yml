@@ -1,0 +1,95 @@
+name: python-run
+
+on:
+  workflow_dispatch:
+    inputs:
+      chunk_count:
+        required: true
+        default: '1'
+      stdin:
+        required: false
+        default: ''
+      script_name:
+        required: false
+        default: 'main.py'
+      chunk_0: { required: false, default: '' }
+      chunk_1: { required: false, default: '' }
+      chunk_2: { required: false, default: '' }
+      chunk_3: { required: false, default: '' }
+      chunk_4: { required: false, default: '' }
+      chunk_5: { required: false, default: '' }
+      chunk_6: { required: false, default: '' }
+      chunk_7: { required: false, default: '' }
+      chunk_8: { required: false, default: '' }
+      chunk_9: { required: false, default: '' }
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          allow-prereleases: true
+
+      - name: Decode payload
+        env:
+          CNT: ${{ inputs.chunk_count }}
+          C0:  ${{ inputs.chunk_0 }}
+          C1:  ${{ inputs.chunk_1 }}
+          C2:  ${{ inputs.chunk_2 }}
+          C3:  ${{ inputs.chunk_3 }}
+          C4:  ${{ inputs.chunk_4 }}
+          C5:  ${{ inputs.chunk_5 }}
+          C6:  ${{ inputs.chunk_6 }}
+          C7:  ${{ inputs.chunk_7 }}
+          C8:  ${{ inputs.chunk_8 }}
+          C9:  ${{ inputs.chunk_9 }}
+        run: |
+          mkdir -p src
+          python3 - "$CNT" "$C0" "$C1" "$C2" "$C3" "$C4" "$C5" "$C6" "$C7" "$C8" "$C9" << 'PY'
+          import sys, base64, pathlib
+          cnt = int(sys.argv[1])
+          payload = "".join(sys.argv[2:2+cnt])
+          for entry in payload.split("~"):
+              if not entry: continue
+              rel, _, b64 = entry.partition("|")
+              p = pathlib.Path("src") / rel
+              p.parent.mkdir(parents=True, exist_ok=True)
+              p.write_bytes(base64.b64decode(b64))
+          print("py files:", len(list(pathlib.Path("src").rglob("*.py"))))
+          PY
+
+      - name: Install dependencies (if requirements.txt)
+        run: |
+          if [ -f src/requirements.txt ]; then
+            pip install -r src/requirements.txt
+          fi
+
+      - name: Run
+        env:
+          STDIN_DATA: ${{ inputs.stdin }}
+          SCRIPT_NAME: ${{ inputs.script_name }}
+        run: |
+          cd src
+          set +e
+          printf '%s' "$STDIN_DATA" | python3 "$SCRIPT_NAME" > /tmp/py_out.txt 2>&1
+          RC=$?
+          set -e
+          echo "exit_code=$RC" >> "$GITHUB_OUTPUT" 2>/dev/null || true
+          mkdir -p /tmp/out
+          {
+            echo "=== EXIT $RC ==="
+            cat /tmp/py_out.txt
+            echo "=== END ==="
+          } > /tmp/out/result.txt
+          cat /tmp/out/result.txt
+
+      - name: Upload output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-output
+          path: /tmp/out/result.txt
+          if-no-files-found: error

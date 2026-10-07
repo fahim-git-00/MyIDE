@@ -282,6 +282,8 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                     showJsFileMenu(n.file);
                 } else if (!n.isDirectory && n.name.toLowerCase().endsWith(".lua")) {
                     showLuaFileMenu(n.file);
+                } else if (!n.isDirectory && n.name.toLowerCase().endsWith(".py")) {
+                    showPyFileMenu(n.file);
                 } else {
                     showFileMenu(n.file);
                 }
@@ -397,6 +399,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             @Override public void onClick(View v) {
                 if (isJsFile()) runJs();
                 else if (isLuaFile()) runLua();
+                else if (isPyFile()) runPython();
                 else runBuild();
             }
         });
@@ -1828,6 +1831,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         if (id == R.id.menu_build_output) { showPanel(PANEL_BUILD); return true; }
         if (id == R.id.menu_palette)      { openCommandPalette(); return true; }
         if (id == R.id.menu_github_token) { showGithubTokenDialog(); return true; }
+        if (id == R.id.menu_run_python) { if (isPyFile()) runPython(); else toast("Open a .py file first"); return true; }
         if (id == R.id.menu_about)        { showAbout(); return true; }
         if (id == R.id.menu_run_js)      { if (isJsFile()) runJs(); else toast("Open a .js file first"); return true; }
 
@@ -2559,6 +2563,135 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                 @Override public void onClick(DialogInterface d, int w) {
                     String c = items[w];
                     if ("Run Lua".equals(c)) runLuaFile(f);
+                    else if ("Open".equals(c)) openFile(f);
+                    else if ("Rename".equals(c)) FileTreeOps.rename(MainActivity.this, f, afterTree());
+                    else if ("Duplicate".equals(c)) FileTreeOps.duplicate(f, afterTree());
+                    else if ("Delete".equals(c)) FileTreeOps.delete(MainActivity.this, f, afterTree());
+                }
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+
+
+
+    // ================================================================
+    // REMOTE PYTHON
+    // ================================================================
+
+    private boolean isPyFile() {
+        if (tabs.isEmpty() || activeTab < 0) return false;
+        String n = tabs.get(activeTab).name().toLowerCase();
+        return n.endsWith(".py");
+    }
+
+    private void runPython() {
+        if (tabs.isEmpty() || activeTab < 0) {
+            toast("Open a .py file first");
+            return;
+        }
+        flushActiveTab();
+        final EditorTab t = tabs.get(activeTab);
+
+        PythonRunnerDialog.show(this, t.name(), new PythonRunnerDialog.Handler() {
+            @Override public void onRun(String version, String stdin) {
+                executePythonRemote(t.name(), t.text, stdin, version);
+            }
+        });
+    }
+
+    private void runPythonFile(final File f) {
+        new Thread(new Runnable() {
+            @Override public void run() {
+                try {
+                    final String code = readTextFile(f);
+                    ui.post(new Runnable() {
+                        @Override public void run() {
+                            PythonRunnerDialog.show(MainActivity.this, f.getName(),
+                                new PythonRunnerDialog.Handler() {
+                                @Override public void onRun(String version, String stdin) {
+                                    executePythonRemote(f.getName(), code, stdin, version);
+                                }
+                            });
+                        }
+                    });
+                } catch (final Throwable ex) {
+                    ui.post(new Runnable() {
+                        @Override public void run() {
+                            toast("Python read failed: " + ex.getMessage());
+                        }
+                    });
+                }
+            }
+        }).start();
+    }
+
+    private void executePythonRemote(final String name, final String code,
+                                     final String stdin, final String version) {
+        showPanel(PANEL_TERMINAL);
+        terminalPanel.setCwd(projectRoot);
+        terminalPanel.appendExternal("$ python" + version + " " + name);
+        if (stdin != null && !stdin.isEmpty()) {
+            terminalPanel.appendExternal("[stdin] " + stdin);
+        }
+
+        new Thread(new Runnable() {
+            @Override public void run() {
+                RemotePythonRunner runner = new RemotePythonRunner(
+                    MainActivity.this, new RemotePythonRunner.Progress() {
+                    @Override public void onProgress(final String msg) {
+                        ui.post(new Runnable() {
+                            @Override public void run() {
+                                terminalPanel.appendExternal("[remote] " + msg);
+                            }
+                        });
+                    }
+                });
+                runner.run(name, code, stdin, new RemotePythonRunner.Callback() {
+                    @Override public void onResult(int exitCode, String output, String error) {
+                        final String out = output == null ? "" : output;
+                        final String err = error;
+                        final int rc = exitCode;
+                        ui.post(new Runnable() {
+                            @Override public void run() {
+                                if (out.length() > 0) terminalPanel.appendExternal(out);
+                                terminalPanel.appendExternal("[exit " + rc + "]");
+                                showPyResultDialog(name, rc, out, err);
+                            }
+                        });
+                    }
+                });
+            }
+        }).start();
+    }
+
+    private void showPyResultDialog(String name, int exit, String output, String error) {
+        String title = "Python: " + name + "  (exit " + exit + ")";
+        String body = (error != null && exit != 0)
+            ? ("Exit " + exit + "\n\n" + (output == null ? "" : output))
+            : (output == null || output.isEmpty() ? "(no output)" : output);
+        final String copy = body;
+        new AlertDialog.Builder(this, R.style.AppDialogTheme)
+            .setTitle(title)
+            .setMessage(body)
+            .setPositiveButton("Copy", new DialogInterface.OnClickListener() {
+                @Override public void onClick(DialogInterface d, int w) {
+                    copyToClipboard(copy);
+                    toast("Copied");
+                }
+            })
+            .setNegativeButton("Close", null)
+            .show();
+    }
+
+    private void showPyFileMenu(final File f) {
+        final String[] items = new String[]{"Run Python", "Open", "Rename", "Duplicate", "Delete"};
+        new AlertDialog.Builder(this, R.style.AppDialogTheme)
+            .setTitle(f.getName())
+            .setItems(items, new DialogInterface.OnClickListener() {
+                @Override public void onClick(DialogInterface d, int w) {
+                    String c = items[w];
+                    if ("Run Python".equals(c)) runPythonFile(f);
                     else if ("Open".equals(c)) openFile(f);
                     else if ("Rename".equals(c)) FileTreeOps.rename(MainActivity.this, f, afterTree());
                     else if ("Duplicate".equals(c)) FileTreeOps.duplicate(f, afterTree());
