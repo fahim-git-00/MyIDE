@@ -2394,7 +2394,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             }
             NdkConfig.setPath(this, path);
             String pre = NdkConfig.findPrebuilt(f);
-            NdkConfig.setPrebuilt(this, pre);
             toast("NDK: " + f.getName() + " (" + pre + ")");
         }
     }
