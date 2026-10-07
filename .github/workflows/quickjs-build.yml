@@ -45,8 +45,7 @@ jobs:
           $CC -O2 -fPIC -shared \
               -I quickjs-src \
               -DCONFIG_VERSION='"2024-01-13"' \
-              -DCONFIG_BIGNUM \
-              -o out/arm64-v8a/libquickjs.so \
+                            -o out/arm64-v8a/libquickjs.so \
               quickjs-src/quickjs.c \
               quickjs-src/libregexp.c \
               quickjs-src/libunicode.c \
@@ -62,8 +61,7 @@ jobs:
           $CC -O2 -fPIC -shared \
               -I quickjs-src \
               -DCONFIG_VERSION='"2024-01-13"' \
-              -DCONFIG_BIGNUM \
-              -o out/armeabi-v7a/libquickjs.so \
+                            -o out/armeabi-v7a/libquickjs.so \
               quickjs-src/quickjs.c \
               quickjs-src/libregexp.c \
               quickjs-src/libunicode.c \
