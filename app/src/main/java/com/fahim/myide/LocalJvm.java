@@ -82,6 +82,7 @@ public class LocalJvm {
         File javaHome = jdkDir;
 
         String nativeDir = ctx.getApplicationInfo().nativeLibraryDir;
+        wireAllNativeLibs(nativeDir, jdkDir);
         File javaLauncher = new File(nativeDir, "liblauncher_java.so");
         if (!javaLauncher.isFile()) {
             throw new RuntimeException("java launcher not found: " + javaLauncher);
@@ -191,6 +192,30 @@ public class LocalJvm {
      * pointing at the renamed .so files inside the APK native lib dir, using
      * the original names the JVM expects (libjava.so, libjvm.so, etc).
      */
+    private void wireAllNativeLibs(String nd, File jdkDir) {
+        File libDir    = new File(jdkDir, "lib");
+        File serverDir = new File(libDir, "server");
+        if (!libDir.exists()) libDir.mkdirs();
+        if (!serverDir.exists()) serverDir.mkdirs();
+
+        File ndDir = new File(nd);
+        File[] libs = ndDir.listFiles();
+        if (libs == null) return;
+        for (File lib : libs) {
+            String name = lib.getName();
+            if (!name.endsWith(".so")) continue;
+            if (name.startsWith("liblauncher_")) continue;
+            if (name.equals("libaapt2.so")) continue;
+            if (name.equals("libproot.so")) continue;
+            File dst = new File(libDir, name);
+            if (dst.isFile() && dst.length() == lib.length()) continue;
+            copy(lib, dst);
+            if (name.equals("libjvm.so")) {
+                copy(lib, new File(serverDir, "libjvm.so"));
+            }
+        }
+    }
+
     private void findKtFiles(File dir, List<File> out) {
         if (dir == null || !dir.exists()) return;
         File[] kids = dir.listFiles();
