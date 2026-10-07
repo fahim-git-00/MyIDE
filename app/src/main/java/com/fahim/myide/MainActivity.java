@@ -280,6 +280,8 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                 if (n.file == null) return true;
                 if (!n.isDirectory && n.name.toLowerCase().endsWith(".js")) {
                     showJsFileMenu(n.file);
+                } else if (!n.isDirectory && n.name.toLowerCase().endsWith(".lua")) {
+                    showLuaFileMenu(n.file);
                 } else {
                     showFileMenu(n.file);
                 }
@@ -393,7 +395,9 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         });
         btnBuild.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                if (isJsFile()) runJs(); else runBuild();
+                if (isJsFile()) runJs();
+                else if (isLuaFile()) runLua();
+                else runBuild();
             }
         });
         btnMore.setOnClickListener(new View.OnClickListener() {
@@ -2398,6 +2402,12 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         return n.endsWith(".js");
     }
 
+    private boolean isLuaFile() {
+        if (tabs.isEmpty() || activeTab < 0) return false;
+        String n = tabs.get(activeTab).name().toLowerCase();
+        return n.endsWith(".lua");
+    }
+
     private void runJs() {
         if (tabs.isEmpty() || activeTab < 0) return;
         flushActiveTab();
@@ -2477,6 +2487,77 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                 @Override public void onClick(DialogInterface d, int w) {
                     String c = items[w];
                     if ("Run JS".equals(c)) runJsFile(f);
+                    else if ("Open".equals(c)) openFile(f);
+                    else if ("Rename".equals(c)) FileTreeOps.rename(MainActivity.this, f, afterTree());
+                    else if ("Duplicate".equals(c)) FileTreeOps.duplicate(f, afterTree());
+                    else if ("Delete".equals(c)) FileTreeOps.delete(MainActivity.this, f, afterTree());
+                }
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+
+    private void runLua() {
+        if (tabs.isEmpty() || activeTab < 0) return;
+        flushActiveTab();
+        EditorTab t = tabs.get(activeTab);
+        runLuaText(t.text, t.name());
+    }
+
+    private void runLuaFile(final File f) {
+        new Thread(new Runnable() {
+            @Override public void run() {
+                try {
+                    String code = readTextFile(f);
+                    runLuaText(code, f.getName());
+                } catch (Throwable t) {
+                    ui.post(new Runnable() {
+                        @Override public void run() {
+                            toast("Lua read failed: " + t.getMessage());
+                        }
+                    });
+                }
+            }
+        }).start();
+    }
+
+    private void runLuaText(final String code, final String name) {
+        showPanel(PANEL_TERMINAL);
+        terminalPanel.setCwd(projectRoot);
+        terminalPanel.appendExternal("$ lua " + name);
+
+        new Thread(new Runnable() {
+            @Override public void run() {
+                LuaRunner.runSource(code, name, new LuaRunner.Callback() {
+                    @Override public void onResult(final String out) {
+                        ui.post(new Runnable() {
+                            @Override public void run() {
+                                terminalPanel.appendExternal(out);
+                                showJsResultDialog(name, out, null);
+                            }
+                        });
+                    }
+                    @Override public void onError(final String err) {
+                        ui.post(new Runnable() {
+                            @Override public void run() {
+                                terminalPanel.appendExternal("[ERROR] " + err);
+                                showJsResultDialog(name, null, err);
+                            }
+                        });
+                    }
+                });
+            }
+        }).start();
+    }
+
+    private void showLuaFileMenu(final File f) {
+        final String[] items = new String[]{"Run Lua", "Open", "Rename", "Duplicate", "Delete"};
+        new AlertDialog.Builder(this, R.style.AppDialogTheme)
+            .setTitle(f.getName())
+            .setItems(items, new DialogInterface.OnClickListener() {
+                @Override public void onClick(DialogInterface d, int w) {
+                    String c = items[w];
+                    if ("Run Lua".equals(c)) runLuaFile(f);
                     else if ("Open".equals(c)) openFile(f);
                     else if ("Rename".equals(c)) FileTreeOps.rename(MainActivity.this, f, afterTree());
                     else if ("Duplicate".equals(c)) FileTreeOps.duplicate(f, afterTree());
