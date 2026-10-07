@@ -42,7 +42,7 @@ jobs:
         run: |
           mkdir -p out/arm64-v8a
           CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
-          $CC -O2 -fPIC -shared \
+          $CC -O2 -fPIC -shared -fvisibility=default -Wl,-u,u32toa -Wl,-u,u64toa -Wl,-u,i32toa -Wl,-u,i64toa \
               -I quickjs-src -include quickjs-src/config.h \
               -D CONFIG_BIGNUM \
               -I $JAVA_HOME/include -I $JAVA_HOME/include/linux \
@@ -59,7 +59,7 @@ jobs:
         run: |
           mkdir -p out/armeabi-v7a
           CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi24-clang
-          $CC -O2 -fPIC -shared \
+          $CC -O2 -fPIC -shared -fvisibility=default -Wl,-u,u32toa -Wl,-u,u64toa -Wl,-u,i32toa -Wl,-u,i64toa \
               -I quickjs-src -include quickjs-src/config.h \
               -D CONFIG_BIGNUM \
               -I $JAVA_HOME/include -I $JAVA_HOME/include/linux \
