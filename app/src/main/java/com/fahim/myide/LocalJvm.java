@@ -142,6 +142,13 @@ public class LocalJvm {
         pb.redirectErrorStream(true);
         pb.environment().put("JAVA_HOME", javaHome.getAbsolutePath());
         pb.environment().put("LD_LIBRARY_PATH", nativeDir);
+        File chk1 = new File(javaHome, "lib/libjava.so");
+        File chk2 = new File(javaHome, "lib/libjli.so");
+        File chk3 = new File(javaHome, "lib/server/libjvm.so");
+        say("  DEBUG JAVA_HOME=" + javaHome.getAbsolutePath());
+        say("  DEBUG libjava.so=" + chk1.isFile() + " size=" + (chk1.isFile()?chk1.length():-1));
+        say("  DEBUG libjli.so=" + chk2.isFile() + " size=" + (chk2.isFile()?chk2.length():-1));
+        say("  DEBUG server/libjvm.so=" + chk3.isFile() + " size=" + (chk3.isFile()?chk3.length():-1));
         Process p = pb.start();
         java.io.BufferedReader r = new java.io.BufferedReader(
                 new java.io.InputStreamReader(p.getInputStream()));
