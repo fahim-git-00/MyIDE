@@ -1,0 +1,75 @@
+name: lua-build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup NDK
+        run: |
+          curl -sSL -o ndk.zip https://dl.google.com/android/repository/android-ndk-r27c-linux.zip
+          unzip -q ndk.zip
+          echo "NDK=$PWD/android-ndk-r27c" >> $GITHUB_ENV
+
+      - name: Download Lua 5.4
+        run: |
+          curl -sSL -o lua.tar.gz https://www.lua.org/ftp/lua-5.4.7.tar.gz
+          tar xzf lua.tar.gz
+          mv lua-5.4.7 lua-src
+
+      - name: Copy JNI bridge
+        run: |
+          curl -sSL -o lua_jni.c https://raw.githubusercontent.com/fahim-git-00/MyIDE/main/app/src/main/jni/lua_jni.c
+
+      - name: Build for arm64-v8a
+        run: |
+          mkdir -p out/arm64-v8a
+          TC=$NDK/toolchains/llvm/prebuilt/linux-x86_64
+          CC=$TC/bin/aarch64-linux-android24-clang
+          cd lua-src/src
+          make clean 2>/dev/null || true
+          make -j$(nproc) \
+            CC="$CC" \
+            AR="$TC/bin/llvm-ar rcu" \
+            RANLIB="$TC/bin/llvm-ranlib" \
+            MYCFLAGS="-DLUA_USE_LINUX -fPIC" \
+            MYLDFLAGS="-Wl,-E" \
+            liblua.a 2>&1 | tail -10
+          cd ../..
+          $CC -O2 -fPIC -shared \
+            -I lua-src/src \
+            -o out/arm64-v8a/liblua.so \
+            lua_jni.c \
+            lua-src/src/liblua.a \
+            -lm -ldl
+
+      - name: Build for armeabi-v7a
+        run: |
+          mkdir -p out/armeabi-v7a
+          TC=$NDK/toolchains/llvm/prebuilt/linux-x86_64
+          CC=$TC/bin/armv7a-linux-androideabi24-clang
+          cd lua-src/src
+          make clean 2>/dev/null || true
+          make -j$(nproc) \
+            CC="$CC" \
+            AR="$TC/bin/llvm-ar rcu" \
+            RANLIB="$TC/bin/llvm-ranlib" \
+            MYCFLAGS="-DLUA_USE_LINUX -fPIC" \
+            MYLDFLAGS="-Wl,-E" \
+            liblua.a 2>&1 | tail -10
+          cd ../..
+          $CC -O2 -fPIC -shared \
+            -I lua-src/src \
+            -o out/armeabi-v7a/liblua.so \
+            lua_jni.c \
+            lua-src/src/liblua.a \
+            -lm -ldl
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: lua-libs
+          path: out/
+          if-no-files-found: error

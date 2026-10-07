@@ -16,7 +16,7 @@ public final class LuaRunner {
     private static String LOAD_ERROR = null;
     static {
         try {
-            System.loadLibrary("luajit");
+            System.loadLibrary("lua");
         } catch (Throwable t) {
             LOAD_ERROR = t.toString();
         }
@@ -38,7 +38,7 @@ public final class LuaRunner {
 
     public static void runSource(String code, String name, Callback cb) {
         if (LOAD_ERROR != null) {
-            if (cb != null) cb.onError("luajit load failed: " + LOAD_ERROR);
+            if (cb != null) cb.onError("lua load failed: " + LOAD_ERROR);
             return;
         }
         try {
