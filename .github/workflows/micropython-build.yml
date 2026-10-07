@@ -61,6 +61,7 @@ jobs:
             -I mp-src \
             -I mp-src/ports/unix \
             -I mp-src/ports/unix/build-standard \
+            -I mp-src/ports/unix/variants/standard \
             -o out/arm64-v8a/libmicropython.so \
             micropython_jni.c \
             mp-src/ports/unix/build-standard/libmicropython.a \
@@ -94,6 +95,7 @@ jobs:
             -I mp-src \
             -I mp-src/ports/unix \
             -I mp-src/ports/unix/build-standard \
+            -I mp-src/ports/unix/variants/standard \
             -o out/armeabi-v7a/libmicropython.so \
             micropython_jni.c \
             mp-src/ports/unix/build-standard/libmicropython.a \
