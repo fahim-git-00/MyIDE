@@ -11,6 +11,12 @@
 #include "py/builtin.h"
 #include "genhdr/mpversion.h"
 
+// Define mp_stderr_print locally (MicroPython doesn't export it on unix port)
+static void _stderr_print_strn(void *env, const char *str, size_t len) {
+    (void)env;
+    if (g_buf) buf_append(g_buf, str, len);
+}
+const mp_print_t mp_stderr_print = { NULL, _stderr_print_strn };
 extern const mp_print_t mp_plat_print;
 
 typedef struct {

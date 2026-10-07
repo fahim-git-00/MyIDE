@@ -60,7 +60,7 @@ jobs:
           
           cd ../../..
           
-          $CC -O2 -fPIC -shared \
+          $CC -O2 -fPIC -shared -Wl,--unresolved-symbols=ignore-all --allow-shlib-undefined \
             -I mp-src \
             -I mp-src/ports/unix \
             -I mp-src/ports/unix/build-standard \
@@ -100,7 +100,7 @@ jobs:
           
           cd ../../..
           
-          $CC -O2 -fPIC -shared \
+          $CC -O2 -fPIC -shared -Wl,--unresolved-symbols=ignore-all --allow-shlib-undefined \
             -I mp-src \
             -I mp-src/ports/unix \
             -I mp-src/ports/unix/build-standard \
