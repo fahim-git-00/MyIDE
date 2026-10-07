@@ -206,4 +206,14 @@ public class TerminalPanel {
     private void toast(String s) {
         Toast.makeText(ctx, s, Toast.LENGTH_SHORT).show();
     }
+
+    /** Called from other panels to push output into the terminal. */
+    public void appendExternal(final String s) {
+        if (s == null) return;
+        ui.post(new Runnable() {
+            @Override public void run() {
+                append(s, 0xFFCCCCCC);
+            }
+        });
+    }
 }

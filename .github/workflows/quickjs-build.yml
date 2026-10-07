@@ -1,0 +1,63 @@
+name: quickjs-build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup NDK
+        run: |
+          curl -sSL -o ndk.zip https://dl.google.com/android/repository/android-ndk-r27c-linux.zip
+          unzip -q ndk.zip
+          echo "NDK=$PWD/android-ndk-r27c" >> $GITHUB_ENV
+
+      - name: Clone QuickJS
+        run: |
+          git clone --depth=1 https://github.com/bellard/quickjs.git quickjs-src
+
+      - name: Copy JNI bridge
+        run: |
+          curl -sSL -o quickjs_jni.c https://raw.githubusercontent.com/fahim-git-00/MyIDE/main/app/src/main/jni/quickjs_jni.c
+
+      - name: Build for arm64-v8a
+        run: |
+          mkdir -p out/arm64-v8a
+          CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
+          $CC -O2 -fPIC -shared \
+              -I quickjs-src \
+              -D CONFIG_BIGNUM \
+              -I $JAVA_HOME/include -I $JAVA_HOME/include/linux \
+              -o out/arm64-v8a/libquickjs.so \
+              quickjs-src/quickjs.c \
+              quickjs-src/libregexp.c \
+              quickjs-src/libunicode.c \
+              quickjs-src/cutils.c \
+              quickjs-src/quickjs-libc.c \
+              quickjs_jni.c \
+              -lm -ldl
+
+      - name: Build for armeabi-v7a
+        run: |
+          mkdir -p out/armeabi-v7a
+          CC=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi24-clang
+          $CC -O2 -fPIC -shared \
+              -I quickjs-src \
+              -D CONFIG_BIGNUM \
+              -I $JAVA_HOME/include -I $JAVA_HOME/include/linux \
+              -o out/armeabi-v7a/libquickjs.so \
+              quickjs-src/quickjs.c \
+              quickjs-src/libregexp.c \
+              quickjs-src/libunicode.c \
+              quickjs-src/cutils.c \
+              quickjs-src/quickjs-libc.c \
+              quickjs_jni.c \
+              -lm -ldl
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: quickjs-libs
+          path: out/
+          if-no-files-found: error
