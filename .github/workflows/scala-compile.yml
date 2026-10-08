@@ -1,0 +1,88 @@
+name: scala-compile
+
+on:
+  workflow_dispatch:
+    inputs:
+      chunk_count: { required: true, default: '1' }
+      chunk_0: { required: false, default: '' }
+      chunk_1: { required: false, default: '' }
+      chunk_2: { required: false, default: '' }
+      chunk_3: { required: false, default: '' }
+      chunk_4: { required: false, default: '' }
+      chunk_5: { required: false, default: '' }
+      chunk_6: { required: false, default: '' }
+      chunk_7: { required: false, default: '' }
+      chunk_8: { required: false, default: '' }
+      chunk_9: { required: false, default: '' }
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Fetch android.jar
+        run: |
+          mkdir -p $HOME/sdk/cmdline-tools
+          cd $HOME/sdk/cmdline-tools
+          curl -sSL -o cmdline.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q cmdline.zip
+          mv cmdline-tools latest || true
+          yes | $HOME/sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
+          $HOME/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" > /dev/null
+          ls -la $HOME/sdk/platforms/android-34/android.jar
+
+      - name: Decode payload
+        env:
+          CNT: ${{ inputs.chunk_count }}
+          C0: ${{ inputs.chunk_0 }}
+          C1: ${{ inputs.chunk_1 }}
+          C2: ${{ inputs.chunk_2 }}
+          C3: ${{ inputs.chunk_3 }}
+          C4: ${{ inputs.chunk_4 }}
+          C5: ${{ inputs.chunk_5 }}
+          C6: ${{ inputs.chunk_6 }}
+          C7: ${{ inputs.chunk_7 }}
+          C8: ${{ inputs.chunk_8 }}
+          C9: ${{ inputs.chunk_9 }}
+        run: |
+          mkdir -p src classes scala-classes
+          python3 - "$CNT" "$C0" "$C1" "$C2" "$C3" "$C4" "$C5" "$C6" "$C7" "$C8" "$C9" << 'PY'
+          import sys, base64, pathlib
+          cnt = int(sys.argv[1])
+          payload = "".join(sys.argv[2:2+cnt])
+          for entry in payload.split("~"):
+              if not entry: continue
+              rel, _, b64 = entry.partition("|")
+              p = pathlib.Path("src") / rel
+              p.parent.mkdir(parents=True, exist_ok=True)
+              p.write_bytes(base64.b64decode(b64))
+          print("scala files:", len(list(pathlib.Path("src").rglob("*.scala"))))
+          PY
+
+      - name: Install Scala
+        run: |
+          curl -sSL -o scala.tgz https://downloads.lightbend.com/scala/2.13.14/scala-2.13.14.tgz
+          tar xzf scala.tgz
+          echo "$PWD/scala-2.13.14/bin" >> $GITHUB_PATH
+
+      - name: Compile
+        run: |
+          AJ=$HOME/sdk/platforms/android-34/android.jar
+          scalac -classpath "$AJ" -d classes $(find src -name '*.scala')
+
+      - name: Pack
+        run: |
+          cp -r classes/* scala-classes/ 2>/dev/null || true
+          find scala-classes -type f | head -20
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: scala-classes
+          path: scala-classes/
+          if-no-files-found: error
