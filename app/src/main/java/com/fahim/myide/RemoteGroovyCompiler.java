@@ -84,11 +84,38 @@ public class RemoteGroovyCompiler {
         if (!classesDir.exists()) classesDir.mkdirs();
         unzipTo(zip, classesDir);
 
+        // Extract bundled groovy-runtime.jar into classesDir (as groovy-runtime.jar)
+        File runtimeJar = new File(classesDir, "groovy-runtime.jar");
+        extractRuntimeJar(zip, runtimeJar);
+
         File cacheOut = CompileCache.outDir(ctx, "groovy", hash);
         int saved = CompileCache.copyDirContents(classesDir, cacheOut);
         CompileCache.markDone(ctx, "groovy", hash);
         say("Cached " + saved + " class(es)");
         say("Groovy compile done");
+    }
+
+    private void extractRuntimeJar(File zip, File out) {
+        try {
+            java.util.zip.ZipInputStream zin = new java.util.zip.ZipInputStream(
+                    new java.io.FileInputStream(zip));
+            java.util.zip.ZipEntry e;
+            byte[] buf = new byte[8192];
+            while ((e = zin.getNextEntry()) != null) {
+                String name = e.getName();
+                if (name.endsWith("groovy-runtime.jar")) {
+                    java.io.FileOutputStream fos = new java.io.FileOutputStream(out);
+                    int n;
+                    while ((n = zin.read(buf)) > 0) fos.write(buf, 0, n);
+                    fos.close();
+                    say("  extracted groovy-runtime.jar");
+                    break;
+                }
+            }
+            zin.close();
+        } catch (Throwable t) {
+            say("  runtime jar extract failed: " + t.getMessage());
+        }
     }
 
     private void collect(File dir, List<File> out) {

@@ -297,6 +297,15 @@ public class ApkBuilder {
             }
 
             jarDeps.add(lambdaStubs);
+
+            // If Groovy was compiled, add its runtime jar so D8 dexes it too
+            File groovyRuntime = new File(classesDir, "groovy-runtime.jar");
+            if (groovyRuntime.isFile() && groovyRuntime.length() > 0) {
+                jarDeps.add(groovyRuntime);
+                say("Groovy runtime jar added to dex input: "
+                        + groovyRuntime.length() + " bytes");
+            }
+
             say("Compiling Java (ECJ)...");
             compileJava(androidJar, ecjFull, ecjResDir, sourceRoots, genDir,
                     classesDir, jarDeps);

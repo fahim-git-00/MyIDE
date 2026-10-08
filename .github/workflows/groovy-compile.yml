@@ -93,6 +93,8 @@ jobs:
       - name: Pack
         run: |
           cp -r classes/* groovy-classes/ 2>/dev/null || true
+          # Bundle Groovy runtime jar for on-device dexing
+          cp libs/groovy-4.0.24.jar groovy-classes/groovy-runtime.jar
           find groovy-classes -type f | head -20
 
       - name: Upload
