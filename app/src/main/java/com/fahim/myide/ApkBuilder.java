@@ -546,6 +546,26 @@ public class ApkBuilder {
         }
     }
 
+    /** Finds d8*.zip in assets, extracts it, and logs the version. */
+    private File extractD8Asset() throws IOException {
+        String[] names = ctx.getAssets().list("");
+        String chosen = "d8.zip";
+        String version = "unknown";
+        if (names != null) {
+            for (String n : names) {
+                if (n != null && n.startsWith("d8") && n.endsWith(".zip")) {
+                    chosen = n;
+                    String v = n.substring(2, n.length() - 4);
+                    if (v.startsWith("-")) v = v.substring(1);
+                    if (!v.isEmpty()) version = v;
+                    break;
+                }
+            }
+        }
+        say("D8 version: " + version);
+        return extractAsset(chosen);
+    }
+
     private File extractAsset(String name) throws IOException {
         File out = new File(ctx.getFilesDir(), name);
         File parent = out.getParentFile();
