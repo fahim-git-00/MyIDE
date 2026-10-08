@@ -70,6 +70,9 @@ public class RemoteCCompiler {
             if (f.isDirectory()) out.addAll(findNativeFiles(f));
             else {
                 String n = f.getName().toLowerCase();
+                // Skip lua_jni.c — that's handled by RemoteLuaCompiler
+                if (n.equals("lua_jni.c") || n.equals("luajit_jni.c")
+                        || n.equals("quickjs_jni.c")) continue;
                 if (n.endsWith(".c") || n.endsWith(".cpp") || n.endsWith(".cc")
                         || n.endsWith(".h") || n.endsWith(".hpp")
                         || n.equals("android.mk") || n.equals("application.mk")
