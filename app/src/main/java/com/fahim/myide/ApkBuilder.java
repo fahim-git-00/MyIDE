@@ -704,7 +704,14 @@ public class ApkBuilder {
         for (File j : extraJars) {
             if (j != null && j.isFile() && j.getName().endsWith(".jar")) dexInputs.add(j);
         }
-        String dexHash = CompileCache.hashFiles(dexInputs);
+        // Exclude restored groovy-runtime.jar (large, unchanged) from hash to avoid churn
+        java.util.List<File> hashInputs = new java.util.ArrayList<File>();
+        for (File f : dexInputs) {
+            if (f.getName().equals("groovy-runtime.jar")) continue;
+            hashInputs.add(f);
+        }
+        String dexHash = CompileCache.hashFiles(hashInputs)
+                + (hasGroovyRuntime(dexInputs) ? "-gr" : "");
         say("Dex hash: " + dexHash.substring(0, 12) + "...");
 
         File dexCacheDir = CompileCache.outDir(ctx, "dex", dexHash);
