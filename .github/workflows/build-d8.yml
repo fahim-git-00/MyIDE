@@ -26,13 +26,11 @@ jobs:
 
       - name: Dex R8 9.5.23 using old D8 8.7.18
         run: |
-          # Use old R8 jar (pure Java classes) to dex new one
-          # R8 jar contains D8 class which can dex itself
+          mkdir -p d8out
           java -cp d8-old.jar com.android.tools.r8.D8 \
             --release \
             --min-api 24 \
             --output d8out \
-            --lib /dev/null \
             r8.jar
 
       - name: Pack output
