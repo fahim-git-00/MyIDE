@@ -333,9 +333,16 @@ public class ApkBuilder {
             SoPacker.pack(projectRoot, withDex, withSo);
 
             say("Signing APK...");
-            File signedApk = new File(workDir, "app-signed.apk");
-            signApk(apksigner, keyPk8, keyPem, withSo, signedApk);
+            File signedInternal = new File(workDir, "app-signed.apk");
+            signApk(apksigner, keyPk8, keyPem, withSo, signedInternal);
 
+            File extBuild = ctx.getExternalFilesDir("build");
+            if (extBuild == null) throw new RuntimeException("External storage unavailable");
+            if (!extBuild.exists()) extBuild.mkdirs();
+            File signedApk = new File(extBuild, "app-signed.apk");
+            copyFile(signedInternal, signedApk);
+
+            say("APK saved to: " + signedApk.getAbsolutePath());
             say("Build complete.");
             writeBuildLog();
             return new Result(true, signedApk, fullLog.toString());
@@ -405,7 +412,8 @@ public class ApkBuilder {
 
     private void writeBuildLog() {
         try {
-            File dir = new File(Environment.getExternalStorageDirectory(), "MyIDE");
+            File dir = ctx.getExternalFilesDir("logs");
+            if (dir == null) return;
             if (!dir.exists()) dir.mkdirs();
             File out = new File(dir, "myide_build.log");
             FileOutputStream fos = new FileOutputStream(out);
