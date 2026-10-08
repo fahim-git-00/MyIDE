@@ -75,19 +75,16 @@ jobs:
             go mod init "$MODULE_NAME"
           fi
           go mod tidy 2>/dev/null || true
-          gomobile init
-          mkdir -p ../out/arm64-v8a ../out/armeabi-v7a
-          gomobile bind -target=android/arm64 -androidapi 24 -o ../out/arm64-v8a/libgo.so ./... \
-            || echo "gomobile arm64 failed, falling back"
-          if [ ! -f ../out/arm64-v8a/libgo.so ]; then
-            for pkg in $(go list ./...); do
-              name=$(basename "$pkg")
-              GOOS=android GOARCH=arm64 CGO_ENABLED=1 \
-                CC=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang \
-                go build -buildmode=c-shared -o ../out/arm64-v8a/lib${name}.so "$pkg" \
-                || echo "c-shared failed for $pkg"
-            done
-          fi
+          mkdir -p ../out/arm64-v8a
+          # Direct c-shared build so //export symbols are kept
+          for pkg in $(go list ./...); do
+            name=$(basename "$pkg")
+            [ "$name" = "." ] && name=go
+            GOOS=android GOARCH=arm64 CGO_ENABLED=1 \
+              CC=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang \
+              go build -buildmode=c-shared -o ../out/arm64-v8a/lib${name}.so "$pkg" \
+              || echo "c-shared failed for $pkg"
+          done
           ls -la ../out/arm64-v8a/
 
       - name: Pack

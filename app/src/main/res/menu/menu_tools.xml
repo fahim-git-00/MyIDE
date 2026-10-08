@@ -14,10 +14,8 @@
     <item android:id="@+id/menu_sep_2" android:title="" />
 
     <item android:id="@+id/menu_github_token" android:title="@string/action_github_token" />
-    <item android:id="@+id/menu_run_js" android:title="Run JS File" />
     <item android:id="@+id/menu_run_python" android:title="Run Python (Remote)" />
     <item android:id="@+id/menu_about" android:title="@string/action_about" />
 
     <item android:id="@+id/menu_fetch_lua"     android:title="Fetch liblua.so (remote)" />
-    <item android:id="@+id/menu_fetch_quickjs" android:title="Fetch libquickjs.so (remote)" />
 </menu>

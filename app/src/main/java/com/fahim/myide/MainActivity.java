@@ -397,8 +397,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         });
         btnBuild.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                if (isJsFile()) runJs();
-                else if (isLuaFile()) runLua();
+                if (isLuaFile()) runLua();
                 else if (isPyFile()) runPython();
                 else runBuild();
             }
@@ -1868,24 +1867,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             }}).start();
             return true;
         }
-        if (id == R.id.menu_fetch_quickjs) {
-            if (projectRoot == null) { toast("Open a project first"); return true; }
-            new Thread(new Runnable() { public void run() {
-                try {
-                    new RemoteNativeFetcher(MainActivity.this, new RemoteNativeFetcher.Progress() {
-                        @Override public void onProgress(final String m) {
-                            ui.post(new Runnable() { public void run() { appendBuildLine(m); } });
-                        }
-                    }).fetch("quickjs-build.yml", "quickjs-libs", projectRoot);
-                    ui.post(new Runnable() { public void run() { toast("libquickjs.so installed"); } });
-                } catch (final Throwable t) {
-                    ui.post(new Runnable() { public void run() { toast("Failed: " + t.getMessage()); } });
-                }
-            }}).start();
-            return true;
-        }
         if (id == R.id.menu_about)        { showAbout(); return true; }
-        if (id == R.id.menu_run_js)      { if (isJsFile()) runJs(); else toast("Open a .js file first"); return true; }
 
         return false;
     }
@@ -2433,11 +2415,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     }
 
     
-    private boolean isJsFile() {
-        if (tabs.isEmpty() || activeTab < 0) return false;
-        String n = tabs.get(activeTab).name().toLowerCase();
-        return n.endsWith(".js");
-    }
 
     private boolean isLuaFile() {
         if (tabs.isEmpty() || activeTab < 0) return false;
@@ -2446,94 +2423,10 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     }
 
 
-    private void runJs() {
-        if (tabs.isEmpty() || activeTab < 0) return;
-        flushActiveTab();
-        EditorTab t = tabs.get(activeTab);
-        runJsText(t.text, t.name());
-    }
 
-    private void runJsFile(final File f) {
-        new Thread(new Runnable() {
-            @Override public void run() {
-                try {
-                    String code = readTextFile(f);
-                    runJsText(code, f.getName());
-                } catch (Throwable t) {
-                    ui.post(new Runnable() {
-                        @Override public void run() {
-                            toast("JS read failed: " + t.getMessage());
-                        }
-                    });
-                }
-            }
-        }).start();
-    }
 
-    private void runJsText(final String code, final String name) {
-        showPanel(PANEL_TERMINAL);
-        terminalPanel.setCwd(projectRoot);
-        terminalPanel.appendExternal("$ js " + name);
 
-        new Thread(new Runnable() {
-            @Override public void run() {
-                JsRunner.runSource(code, name, new JsRunner.Callback() {
-                    @Override public void onResult(final String out) {
-                        ui.post(new Runnable() {
-                            @Override public void run() {
-                                terminalPanel.appendExternal(out);
-                                showJsResultDialog(name, out, null);
-                            }
-                        });
-                    }
-                    @Override public void onError(final String err) {
-                        ui.post(new Runnable() {
-                            @Override public void run() {
-                                terminalPanel.appendExternal("[ERROR] " + err);
-                                showJsResultDialog(name, null, err);
-                            }
-                        });
-                    }
-                });
-            }
-        }).start();
-    }
 
-    private void showJsResultDialog(String name, String output, String error) {
-        String title = "JS: " + name;
-        String tmp = error != null ? ("Error: " + error) : output;
-        if (tmp == null || tmp.isEmpty()) tmp = "(no output)";
-        final String body = tmp;
-        new AlertDialog.Builder(this, R.style.AppDialogTheme)
-            .setTitle(title)
-            .setMessage(body)
-            .setPositiveButton("Copy", new DialogInterface.OnClickListener() {
-                @Override public void onClick(DialogInterface d, int w) {
-                    copyToClipboard(body);
-                    toast("Copied");
-                }
-            })
-            .setNegativeButton("Close", null)
-            .show();
-    }
-
-    private void showJsFileMenu(final File f) {
-        final String[] items = new String[]{"Run JS", "Open", "Rename", "Duplicate", "Delete"};
-        new AlertDialog.Builder(this, R.style.AppDialogTheme)
-            .setTitle(f.getName())
-            .setItems(items, new DialogInterface.OnClickListener() {
-                @Override public void onClick(DialogInterface d, int w) {
-                    String c = items[w];
-                    if ("Run JS".equals(c)) runJsFile(f);
-                    else if ("Open".equals(c)) openFile(f);
-                    else if ("Rename".equals(c)) FileTreeOps.rename(MainActivity.this, f, afterTree());
-                    else if ("Duplicate".equals(c)) FileTreeOps.duplicate(f, afterTree());
-                    else if ("Delete".equals(c)) FileTreeOps.delete(MainActivity.this, f, afterTree());
-                }
-            })
-            .setNegativeButton("Cancel", null)
-            .show();
-    }
 
     private void runLua() {
         if (tabs.isEmpty() || activeTab < 0) return;

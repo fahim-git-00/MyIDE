@@ -331,12 +331,6 @@ public class ApkBuilder {
             // ---- Fetch interpreter .so files (Lua / QuickJS) if used ----
             try {
                 // Lua JNI auto-handled by RemoteLuaCompiler when jni/*.c is present
-                if (projectUsesQuickJs(projectRoot)) {
-                    say("JS scripts detected \u2014 fetching libquickjs.so");
-                    new RemoteNativeFetcher(ctx, new RemoteNativeFetcher.Progress() {
-                        @Override public void onProgress(String m) { say(m); }
-                    }).fetch("quickjs-build.yml", "quickjs-libs", projectRoot);
-                }
             } catch (Throwable fe) {
                 say("Native lib fetch failed: " + causeChain(fe));
             }
@@ -1057,7 +1051,6 @@ public class ApkBuilder {
 
 
     private boolean projectUsesLua(File root) { return containsExt(root, ".lua"); }
-    private boolean projectUsesQuickJs(File root) { return containsExt(root, ".js"); }
 
     private boolean containsExt(File dir, String ext) {
         File[] kids = dir.listFiles();
