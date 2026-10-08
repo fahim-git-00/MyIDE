@@ -318,7 +318,10 @@ public class ApkBuilder {
             say("Dexing (D8)...");
             File dexDir = new File(workDir, "dex");
             dexDir.mkdirs();
-            compileDex(androidJar, d8Zip, classesDir, dexDir, jarDeps, minSdk);
+            // Ensure min-api >= 26 so D8 can encode invoke-polymorphic (Scala/Groovy lambdas)
+            int dexMinSdk = Math.max(minSdk, 26);
+            if (dexMinSdk != minSdk) say("D8 min-api bumped to " + dexMinSdk + " for lambda support");
+            compileDex(androidJar, d8Zip, classesDir, dexDir, jarDeps, dexMinSdk);
 
             say("Packaging APK...");
             File withDex = new File(workDir, "app-withdex.apk");
