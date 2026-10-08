@@ -46,6 +46,7 @@ jobs:
 
       - name: Dex ECJ with D8
         run: |
+          mkdir -p dexout
           D8=$HOME/android-sdk/build-tools/35.0.0/d8
           $D8 --release --min-api 24 --output dexout ecj.jar 2>&1 | tail -10
           ls -la dexout/
