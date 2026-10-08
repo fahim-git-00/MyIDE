@@ -41,11 +41,14 @@ jobs:
         run: |
           mkdir -p fat dexout
           cd fat
-          unzip -o ../apksig.jar
-          unzip -o ../apksigner.jar
+          jar xf ../apksig.jar 2>&1 | tail -2 || true
+          jar xf ../apksigner.jar 2>&1 | tail -2 || true
+          find . -name "*.class" | wc -l
+          jar cf ../apksigner-full.jar .
           cd ..
-          cd fat && jar cf ../apksigner-full.jar . && cd ..
+          ls -la apksigner-full.jar
           $HOME/android-sdk/build-tools/35.0.0/d8 --release --min-api 24 --output dexout apksigner-full.jar
+          ls -la dexout/
           cd dexout && zip -q ../apksigner-full-dexed.jar classes.dex* && cd ..
           ls -la apksigner-full-dexed.jar
 
