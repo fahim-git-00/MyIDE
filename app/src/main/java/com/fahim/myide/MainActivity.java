@@ -1827,11 +1827,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             triggerRemoteCompile("rust");
             return true;
         }
-        if (id == R.id.menu_go_build) {
-            if (projectRoot == null) { toast("Open a project first"); return true; }
-            triggerRemoteCompile("go");
-            return true;
-        }
         if (id == R.id.menu_scala_build) {
             if (projectRoot == null) { toast("Open a project first"); return true; }
             triggerRemoteCompile("scala");

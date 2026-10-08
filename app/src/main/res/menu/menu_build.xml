@@ -18,7 +18,6 @@
     <item android:id="@+id/menu_signing_key" android:title="@string/action_signing_key" />
 
     <item android:id="@+id/menu_rust_build"   android:title="Build Rust (.rs)" />
-    <item android:id="@+id/menu_go_build"     android:title="Build Go (.go)" />
     <item android:id="@+id/menu_scala_build"  android:title="Build Scala (.scala)" />
     <item android:id="@+id/menu_groovy_build" android:title="Build Groovy (.groovy)" />
 

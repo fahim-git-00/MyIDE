@@ -221,18 +221,6 @@ public class ApkBuilder {
                 throw new RuntimeException("Rust compile failed", re);
             }
 
-            // ---- Remote Go compile (GitHub Actions) ----
-            try {
-                if (RemoteGoCompiler.hasGoSources(projectRoot)) {
-                    say("Go sources detected \u2014 remote compile");
-                    new RemoteGoCompiler(ctx, new RemoteGoCompiler.Progress() {
-                        @Override public void onProgress(String m) { say(m); }
-                    }).compile(projectRoot);
-                }
-            } catch (Throwable ge) {
-                say("Remote Go compile failed: " + causeChain(ge));
-                throw new RuntimeException("Go compile failed", ge);
-            }
 
             File patchedManifest = new File(workDir, "AndroidManifest.xml");
             patchManifest(appManifest, patchedManifest, minSdk, targetSdk);
@@ -1021,11 +1009,6 @@ public class ApkBuilder {
         }).compile(projectRoot);
     }
 
-    public void compileRemoteGo(File projectRoot) throws Exception {
-        new RemoteGoCompiler(ctx, new RemoteGoCompiler.Progress() {
-            @Override public void onProgress(String m) { say(m); }
-        }).compile(projectRoot);
-    }
 
     public void compileRemoteScala(File projectRoot) throws Exception {
         File srcDir = new File(projectRoot, "src");
