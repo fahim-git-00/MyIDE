@@ -1,0 +1,51 @@
+name: ecj-333
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK
+        run: |
+          mkdir -p $HOME/android-sdk/cmdline-tools
+          cd $HOME/android-sdk/cmdline-tools
+          curl -sSL -o cmdline.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q cmdline.zip
+          mv cmdline-tools latest || true
+          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
+          $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;35.0.0" > /dev/null
+
+      - name: Download ECJ 3.33.0
+        run: |
+          curl -sSL -o ecj.jar "https://repo1.maven.org/maven2/org/eclipse/jdt/ecj/3.33.0/ecj-3.33.0.jar"
+          ls -la ecj.jar
+
+      - name: Extract resources
+        run: |
+          mkdir -p resout && cd resout
+          unzip -o ../ecj.jar "*.properties" "*.rsc" > /dev/null 2>&1 || true
+          cd .. && cd resout && zip -q -r ../ecj_res.zip . && cd ..
+
+      - name: Dex with D8
+        run: |
+          mkdir -p dexout
+          $HOME/android-sdk/build-tools/35.0.0/d8 --release --min-api 24 --output dexout ecj.jar
+          ls -la dexout/
+          cd dexout && zip -q ../ecj_full.jar classes.dex && cd ..
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecj-3-33-0
+          path: |
+            ecj_full.jar
+            ecj_res.zip
+          if-no-files-found: error
