@@ -71,8 +71,10 @@ public class RemoteCCompiler {
             else {
                 String n = f.getName().toLowerCase();
                 // Skip lua_jni.c — that's handled by RemoteLuaCompiler
+                // Skip all Lua/QuickJS JNI + their mk files — handled by RemoteLuaCompiler
                 if (n.equals("lua_jni.c") || n.equals("luajit_jni.c")
                         || n.equals("quickjs_jni.c")) continue;
+                if (n.equals("android.mk") || n.equals("application.mk")) continue;
                 if (n.endsWith(".c") || n.endsWith(".cpp") || n.endsWith(".cc")
                         || n.endsWith(".h") || n.endsWith(".hpp")
                         || n.equals("android.mk") || n.equals("application.mk")
