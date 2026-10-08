@@ -27,34 +27,25 @@ jobs:
           yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
           $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;35.0.0" > /dev/null
 
-      - name: Download apksigner jar
+      - name: Download apksig from Google Maven
         env:
           VER: ${{ inputs.version }}
         run: |
-          curl -sSL -o apksigner.jar "https://repo1.maven.org/maven2/com/android/tools/build/apksig/$VER/apksig-$VER.jar"
-          curl -sSL -o apksigner-tool.jar "https://repo1.maven.org/maven2/com/android/tools/build/apksigner/$VER/apksigner-$VER.jar" || true
-          ls -la apksigner*.jar
+          curl -sSL -o apksig.jar "https://dl.google.com/dl/android/maven2/com/android/tools/build/apksig/$VER/apksig-$VER.jar"
+          curl -sSL -o apksigner.jar "https://dl.google.com/dl/android/maven2/com/android/tools/build/apksigner/$VER/apksigner-$VER.jar"
+          ls -la apksig.jar apksigner.jar
 
-      - name: Combine jars
+      - name: Bundle + dex
         run: |
-          mkdir -p merged
-          cd merged
-          unzip -o ../apksig.jar > /dev/null 2>&1 || true
-          unzip -o ../apksigner-tool.jar > /dev/null 2>&1 || true
+          mkdir -p fat dexout
+          cd fat
+          unzip -o ../apksig.jar
+          unzip -o ../apksigner.jar
           cd ..
-          # Bundle the JARs together as a single jar
-          mkdir -p fat
-          cd fat && unzip -o ../apksig.jar > /dev/null 2>&1 || true
-          unzip -o ../apksigner-tool.jar > /dev/null 2>&1 || true
-          cd ..
-          jar cf apksigner-full.jar -C fat . 2>/dev/null || true
-
-      - name: Dex with D8
-        run: |
-          mkdir -p dexout
+          cd fat && jar cf ../apksigner-full.jar . && cd ..
           $HOME/android-sdk/build-tools/35.0.0/d8 --release --min-api 24 --output dexout apksigner-full.jar
-          ls -la dexout/
-          cd dexout && zip -q ../apksigner-full-dexed.jar classes.dex && cd ..
+          cd dexout && zip -q ../apksigner-full-dexed.jar classes.dex* && cd ..
+          ls -la apksigner-full-dexed.jar
 
       - name: Upload
         uses: actions/upload-artifact@v4
