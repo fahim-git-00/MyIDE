@@ -318,9 +318,15 @@ public class ApkBuilder {
             say("Dexing (D8)...");
             File dexDir = new File(workDir, "dex");
             dexDir.mkdirs();
-            // Ensure min-api >= 26 so D8 can encode invoke-polymorphic (Scala/Groovy lambdas)
-            int dexMinSdk = Math.max(minSdk, 26);
-            if (dexMinSdk != minSdk) say("D8 min-api bumped to " + dexMinSdk + " for lambda support");
+            // Force min-api 26 only when Scala or Groovy sources are present
+            // (their lambdas emit invoke-polymorphic which needs DEX V37+ / Android 8+)
+            boolean hasLambdaLang = false;
+            for (File src : sourceRoots) {
+                if (hasScalaFiles(src) || hasGroovyFiles(src)) { hasLambdaLang = true; break; }
+            }
+            int dexMinSdk = hasLambdaLang ? Math.max(minSdk, 26) : minSdk;
+            if (dexMinSdk != minSdk) say("D8 min-api bumped to " + dexMinSdk
+                    + " (Scala/Groovy lambda support)");
             compileDex(androidJar, d8Zip, classesDir, dexDir, jarDeps, dexMinSdk);
 
             say("Packaging APK...");
