@@ -70,6 +70,20 @@ public class RemoteKotlinCompiler {
             return;
         }
 
+        String hash = CompileCache.hashFiles(ktFiles);
+        say("Hash: " + hash.substring(0, 12) + "...");
+
+        if (CompileCache.isHit(ctx, "kotlin", hash)) {
+            say("Cache hit - reusing cached classes");
+            File cacheOut = CompileCache.outDir(ctx, "kotlin", hash);
+            if (!classesDir.exists()) classesDir.mkdirs();
+            int n = CompileCache.restoreTo(cacheOut, classesDir);
+            say("Restored " + n + " class(es) from cache");
+            say("Kotlin compile done (cached)");
+            return;
+        }
+        say("Cache miss - remote compile required");
+
         // Compute relative path for each .kt file so package structure is preserved.
         String payload = buildPayload(sourceRoots, ktFiles);
         say("Packaged " + ktFiles.size() + " Kotlin file(s), " + payload.length() + " chars");

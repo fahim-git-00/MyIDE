@@ -70,6 +70,18 @@ public class RemoteGoCompiler {
         collect(srcRoot, files);
         say("Packaging " + files.size() + " Go file(s)...");
 
+        String hash = CompileCache.hashFiles(files);
+        say("Hash: " + hash.substring(0, 12) + "...");
+        if (CompileCache.isHit(ctx, "go", hash)) {
+            say("Cache hit \u2014 reusing cached .so");
+            File cacheOut = CompileCache.outDir(ctx, "go", hash);
+            int n = CompileCache.restoreTo(cacheOut, libs);
+            say("Restored " + n + " file(s) from cache");
+            say("Go compile done (cached)");
+            return;
+        }
+        say("Cache miss \u2014 remote compile required");
+
         String payload = buildPayload(srcRoot, files);
         String modName = "native";
         long runId = trigger(payload, modName);
@@ -79,6 +91,11 @@ public class RemoteGoCompiler {
         say("Downloading libs...");
         File zip = downloadArtifact(runId, "go-libs");
         unzipLibs(zip, libs);
+
+        File cacheOut = CompileCache.outDir(ctx, "go", hash);
+        int saved = CompileCache.copyDirContents(libs, cacheOut);
+        CompileCache.markDone(ctx, "go", hash);
+        say("Cached " + saved + " artifact(s)");
         say("Go compile done");
     }
 

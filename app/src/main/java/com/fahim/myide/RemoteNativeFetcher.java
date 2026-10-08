@@ -37,6 +37,7 @@ public class RemoteNativeFetcher {
     public void fetch(String workflowFile, String artifactName, File destProjectRoot) throws Exception {
         if (!hasToken()) throw new RuntimeException("GitHub token not set");
 
+        String lang = workflowFile.replace("-build.yml", "");
         say("Triggering " + workflowFile + " ...");
         long runId = trigger(workflowFile);
         say("Waiting for run " + runId + " ...");
@@ -51,6 +52,28 @@ public class RemoteNativeFetcher {
         int n = extractSo(zip, jniLibs);
         if (n == 0) n = extractSo(zip, fallback);
         say("Installed " + n + " .so file(s)");
+
+        // Save to cache (language-scoped, hash of workflow only)
+        String hash = workflowFile;
+        File cacheOut = CompileCache.outDir(ctx, lang, hash);
+        File dst = n > 0 ? new File(jniLibs, "arm64-v8a") : new File(fallback, "arm64-v8a");
+        int saved = CompileCache.copyDirContents(dst, cacheOut);
+        CompileCache.markDone(ctx, lang, hash);
+        say("Cached " + saved + " .so under " + lang + "/");
+    }
+
+    /** Restore cached .so for a language (used by ApkBuilder before fetch). */
+    public static boolean restoreCached(Context ctx, String workflowFile, File destProjectRoot) {
+        String lang = workflowFile.replace("-build.yml", "");
+        String hash = workflowFile;
+        if (!CompileCache.isHit(ctx, lang, hash)) return false;
+
+        File cacheOut = CompileCache.outDir(ctx, lang, hash);
+        File jniLibs = new File(destProjectRoot, "app/src/main/jniLibs/arm64-v8a");
+        File fallback = new File(destProjectRoot, "libs/arm64-v8a");
+        int n = CompileCache.restoreTo(cacheOut, jniLibs);
+        if (n == 0) n = CompileCache.restoreTo(cacheOut, fallback);
+        return n > 0;
     }
 
     private long trigger(String workflowFile) throws Exception {

@@ -72,6 +72,19 @@ public class RemoteRustCompiler {
         collect(srcRoot, files);
         say("Packaging " + files.size() + " Rust file(s)...");
 
+        String hash = CompileCache.hashFiles(files);
+        say("Hash: " + hash.substring(0, 12) + "...");
+
+        if (CompileCache.isHit(ctx, "rust", hash)) {
+            say("Cache hit \u2014 reusing cached .so");
+            File cacheOut = CompileCache.outDir(ctx, "rust", hash);
+            int n = CompileCache.restoreTo(cacheOut, libs);
+            say("Restored " + n + " file(s) from cache");
+            say("Rust compile done (cached)");
+            return;
+        }
+        say("Cache miss \u2014 remote compile required");
+
         String payload = buildPayload(srcRoot, files);
         String crateName = "native";
 
@@ -82,6 +95,13 @@ public class RemoteRustCompiler {
         say("Downloading libs...");
         File zip = downloadArtifact(runId, "rust-libs");
         unzipLibs(zip, libs);
+
+        // Save to cache
+        File cacheOut = CompileCache.outDir(ctx, "rust", hash);
+        int saved = CompileCache.copyDirContents(libs, cacheOut);
+        CompileCache.markDone(ctx, "rust", hash);
+        say("Cached " + saved + " artifact(s) for next build");
+
         say("Rust compile done");
     }
 

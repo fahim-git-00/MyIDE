@@ -60,8 +60,21 @@ public class RemoteGroovyCompiler {
         if (files.isEmpty()) { say("No .groovy files"); return; }
 
         say("Packaging " + files.size() + " Groovy file(s)...");
-        String payload = buildPayload(sourceRoots, files);
+        String hash = CompileCache.hashFiles(files);
+        say("Hash: " + hash.substring(0, 12) + "...");
 
+        if (CompileCache.isHit(ctx, "groovy", hash)) {
+            say("Cache hit \u2014 reusing cached classes");
+            File cacheOut = CompileCache.outDir(ctx, "groovy", hash);
+            if (!classesDir.exists()) classesDir.mkdirs();
+            int n = CompileCache.restoreTo(cacheOut, classesDir);
+            say("Restored " + n + " class(es) from cache");
+            say("Groovy compile done (cached)");
+            return;
+        }
+        say("Cache miss \u2014 remote compile required");
+
+        String payload = buildPayload(sourceRoots, files);
         long runId = trigger(payload);
         say("Waiting for run " + runId + "...");
         waitForRun(runId);
@@ -70,6 +83,11 @@ public class RemoteGroovyCompiler {
         File zip = downloadArtifact(runId, "groovy-classes");
         if (!classesDir.exists()) classesDir.mkdirs();
         unzipTo(zip, classesDir);
+
+        File cacheOut = CompileCache.outDir(ctx, "groovy", hash);
+        int saved = CompileCache.copyDirContents(classesDir, cacheOut);
+        CompileCache.markDone(ctx, "groovy", hash);
+        say("Cached " + saved + " class(es)");
         say("Groovy compile done");
     }
 
