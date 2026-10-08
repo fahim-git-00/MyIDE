@@ -70,13 +70,13 @@ jobs:
           print("groovy files:", len(list(pathlib.Path("src").rglob("*.groovy"))))
           PY
 
-      - name: Install Groovy
+      - name: Install Groovy 3.0.22
         run: |
-          curl -sSL -o groovy.zip https://archive.apache.org/dist/groovy/4.0.22/distribution/apache-groovy-binary-4.0.22.zip
+          curl -sSL -o groovy.zip https://archive.apache.org/dist/groovy/3.0.22/distribution/apache-groovy-binary-3.0.22.zip
           file groovy.zip
           unzip -q groovy.zip
-          ls -la groovy-4.0.22/bin/
-          echo "$PWD/groovy-4.0.22/bin" >> $GITHUB_PATH
+          ls -la groovy-3.0.22/bin/
+          echo "$PWD/groovy-3.0.22/bin" >> $GITHUB_PATH
 
       - name: Compile
         run: |
