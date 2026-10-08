@@ -547,6 +547,13 @@ public class ApkBuilder {
     }
 
     /** Finds d8*.zip in assets, extracts it, and logs the version. */
+    private boolean hasGroovyRuntime(java.util.List<java.io.File> jars) {
+        for (java.io.File f : jars) {
+            if (f.getName().equals("groovy-runtime.jar")) return true;
+        }
+        return false;
+    }
+
     private File extractD8Asset() throws IOException {
         String[] names = ctx.getAssets().list("");
         String chosen = "d8.zip";
