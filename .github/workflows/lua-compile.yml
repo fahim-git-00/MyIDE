@@ -6,6 +6,12 @@ on:
       chunk_count:
         required: true
         default: '1'
+      package_name:
+        required: false
+        default: 'com.fahim.myide'
+      class_name:
+        required: false
+        default: 'LuaRunner'
       chunk_0: { required: false, default: '' }
       chunk_1: { required: false, default: '' }
       chunk_2: { required: false, default: '' }
@@ -77,18 +83,22 @@ jobs:
           cd ../..
 
       - name: Build liblua.so (user JNI + lua)
+        env:
+          PKG: ${{ inputs.package_name }}
+          CLS: ${{ inputs.class_name }}
         run: |
           TC=$NDK/toolchains/llvm/prebuilt/linux-x86_64
           CC=$TC/bin/aarch64-linux-android24-clang
           mkdir -p out/arm64-v8a
-          # Find user's jni C file(s)
           JNI_SRC=$(find user_jni -name "*.c" | head -1)
           if [ -z "$JNI_SRC" ]; then
-            echo "No JNI C file in payload — using bundled lua_jni.c"
             curl -sSL -o /tmp/lua_jni.c https://raw.githubusercontent.com/fahim-git-00/MyIDE/main/app/src/main/jni/lua_jni.c
             JNI_SRC=/tmp/lua_jni.c
           fi
-          echo "Using JNI: $JNI_SRC"
+          # Rewrite JNI symbol to match user's package + class
+          SAFE_PKG=$(echo "$PKG" | tr '.' '_')
+          sed -i -E "s/Java_[A-Za-z0-9_]+_${CLS}_runScript/Java_${SAFE_PKG}_${CLS}_runScript/g" "$JNI_SRC"
+          grep -o "Java_[A-Za-z0-9_]*_${CLS}_runScript" "$JNI_SRC" | head -1
           $CC -O2 -fPIC -shared \
             -I lua-src/src \
             -o out/arm64-v8a/liblua.so \

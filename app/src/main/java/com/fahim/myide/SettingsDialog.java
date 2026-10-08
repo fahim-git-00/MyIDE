@@ -45,9 +45,6 @@ public final class SettingsDialog {
         // Build
         final EditText minSdk    = root.findViewById(R.id.prefMinSdk);
         final EditText targetSdk = root.findViewById(R.id.prefTargetSdk);
-        final RadioButton ktAuto   = root.findViewById(R.id.prefKotlinAuto);
-        final RadioButton ktLocal  = root.findViewById(R.id.prefKotlinLocal);
-        final RadioButton ktRemote = root.findViewById(R.id.prefKotlinRemote);
 
         // Advanced
         final EditText token = root.findViewById(R.id.prefGithubToken);
@@ -84,10 +81,6 @@ public final class SettingsDialog {
         minSdk.setText(String.valueOf(ThemeHelper.getMinSdk(ctx)));
         targetSdk.setText(String.valueOf(ThemeHelper.getTargetSdk(ctx)));
 
-        String km = ThemeHelper.getKotlinMode(ctx);
-        if ("local".equals(km)) ktLocal.setChecked(true);
-        else if ("remote".equals(km)) ktRemote.setChecked(true);
-        else ktAuto.setChecked(true);
 
         String gh = ctx.getSharedPreferences("github", Context.MODE_PRIVATE)
                 .getString("token", "");
@@ -146,9 +139,6 @@ public final class SettingsDialog {
                 try { ThemeHelper.setTargetSdk(ctx, Integer.parseInt(targetSdk.getText().toString().trim())); }
                 catch (Exception ignored) {}
 
-                String mode2 = ktLocal.isChecked() ? "local"
-                        : ktRemote.isChecked() ? "remote" : "auto";
-                ThemeHelper.setKotlinMode(ctx, mode2);
 
                 // Advanced
                 ctx.getSharedPreferences("github", Context.MODE_PRIVATE).edit()

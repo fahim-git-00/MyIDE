@@ -82,7 +82,9 @@ public class RemoteLuaCompiler {
         say("Cache miss — remote compile required");
 
         String payload = buildPayload(jni, files);
-        long runId = trigger(payload);
+        String pkgName = detectPackageName(projectRoot);
+        say("Project package: " + pkgName);
+        long runId = trigger(payload, pkgName);
         say("Waiting for run " + runId + "...");
         waitForRun(runId);
 
@@ -128,7 +130,27 @@ public class RemoteLuaCompiler {
         in.close(); return out.toByteArray();
     }
 
-    private long trigger(String payload) throws Exception {
+    /** Reads `package="..."` from AndroidManifest.xml */
+    private String detectPackageName(File projectRoot) {
+        try {
+            File mf = new File(projectRoot, "AndroidManifest.xml");
+            if (!mf.isFile()) return "com.fahim.myide";
+            java.io.FileInputStream in = new java.io.FileInputStream(mf);
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            byte[] b = new byte[8192]; int n;
+            while ((n = in.read(b)) > 0) out.write(b, 0, n);
+            in.close();
+            String xml = out.toString("UTF-8");
+            int i = xml.indexOf("package=\"");
+            if (i < 0) return "com.fahim.myide";
+            int s = i + 9, e = xml.indexOf('"', s);
+            return (e > s) ? xml.substring(s, e) : "com.fahim.myide";
+        } catch (Throwable t) {
+            return "com.fahim.myide";
+        }
+    }
+
+    private long trigger(String payload, String pkgName) throws Exception {
         URL url = new URL(API + "/repos/" + repo() + "/actions/workflows/" + WORKFLOW_FILE + "/dispatches");
         HttpURLConnection c = (HttpURLConnection) url.openConnection();
         c.setRequestMethod("POST");
@@ -140,6 +162,8 @@ public class RemoteLuaCompiler {
         JSONObject body = new JSONObject();
         body.put("ref", "main");
         JSONObject inputs = new JSONObject();
+        inputs.put("package_name", pkgName);
+        inputs.put("class_name", "LuaRunner");
         int chunkSize = 60000;
         int chunks = (payload.length() + chunkSize - 1) / chunkSize;
         if (chunks > 10) throw new RuntimeException("Payload too large: " + chunks);

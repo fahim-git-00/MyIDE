@@ -1820,7 +1820,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         if (id == R.id.menu_clean)         { cleanProject(); return true; }
         if (id == R.id.menu_rebuild)       { runBuild(); return true; }
         if (id == R.id.menu_libraries)     { showLibraries(); return true; }
-        if (id == R.id.menu_kotlin_mode)   { showKotlinMode(); return true; }
         if (id == R.id.menu_build_settings){ showBuildSettings(); return true; }
         if (id == R.id.menu_signing_key)   { SigningKeyDialog.show(this); return true; }
 
@@ -2018,15 +2017,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         }).show();
     }
 
-    private void showKotlinMode() {
-        new AlertDialog.Builder(this, R.style.AppDialogTheme)
-            .setTitle(R.string.action_kotlin_mode)
-            .setMessage("Kotlin compile mode: Remote (GitHub Actions).\n\n" +
-                        "Local Kotlin compile is disabled — needs ~350 MB Alpine rootfs " +
-                        "and proot runtime. Remote mode is faster and works on any device.")
-            .setPositiveButton("OK", null)
-            .show();
-    }
 
     private void showBuildSettings() { showSettings(); }
 

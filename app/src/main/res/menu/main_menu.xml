@@ -50,7 +50,6 @@
     <item android:id="@+id/menu_clean" android:title="@string/action_clean" />
     <item android:id="@+id/menu_rebuild" android:title="@string/action_rebuild" />
     <item android:id="@+id/menu_libraries" android:title="@string/action_libraries" />
-    <item android:id="@+id/menu_kotlin_mode" android:title="@string/action_kotlin_mode" />
     <item android:id="@+id/menu_build_settings" android:title="@string/action_build_settings" />
     <item android:id="@+id/menu_signing_key" android:title="@string/action_signing_key" />
 
