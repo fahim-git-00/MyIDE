@@ -27,12 +27,14 @@ jobs:
           yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
           $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;35.0.0" > /dev/null
 
-      - name: Download apksig from Google Maven
+      - name: Grab apksig + apksigner from SDK
         env:
           VER: ${{ inputs.version }}
         run: |
+          # apksig jar from Maven
           curl -sSL -o apksig.jar "https://dl.google.com/dl/android/maven2/com/android/tools/build/apksig/$VER/apksig-$VER.jar"
-          curl -sSL -o apksigner.jar "https://dl.google.com/dl/android/maven2/com/android/tools/build/apksigner/$VER/apksigner-$VER.jar"
+          # apksigner CLI jar from build-tools
+          cp $HOME/android-sdk/build-tools/35.0.0/lib/apksigner.jar apksigner.jar
           ls -la apksig.jar apksigner.jar
 
       - name: Bundle + dex
