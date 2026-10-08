@@ -1824,6 +1824,27 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         if (id == R.id.menu_build_settings){ showBuildSettings(); return true; }
         if (id == R.id.menu_signing_key)   { SigningKeyDialog.show(this); return true; }
 
+        if (id == R.id.menu_rust_build) {
+            if (projectRoot == null) { toast("Open a project first"); return true; }
+            triggerRemoteCompile("rust");
+            return true;
+        }
+        if (id == R.id.menu_go_build) {
+            if (projectRoot == null) { toast("Open a project first"); return true; }
+            triggerRemoteCompile("go");
+            return true;
+        }
+        if (id == R.id.menu_scala_build) {
+            if (projectRoot == null) { toast("Open a project first"); return true; }
+            triggerRemoteCompile("scala");
+            return true;
+        }
+        if (id == R.id.menu_groovy_build) {
+            if (projectRoot == null) { toast("Open a project first"); return true; }
+            triggerRemoteCompile("groovy");
+            return true;
+        }
+
         // TOOLS
         if (id == R.id.menu_logcat)       { showPanel(PANEL_LOGCAT); return true; }
         if (id == R.id.menu_terminal)     { showPanel(PANEL_TERMINAL); return true; }
@@ -2700,6 +2721,47 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             })
             .setNegativeButton("Cancel", null)
             .show();
+    }
+
+
+    private void triggerRemoteCompile(final String kind) {
+        showPanel(PANEL_BUILD);
+        buildOutput.setText("");
+        buildStatus.setText(kind + " build\u2026");
+        buildProgress.setVisibility(View.VISIBLE);
+        new Thread(new Runnable() {
+            @Override public void run() {
+                try {
+                    ApkBuilder ab = new ApkBuilder(MainActivity.this, new ApkBuilder.Progress() {
+                        @Override public void onProgress(final String msg) {
+                            ui.post(new Runnable() {
+                                @Override public void run() { appendBuildLine(msg); }
+                            });
+                        }
+                    });
+                    if ("rust".equals(kind))      ab.compileRemoteRust(projectRoot);
+                    else if ("go".equals(kind))   ab.compileRemoteGo(projectRoot);
+                    else if ("scala".equals(kind))  ab.compileRemoteScala(projectRoot);
+                    else if ("groovy".equals(kind)) ab.compileRemoteGroovy(projectRoot);
+                    ui.post(new Runnable() {
+                        @Override public void run() {
+                            buildProgress.setVisibility(View.GONE);
+                            buildStatus.setText(kind + " done");
+                            toast(kind + " compile done");
+                        }
+                    });
+                } catch (final Throwable t) {
+                    ui.post(new Runnable() {
+                        @Override public void run() {
+                            buildProgress.setVisibility(View.GONE);
+                            buildStatus.setText(kind + " failed");
+                            appendBuildLine("ERROR: " + t);
+                            toast(kind + " failed");
+                        }
+                    });
+                }
+            }
+        }).start();
     }
 
 }

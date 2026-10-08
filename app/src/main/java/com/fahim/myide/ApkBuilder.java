@@ -199,6 +199,32 @@ public class ApkBuilder {
                 throw new RuntimeException("C compile failed", ce);
             }
 
+            // ---- Remote Rust compile (GitHub Actions) ----
+            try {
+                if (RemoteRustCompiler.hasRustSources(projectRoot)) {
+                    say("Rust sources detected \u2014 remote compile");
+                    new RemoteRustCompiler(ctx, new RemoteRustCompiler.Progress() {
+                        @Override public void onProgress(String m) { say(m); }
+                    }).compile(projectRoot);
+                }
+            } catch (Throwable re) {
+                say("Remote Rust compile failed: " + causeChain(re));
+                throw new RuntimeException("Rust compile failed", re);
+            }
+
+            // ---- Remote Go compile (GitHub Actions) ----
+            try {
+                if (RemoteGoCompiler.hasGoSources(projectRoot)) {
+                    say("Go sources detected \u2014 remote compile");
+                    new RemoteGoCompiler(ctx, new RemoteGoCompiler.Progress() {
+                        @Override public void onProgress(String m) { say(m); }
+                    }).compile(projectRoot);
+                }
+            } catch (Throwable ge) {
+                say("Remote Go compile failed: " + causeChain(ge));
+                throw new RuntimeException("Go compile failed", ge);
+            }
+
             File patchedManifest = new File(workDir, "AndroidManifest.xml");
             patchManifest(appManifest, patchedManifest, minSdk, targetSdk);
 
@@ -240,6 +266,34 @@ public class ApkBuilder {
             for (File src : sourceRoots) if (hasKtFiles(src)) { hasKt = true; break; }
             if (hasKt) {
                 compileKotlin(sourceRoots, classesDir, androidJar);
+            }
+
+            boolean hasScala = false;
+            for (File src : sourceRoots) if (hasScalaFiles(src)) { hasScala = true; break; }
+            if (hasScala) {
+                say("Scala mode: remote (GitHub Actions)");
+                try {
+                    new RemoteScalaCompiler(ctx, new RemoteScalaCompiler.Progress() {
+                        @Override public void onProgress(String m) { say(m); }
+                    }).compile(sourceRoots, classesDir);
+                } catch (Throwable se) {
+                    say("Scala compile failed: " + causeChain(se));
+                    throw new RuntimeException("Scala compile failed", se);
+                }
+            }
+
+            boolean hasGroovy = false;
+            for (File src : sourceRoots) if (hasGroovyFiles(src)) { hasGroovy = true; break; }
+            if (hasGroovy) {
+                say("Groovy mode: remote (GitHub Actions)");
+                try {
+                    new RemoteGroovyCompiler(ctx, new RemoteGroovyCompiler.Progress() {
+                        @Override public void onProgress(String m) { say(m); }
+                    }).compile(sourceRoots, classesDir);
+                } catch (Throwable gre) {
+                    say("Groovy compile failed: " + causeChain(gre));
+                    throw new RuntimeException("Groovy compile failed", gre);
+                }
             }
 
             jarDeps.add(lambdaStubs);
@@ -404,6 +458,28 @@ public class ApkBuilder {
         File s3 = new File(root, "src/main/java");
         if (s3.isDirectory()) return s3;
         return null;
+    }
+
+    private boolean hasScalaFiles(File dir) {
+        if (dir == null || !dir.exists()) return false;
+        File[] kids = dir.listFiles();
+        if (kids == null) return false;
+        for (File f : kids) {
+            if (f.isDirectory()) { if (hasScalaFiles(f)) return true; }
+            else if (f.getName().endsWith(".scala")) return true;
+        }
+        return false;
+    }
+
+    private boolean hasGroovyFiles(File dir) {
+        if (dir == null || !dir.exists()) return false;
+        File[] kids = dir.listFiles();
+        if (kids == null) return false;
+        for (File f : kids) {
+            if (f.isDirectory()) { if (hasGroovyFiles(f)) return true; }
+            else if (f.getName().endsWith(".groovy")) return true;
+        }
+        return false;
     }
 
     private boolean hasKtFiles(File dir) {
@@ -859,4 +935,39 @@ public class ApkBuilder {
         }
         f.delete();
     }
+
+    public void compileRemoteRust(File projectRoot) throws Exception {
+        new RemoteRustCompiler(ctx, new RemoteRustCompiler.Progress() {
+            @Override public void onProgress(String m) { say(m); }
+        }).compile(projectRoot);
+    }
+
+    public void compileRemoteGo(File projectRoot) throws Exception {
+        new RemoteGoCompiler(ctx, new RemoteGoCompiler.Progress() {
+            @Override public void onProgress(String m) { say(m); }
+        }).compile(projectRoot);
+    }
+
+    public void compileRemoteScala(File projectRoot) throws Exception {
+        File srcDir = new File(projectRoot, "src");
+        File classesDir = new File(projectRoot, "build/classes");
+        if (!classesDir.exists()) classesDir.mkdirs();
+        List<File> roots = new ArrayList<File>();
+        roots.add(srcDir);
+        new RemoteScalaCompiler(ctx, new RemoteScalaCompiler.Progress() {
+            @Override public void onProgress(String m) { say(m); }
+        }).compile(roots, classesDir);
+    }
+
+    public void compileRemoteGroovy(File projectRoot) throws Exception {
+        File srcDir = new File(projectRoot, "src");
+        File classesDir = new File(projectRoot, "build/classes");
+        if (!classesDir.exists()) classesDir.mkdirs();
+        List<File> roots = new ArrayList<File>();
+        roots.add(srcDir);
+        new RemoteGroovyCompiler(ctx, new RemoteGroovyCompiler.Progress() {
+            @Override public void onProgress(String m) { say(m); }
+        }).compile(roots, classesDir);
+    }
+
 }
