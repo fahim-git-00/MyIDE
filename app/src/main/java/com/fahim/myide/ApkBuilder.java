@@ -119,6 +119,15 @@ public class ApkBuilder {
             File keyPk8      = extractAsset("keys/mykey.pk8");
             File keyPem      = extractAsset("keys/mykey.x509.pem");
 
+            // ---- Version banner for all tools ----
+            say("=== Tool versions ===");
+            say("  D8: " + d8Zip.getName() + " (" + d8Zip.length() + " bytes)");
+            say("  ECJ: " + ecjFull.getName() + " (" + ecjFull.length() + " bytes)");
+            say("  apksigner: " + apksigner.getName() + " (" + apksigner.length() + " bytes)");
+            say("  aapt2: " + ctx.getApplicationInfo().nativeLibraryDir + "/libaapt2.so");
+            say("  android.jar: " + androidJar.length() + " bytes");
+            say("=====================");
+
             File ecjResDir = new File(ctx.getFilesDir(), "ecj_res");
             deleteRecursive(ecjResDir);
             ecjResDir.mkdirs();
