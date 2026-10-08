@@ -1,0 +1,64 @@
+name: apksigner-build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        required: false
+        default: '9.4.1'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK
+        run: |
+          mkdir -p $HOME/android-sdk/cmdline-tools
+          cd $HOME/android-sdk/cmdline-tools
+          curl -sSL -o cmdline.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q cmdline.zip
+          mv cmdline-tools latest || true
+          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
+          $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;35.0.0" > /dev/null
+
+      - name: Download apksigner jar
+        env:
+          VER: ${{ inputs.version }}
+        run: |
+          curl -sSL -o apksigner.jar "https://repo1.maven.org/maven2/com/android/tools/build/apksig/$VER/apksig-$VER.jar"
+          curl -sSL -o apksigner-tool.jar "https://repo1.maven.org/maven2/com/android/tools/build/apksigner/$VER/apksigner-$VER.jar" || true
+          ls -la apksigner*.jar
+
+      - name: Combine jars
+        run: |
+          mkdir -p merged
+          cd merged
+          unzip -o ../apksig.jar > /dev/null 2>&1 || true
+          unzip -o ../apksigner-tool.jar > /dev/null 2>&1 || true
+          cd ..
+          # Bundle the JARs together as a single jar
+          mkdir -p fat
+          cd fat && unzip -o ../apksig.jar > /dev/null 2>&1 || true
+          unzip -o ../apksigner-tool.jar > /dev/null 2>&1 || true
+          cd ..
+          jar cf apksigner-full.jar -C fat . 2>/dev/null || true
+
+      - name: Dex with D8
+        run: |
+          mkdir -p dexout
+          $HOME/android-sdk/build-tools/35.0.0/d8 --release --min-api 24 --output dexout apksigner-full.jar
+          ls -la dexout/
+          cd dexout && zip -q ../apksigner-full-dexed.jar classes.dex && cd ..
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: apksigner-9-4-1
+          path: apksigner-full-dexed.jar
+          if-no-files-found: error
