@@ -114,7 +114,7 @@ public class ApkBuilder {
             File lambdaStubs = extractAsset("core-lambda-stubs.jar");
             File ecjFull     = extractAsset("ecj_full.jar");
             File ecjResZip   = extractAsset("ecj_res.zip");
-            File d8Zip       = extractAsset("d8.zip");
+            File d8Zip       = extractD8Asset();
             File apksigner   = extractAsset("apksigner-full.jar");
             File keyPk8      = extractAsset("keys/mykey.pk8");
             File keyPem      = extractAsset("keys/mykey.x509.pem");
@@ -551,7 +551,10 @@ public class ApkBuilder {
         File parent = out.getParentFile();
         if (parent != null && !parent.exists()) parent.mkdirs();
 
-        if (out.exists()) out.delete();
+        if (out.exists()) {
+            say("  removing old " + name + " (" + out.length() + " bytes)");
+            out.delete();
+        }
 
         InputStream in = ctx.getAssets().open(name);
         FileOutputStream fos = new FileOutputStream(out);
@@ -696,6 +699,10 @@ public class ApkBuilder {
             return;
         }
         say("Dex cache miss - running D8");
+        try {
+            say("D8/R8 jar: " + d8Zip.getName()
+                    + " (" + d8Zip.length() + " bytes)");
+        } catch (Throwable ignored) {}
 
         doCompileDex(androidJar, d8Zip, classesDir, outputDir, extraJars, minSdk);
 
