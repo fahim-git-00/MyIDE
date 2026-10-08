@@ -19,11 +19,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup JDK 11
+      - name: Setup JDK 17 (for sdkmanager)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '11'
+          java-version: '17'
 
       - name: Fetch android.jar
         run: |
@@ -35,6 +35,12 @@ jobs:
           yes | $HOME/sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
           $HOME/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" > /dev/null
           ls -la $HOME/sdk/platforms/android-34/android.jar
+
+      - name: Setup JDK 11 (for groovyc)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
 
       - name: Decode payload
         env:
@@ -73,15 +79,11 @@ jobs:
           echo "$PWD/groovy-4.0.22/bin" >> $GITHUB_PATH
 
       - name: Compile
-        env:
-          JAVA_OPTS: "--add-opens=java.base/java.lang=ALL-UNNAMED"
         run: |
           AJ=$HOME/sdk/platforms/android-34/android.jar
           echo "android.jar: $AJ"
-          groovyc -J--add-opens=java.base/java.lang=ALL-UNNAMED \
-                  -classpath "$AJ" \
-                  -d classes \
-                  $(find src -name '*.groovy')
+          echo "JAVA_HOME=$JAVA_HOME"
+          groovyc -classpath "$AJ" -d classes $(find src -name '*.groovy')
 
       - name: Pack
         run: |
