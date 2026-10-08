@@ -61,7 +61,7 @@ public class RemoteLuaCompiler {
         File jni = new File(projectRoot, "jni");
         if (!hasLuaSources(projectRoot)) { say("No JNI C source in project"); return; }
 
-        File libs = new File(projectRoot, "libs/arm64-v8a");
+        File libs = new File(projectRoot, "app/src/main/jniLibs/arm64-v8a");
         if (!libs.exists()) libs.mkdirs();
 
         List<File> files = new ArrayList<File>();

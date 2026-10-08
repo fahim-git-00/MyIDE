@@ -330,12 +330,7 @@ public class ApkBuilder {
 
             // ---- Fetch interpreter .so files (Lua / QuickJS) if used ----
             try {
-                if (projectUsesLua(projectRoot)) {
-                    say("Lua scripts detected \u2014 fetching liblua.so");
-                    new RemoteNativeFetcher(ctx, new RemoteNativeFetcher.Progress() {
-                        @Override public void onProgress(String m) { say(m); }
-                    }).fetch("lua-build.yml", "lua-libs", projectRoot);
-                }
+                // Lua JNI auto-handled by RemoteLuaCompiler when jni/*.c is present
                 if (projectUsesQuickJs(projectRoot)) {
                     say("JS scripts detected \u2014 fetching libquickjs.so");
                     new RemoteNativeFetcher(ctx, new RemoteNativeFetcher.Progress() {

@@ -53,6 +53,17 @@ public final class SoPacker {
             return;
         }
 
+        // Deduplicate: keep last occurrence per entry name
+        java.util.Map<String, File> map = new java.util.LinkedHashMap<String, File>();
+        for (int i = 0; i < soFiles.size(); i++) {
+            map.put(entryNames.get(i), soFiles.get(i));
+        }
+        soFiles.clear(); entryNames.clear();
+        for (java.util.Map.Entry<String, File> e : map.entrySet()) {
+            entryNames.add(e.getKey());
+            soFiles.add(e.getValue());
+        }
+
         ZipInputStream zin = new ZipInputStream(new FileInputStream(inApk));
         ZipOutputStream zout = new ZipOutputStream(new FileOutputStream(outApk));
         byte[] buf = new byte[8192];
