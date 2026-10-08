@@ -19,11 +19,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup JDK 17
+      - name: Setup JDK 11
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '11'
 
       - name: Fetch android.jar
         run: |
@@ -66,14 +66,22 @@ jobs:
 
       - name: Install Groovy
         run: |
-          curl -sSL -o groovy.zip https://groovy.jfrog.io/artifactory/dist-release-local/groovy-zips/apache-groovy-binary-4.0.22.zip
+          curl -sSL -o groovy.zip https://archive.apache.org/dist/groovy/4.0.22/distribution/apache-groovy-binary-4.0.22.zip
+          file groovy.zip
           unzip -q groovy.zip
+          ls -la groovy-4.0.22/bin/
           echo "$PWD/groovy-4.0.22/bin" >> $GITHUB_PATH
 
       - name: Compile
+        env:
+          JAVA_OPTS: "--add-opens=java.base/java.lang=ALL-UNNAMED"
         run: |
           AJ=$HOME/sdk/platforms/android-34/android.jar
-          groovyc -classpath "$AJ" -d classes $(find src -name '*.groovy')
+          echo "android.jar: $AJ"
+          groovyc -J--add-opens=java.base/java.lang=ALL-UNNAMED \
+                  -classpath "$AJ" \
+                  -d classes \
+                  $(find src -name '*.groovy')
 
       - name: Pack
         run: |
