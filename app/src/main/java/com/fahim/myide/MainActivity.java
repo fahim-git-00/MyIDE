@@ -2019,22 +2019,12 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
     }
 
     private void showKotlinMode() {
-        final SharedPreferences prefs = ThemeHelper.prefs(this);
-        final String cur = prefs.getString("kotlin_mode", "auto");
-        final String[] labels = {"Auto", "Local only", "Remote only"};
-        final String[] values = {"auto", "local", "remote"};
-        int checked = 0;
-        for (int i = 0; i < values.length; i++) if (values[i].equals(cur)) checked = i;
-
         new AlertDialog.Builder(this, R.style.AppDialogTheme)
             .setTitle(R.string.action_kotlin_mode)
-            .setSingleChoiceItems(labels, checked, new DialogInterface.OnClickListener() {
-                @Override public void onClick(DialogInterface d, int w) {
-                    ThemeHelper.setKotlinMode(MainActivity.this, values[w]);
-                    toast(getString(R.string.toast_kotlin_mode, values[w]));
-                    d.dismiss();
-                }
-            })
+            .setMessage("Kotlin compile mode: Remote (GitHub Actions).\n\n" +
+                        "Local Kotlin compile is disabled — needs ~350 MB Alpine rootfs " +
+                        "and proot runtime. Remote mode is faster and works on any device.")
+            .setPositiveButton("OK", null)
             .show();
     }
 

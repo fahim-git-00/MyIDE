@@ -375,55 +375,15 @@ public class ApkBuilder {
     }
 
     private void compileKotlin(List<File> sourceRoots, File classesDir, File androidJar) {
-        SharedPreferences prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE);
-        String mode = prefs.getString("kotlin_mode", "auto");
-        String token = ctx.getSharedPreferences("github", Context.MODE_PRIVATE)
-                .getString("token", "");
-        boolean hasToken = token != null && token.trim().length() > 0;
-
-        if ("remote".equals(mode) && !hasToken) {
-            say("Kotlin remote requested but no GitHub token — using local instead");
-            mode = "local";
-        }
-
-        if ("remote".equals(mode)) {
-            say("Kotlin mode: remote (GitHub Actions)");
-            try {
-                RemoteKotlinCompiler rkc = new RemoteKotlinCompiler(ctx,
-                        new RemoteKotlinCompiler.Progress() {
-                            @Override public void onProgress(String m) { say(m); }
-                        });
-                rkc.compile(sourceRoots, classesDir);
-                return;
-            } catch (Throwable t) {
-                say("Remote Kotlin compile failed: " + causeChain(t));
-                throw new RuntimeException("Kotlin compile failed", t);
-            }
-        }
-
-        say("Kotlin mode: local (embedded Alpine)");
+        say("Kotlin mode: remote (GitHub Actions)");
         try {
-            KotlinCompiler kc = new KotlinCompiler(ctx,
-                    new KotlinCompiler.Progress() {
+            RemoteKotlinCompiler rkc = new RemoteKotlinCompiler(ctx,
+                    new RemoteKotlinCompiler.Progress() {
                         @Override public void onProgress(String m) { say(m); }
                     });
-            kc.compile(sourceRoots, classesDir, androidJar);
+            rkc.compile(sourceRoots, classesDir);
         } catch (Throwable t) {
-            say("Local Kotlin compile failed: " + causeChain(t));
-            if ("auto".equals(mode) && hasToken) {
-                say("Falling back to remote…");
-                try {
-                    RemoteKotlinCompiler rkc = new RemoteKotlinCompiler(ctx,
-                            new RemoteKotlinCompiler.Progress() {
-                                @Override public void onProgress(String m) { say(m); }
-                            });
-                    rkc.compile(sourceRoots, classesDir);
-                    return;
-                } catch (Throwable t2) {
-                    say("Remote fallback also failed: " + causeChain(t2));
-                    throw new RuntimeException("Kotlin compile failed", t2);
-                }
-            }
+            say("Remote Kotlin compile failed: " + causeChain(t));
             throw new RuntimeException("Kotlin compile failed", t);
         }
     }
