@@ -278,8 +278,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
             @Override public boolean onItemLongClick(AdapterView<?> p, View v, int pos, long id) {
                 FileNode n = visibleNodes.get(pos);
                 if (n.file == null) return true;
-                if (!n.isDirectory && n.name.toLowerCase().endsWith(".js")) {
-                    showJsFileMenu(n.file);
+                if (false) {
                 } else if (!n.isDirectory && n.name.toLowerCase().endsWith(".lua")) {
                     showLuaFileMenu(n.file);
                 } else if (!n.isDirectory && n.name.toLowerCase().endsWith(".py")) {
@@ -2459,7 +2458,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                         ui.post(new Runnable() {
                             @Override public void run() {
                                 terminalPanel.appendExternal(out);
-                                showJsResultDialog(name, out, null);
                             }
                         });
                     }
@@ -2467,7 +2465,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                         ui.post(new Runnable() {
                             @Override public void run() {
                                 terminalPanel.appendExternal("[ERROR] " + err);
-                                showJsResultDialog(name, null, err);
                             }
                         });
                     }
@@ -2640,7 +2637,6 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
                         }
                     });
                     if ("rust".equals(kind))      ab.compileRemoteRust(projectRoot);
-                    else if ("go".equals(kind))   ab.compileRemoteGo(projectRoot);
                     else if ("scala".equals(kind))  ab.compileRemoteScala(projectRoot);
                     else if ("groovy".equals(kind)) ab.compileRemoteGroovy(projectRoot);
                     ui.post(new Runnable() {
