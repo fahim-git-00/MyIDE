@@ -65,8 +65,7 @@ public class RemoteRustCompiler {
         say("Packaging " + files.size() + " Rust file(s)...");
 
         String payload = buildPayload(jni, files);
-        String crateName = new File(projectRoot, "jni").getName().replaceAll("[^a-zA-Z0-9_]", "_");
-        if (crateName.isEmpty()) crateName = "native";
+        String crateName = "native";
 
         long runId = trigger(payload, crateName);
         say("Waiting for run " + runId + "...");
@@ -163,7 +162,9 @@ public class RemoteRustCompiler {
             String conclusion = j.optString("conclusion", "");
             if ("completed".equals(status)) {
                 if ("success".equals(conclusion)) return;
-                throw new RuntimeException("Rust build failed: " + conclusion);
+                String log = fetchRunLog(runId);
+                throw new RuntimeException("Rust build failed: " + conclusion
+                        + "\n--- GitHub log ---\n" + log);
             }
             say("Remote: " + status + "...");
             Thread.sleep(5000);
@@ -223,4 +224,49 @@ public class RemoteRustCompiler {
     private String readError(HttpURLConnection c) {
         try { return readAll(c); } catch (Exception e) { return ""; }
     }
+
+    private String fetchRunLog(long runId) {
+        try {
+            URL url = new URL(API + "/repos/" + repo()
+                    + "/actions/runs/" + runId + "/jobs");
+            HttpURLConnection c = (HttpURLConnection) url.openConnection();
+            c.setRequestProperty("Authorization", "token " + token());
+            c.setRequestProperty("Accept", "application/vnd.github+json");
+            JSONObject j = new JSONObject(readAll(c));
+            JSONArray jobs = j.optJSONArray("jobs");
+            if (jobs == null || jobs.length() == 0) return "(no jobs)";
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < jobs.length(); i++) {
+                JSONObject job = jobs.getJSONObject(i);
+                long jobId = job.getLong("id");
+                sb.append(fetchJobLog(jobId));
+            }
+            return sb.toString();
+        } catch (Throwable t) {
+            return "(log fetch failed: " + t.getMessage() + ")";
+        }
+    }
+
+    private String fetchJobLog(long jobId) {
+        try {
+            URL url = new URL(API + "/repos/" + repo()
+                    + "/actions/jobs/" + jobId + "/logs");
+            HttpURLConnection c = (HttpURLConnection) url.openConnection();
+            c.setRequestProperty("Authorization", "token " + token());
+            c.setRequestProperty("Accept", "application/vnd.github+json");
+            c.setInstanceFollowRedirects(true);
+            int code = c.getResponseCode();
+            if (code >= 400) return "(job log HTTP " + code + ")";
+            InputStream in = c.getInputStream();
+            ByteArrayOutputStream bo = new ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) bo.write(buf, 0, n);
+            in.close();
+            return bo.toString("UTF-8");
+        } catch (Throwable t) {
+            return "(job log failed: " + t.getMessage() + ")";
+        }
+    }
+
 }

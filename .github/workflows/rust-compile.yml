@@ -67,10 +67,15 @@ jobs:
           for entry in payload.split("~"):
               if not entry: continue
               rel, _, b64 = entry.partition("|")
+              # Force .rs files into crate/src/ so cargo finds them
+              if rel.endswith(".rs"):
+                  rel = "src/" + pathlib.Path(rel).name
               p = pathlib.Path("crate") / rel
               p.parent.mkdir(parents=True, exist_ok=True)
               p.write_bytes(base64.b64decode(b64))
           print("files:", sum(1 for _ in pathlib.Path("crate").rglob("*") if _.is_file()))
+          for f in pathlib.Path("crate").rglob("*"):
+              if f.is_file(): print("  ", f)
           PY
 
       - name: Build
@@ -81,7 +86,7 @@ jobs:
           if [ ! -f Cargo.toml ]; then
             cat > Cargo.toml <<CFG
           [package]
-          name = "${{ inputs.crate_name }}"
+          name = "rustnative"
           version = "0.1.0"
           edition = "2021"
 
@@ -95,11 +100,12 @@ jobs:
           strip = true
           CFG
           fi
+          cat Cargo.toml
+          ls -la src/
           cargo ndk -t arm64-v8a -t armeabi-v7a -o ../out build --release
 
       - name: Pack
-        run: |
-          find out -type f -name "*.so" || true
+        run: find out -type f -name "*.so" || true
 
       - name: Upload
         uses: actions/upload-artifact@v4
