@@ -50,7 +50,7 @@ jobs:
           C8: ${{ inputs.chunk_8 }}
           C9: ${{ inputs.chunk_9 }}
         run: |
-          mkdir -p src classes groovy-classes
+          mkdir -p src classes groovy-classes libs
           python3 - "$CNT" "$C0" "$C1" "$C2" "$C3" "$C4" "$C5" "$C6" "$C7" "$C8" "$C9" << 'PY'
           import sys, base64, pathlib
           cnt = int(sys.argv[1])
@@ -64,20 +64,29 @@ jobs:
           print("groovy files:", len(list(pathlib.Path("src").rglob("*.groovy"))))
           PY
 
-      - name: Install Groovy 3.0.22
+      - name: Fetch Groovy 4.0.24 (from Maven Central, fast)
         run: |
-          curl -sSL -o groovy.zip https://archive.apache.org/dist/groovy/3.0.22/distribution/apache-groovy-binary-3.0.22.zip
-          unzip -q groovy.zip
-          ls -la groovy-3.0.22/lib/ | head -20
+          cd libs
+          BASE=https://repo1.maven.org/maven2/org/apache/groovy
+          VER=4.0.24
+          for J in groovy groovy-xml groovy-json groovy-nio groovy-macro groovy-templates groovy-sql groovy-ant groovy-groovydoc groovy-dateutil groovy-datetime groovy-jmx groovy-test groovy-console groovy-cli-picocli groovy-cli-commons; do
+            curl -sSL -f -o $J-$VER.jar $BASE/$J/$VER/$J-$VER.jar || echo "skip $J"
+          done
+          # core deps
+          curl -sSL -f -o asm-9.7.jar          https://repo1.maven.org/maven2/org/ow2/asm/asm/9.7/asm-9.7.jar
+          curl -sSL -f -o asm-tree-9.7.jar     https://repo1.maven.org/maven2/org/ow2/asm/asm-tree/9.7/asm-tree-9.7.jar
+          curl -sSL -f -o asm-analysis-9.7.jar https://repo1.maven.org/maven2/org/ow2/asm/asm-analysis/9.7/asm-analysis-9.7.jar
+          curl -sSL -f -o asm-util-9.7.jar     https://repo1.maven.org/maven2/org/ow2/asm/asm-util/9.7/asm-util-9.7.jar
+          curl -sSL -f -o asm-commons-9.7.jar  https://repo1.maven.org/maven2/org/ow2/asm/asm-commons/9.7/asm-commons-9.7.jar
+          ls -la
 
-      - name: Compile (bypass startGroovy/RootLoader)
+      - name: Compile (direct FileSystemCompiler, no startGroovy)
         run: |
           AJ=$HOME/sdk/platforms/android-34/android.jar
-          GROOVY_LIB=$PWD/groovy-3.0.22/lib
-          GROOVYC_CP=$(ls $GROOVY_LIB/groovy-3.0.22.jar $GROOVY_LIB/groovy-ant-3.0.22.jar $GROOVY_LIB/*.jar 2>/dev/null | tr '\n' ':')
-          echo "classpath ok"
-          java -cp "$GROOVYC_CP" org.codehaus.groovy.tools.FileSystemCompiler \
-            -classpath "$AJ" \
+          CP=$(ls libs/*.jar | tr '\n' ':')
+          echo "cp entries: $(ls libs/*.jar | wc -l)"
+          java -cp "$CP" org.codehaus.groovy.tools.FileSystemCompiler \
+            --classpath "$AJ" \
             -d classes \
             $(find src -name '*.groovy')
 
