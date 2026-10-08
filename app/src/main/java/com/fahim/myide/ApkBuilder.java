@@ -346,6 +346,18 @@ public class ApkBuilder {
                 say("Native lib fetch failed: " + causeChain(fe));
             }
 
+            // ---- Remote Lua compile ----
+            try {
+                if (RemoteLuaCompiler.hasLuaSources(projectRoot)) {
+                    say("Lua JNI sources detected — remote compile");
+                    new RemoteLuaCompiler(ctx, new RemoteLuaCompiler.Progress() {
+                        @Override public void onProgress(String m) { say(m); }
+                    }).compile(projectRoot);
+                }
+            } catch (Throwable le) {
+                say("Remote Lua compile failed: " + causeChain(le));
+            }
+
             say("Packing native libs...");
             File withSo = new File(workDir, "app-withso.apk");
             SoPacker.pack(projectRoot, withDex, withSo);
