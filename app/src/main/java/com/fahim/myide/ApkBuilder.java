@@ -310,6 +310,24 @@ public class ApkBuilder {
             File withDex = new File(workDir, "app-withdex.apk");
             addDexToApk(unsignedApk, dexDir, withDex);
 
+            // ---- Fetch interpreter .so files (Lua / QuickJS) if used ----
+            try {
+                if (projectUsesLua(projectRoot)) {
+                    say("Lua scripts detected \u2014 fetching liblua.so");
+                    new RemoteNativeFetcher(ctx, new RemoteNativeFetcher.Progress() {
+                        @Override public void onProgress(String m) { say(m); }
+                    }).fetch("lua-build.yml", "lua-libs", projectRoot);
+                }
+                if (projectUsesQuickJs(projectRoot)) {
+                    say("JS scripts detected \u2014 fetching libquickjs.so");
+                    new RemoteNativeFetcher(ctx, new RemoteNativeFetcher.Progress() {
+                        @Override public void onProgress(String m) { say(m); }
+                    }).fetch("quickjs-build.yml", "quickjs-libs", projectRoot);
+                }
+            } catch (Throwable fe) {
+                say("Native lib fetch failed: " + causeChain(fe));
+            }
+
             say("Packing native libs...");
             File withSo = new File(workDir, "app-withso.apk");
             SoPacker.pack(projectRoot, withDex, withSo);
@@ -970,4 +988,22 @@ public class ApkBuilder {
         }).compile(roots, classesDir);
     }
 
+
+    private boolean projectUsesLua(File root) { return containsExt(root, ".lua"); }
+    private boolean projectUsesQuickJs(File root) { return containsExt(root, ".js"); }
+
+    private boolean containsExt(File dir, String ext) {
+        File[] kids = dir.listFiles();
+        if (kids == null) return false;
+        for (File f : kids) {
+            if (f.isDirectory()) {
+                String n = f.getName();
+                if (n.equals("build") || n.equals(".git") || n.equals(".myide")) continue;
+                if (containsExt(f, ext)) return true;
+            } else if (f.getName().toLowerCase().endsWith(ext)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

@@ -39,9 +39,9 @@ public class RemoteGoCompiler {
     public boolean hasToken() { String t = token(); return t != null && t.length() > 0; }
 
     public static boolean hasGoSources(File projectRoot) {
-        File jni = new File(projectRoot, "jni");
-        if (!jni.isDirectory()) return false;
-        return hasGo(jni);
+        return hasGo(new File(projectRoot, "jni"))
+            || hasGo(new File(projectRoot, "src"))
+            || new File(projectRoot, "go.mod").isFile();
     }
     private static boolean hasGo(File dir) {
         File[] kids = dir.listFiles(); if (kids == null) return false;
@@ -49,7 +49,7 @@ public class RemoteGoCompiler {
             if (f.isDirectory()) { if (hasGo(f)) return true; }
             else {
                 String n = f.getName();
-                if (n.endsWith(".go") || n.equals("go.mod")) return true;
+                if (n.endsWith(".go") || n.equals("go.mod") || n.equals("go.sum")) return true;
             }
         }
         return false;
@@ -57,17 +57,20 @@ public class RemoteGoCompiler {
 
     public void compile(File projectRoot) throws Exception {
         if (!hasToken()) throw new RuntimeException("GitHub token not set");
-        File jni = new File(projectRoot, "jni");
-        if (!hasGo(jni)) { say("No Go sources"); return; }
+        if (!hasGoSources(projectRoot)) { say("No Go sources"); return; }
+
+        File srcRoot = new File(projectRoot, "jni");
+        if (!hasGo(srcRoot)) srcRoot = new File(projectRoot, "src");
+        if (!hasGo(srcRoot)) srcRoot = projectRoot;
 
         File libs = new File(projectRoot, "libs/arm64-v8a");
         if (!libs.exists()) libs.mkdirs();
 
         List<File> files = new ArrayList<File>();
-        collect(jni, files);
+        collect(srcRoot, files);
         say("Packaging " + files.size() + " Go file(s)...");
 
-        String payload = buildPayload(jni, files);
+        String payload = buildPayload(srcRoot, files);
         String modName = "native";
         long runId = trigger(payload, modName);
         say("Waiting for run " + runId + "...");
@@ -78,6 +81,7 @@ public class RemoteGoCompiler {
         unzipLibs(zip, libs);
         say("Go compile done");
     }
+
 
     private void collect(File dir, List<File> out) {
         File[] kids = dir.listFiles(); if (kids == null) return;

@@ -39,32 +39,40 @@ public class RemoteRustCompiler {
     public boolean hasToken() { String t = token(); return t != null && t.length() > 0; }
 
     public static boolean hasRustSources(File projectRoot) {
-        File jni = new File(projectRoot, "jni");
-        if (!jni.isDirectory()) return false;
-        return hasRust(jni);
+        return hasRust(new File(projectRoot, "jni"))
+            || hasRust(new File(projectRoot, "src"))
+            || hasRust(new File(projectRoot, "rust"))
+            || new File(projectRoot, "Cargo.toml").isFile();
     }
     private static boolean hasRust(File dir) {
         File[] kids = dir.listFiles(); if (kids == null) return false;
         for (File f : kids) {
             if (f.isDirectory()) { if (hasRust(f)) return true; }
-            else if (f.getName().endsWith(".rs") || f.getName().equals("Cargo.toml")) return true;
+            else {
+                String n = f.getName();
+                if (n.endsWith(".rs") || n.equals("Cargo.toml") || n.equals("Cargo.lock")) return true;
+            }
         }
         return false;
     }
 
     public void compile(File projectRoot) throws Exception {
         if (!hasToken()) throw new RuntimeException("GitHub token not set");
-        File jni = new File(projectRoot, "jni");
-        if (!hasRust(jni)) { say("No Rust sources"); return; }
+        if (!hasRustSources(projectRoot)) { say("No Rust sources"); return; }
+
+        File srcRoot = new File(projectRoot, "jni");
+        if (!hasRust(srcRoot)) srcRoot = new File(projectRoot, "src");
+        if (!hasRust(srcRoot)) srcRoot = new File(projectRoot, "rust");
+        if (!hasRust(srcRoot)) srcRoot = projectRoot;
 
         File libs = new File(projectRoot, "libs/arm64-v8a");
         if (!libs.exists()) libs.mkdirs();
 
         List<File> files = new ArrayList<File>();
-        collect(jni, files);
+        collect(srcRoot, files);
         say("Packaging " + files.size() + " Rust file(s)...");
 
-        String payload = buildPayload(jni, files);
+        String payload = buildPayload(srcRoot, files);
         String crateName = "native";
 
         long runId = trigger(payload, crateName);
@@ -77,11 +85,18 @@ public class RemoteRustCompiler {
         say("Rust compile done");
     }
 
+
     private void collect(File dir, List<File> out) {
         File[] kids = dir.listFiles(); if (kids == null) return;
         for (File f : kids) {
-            if (f.isDirectory()) collect(f, out);
-            else if (f.getName().endsWith(".rs") || f.getName().equals("Cargo.toml")) out.add(f);
+            if (f.isDirectory()) {
+                String n = f.getName();
+                if (n.equals("target") || n.equals(".git")) continue;
+                collect(f, out);
+            } else {
+                String n = f.getName();
+                if (n.endsWith(".rs") || n.equals("Cargo.toml") || n.equals("Cargo.lock")) out.add(f);
+            }
         }
     }
     private String buildPayload(File root, List<File> files) throws Exception {

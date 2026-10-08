@@ -67,11 +67,11 @@ jobs:
           for entry in payload.split("~"):
               if not entry: continue
               rel, _, b64 = entry.partition("|")
-              if rel.endswith(".rs"):
-                  rel = "src/" + pathlib.Path(rel).name
-              p = pathlib.Path("crate") / rel
-              p.parent.mkdir(parents=True, exist_ok=True)
-              p.write_bytes(base64.b64decode(b64))
+              pp = pathlib.Path("crate") / rel
+              if pp.suffix == ".rs" and pp.parent == pathlib.Path("crate"):
+                  pp = pathlib.Path("crate/src") / pp.name
+              pp.parent.mkdir(parents=True, exist_ok=True)
+              pp.write_bytes(base64.b64decode(b64))
           print("files:", sum(1 for _ in pathlib.Path("crate").rglob("*") if _.is_file()))
           PY
 

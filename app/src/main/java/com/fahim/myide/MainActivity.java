@@ -1853,6 +1853,38 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         if (id == R.id.menu_palette)      { openCommandPalette(); return true; }
         if (id == R.id.menu_github_token) { showGithubTokenDialog(); return true; }
         if (id == R.id.menu_run_python) { if (isPyFile()) runPython(); else toast("Open a .py file first"); return true; }
+        if (id == R.id.menu_fetch_lua) {
+            if (projectRoot == null) { toast("Open a project first"); return true; }
+            new Thread(new Runnable() { public void run() {
+                try {
+                    new RemoteNativeFetcher(MainActivity.this, new RemoteNativeFetcher.Progress() {
+                        @Override public void onProgress(final String m) {
+                            ui.post(new Runnable() { public void run() { appendBuildLine(m); } });
+                        }
+                    }).fetch("lua-build.yml", "lua-libs", projectRoot);
+                    ui.post(new Runnable() { public void run() { toast("liblua.so installed"); } });
+                } catch (final Throwable t) {
+                    ui.post(new Runnable() { public void run() { toast("Failed: " + t.getMessage()); } });
+                }
+            }}).start();
+            return true;
+        }
+        if (id == R.id.menu_fetch_quickjs) {
+            if (projectRoot == null) { toast("Open a project first"); return true; }
+            new Thread(new Runnable() { public void run() {
+                try {
+                    new RemoteNativeFetcher(MainActivity.this, new RemoteNativeFetcher.Progress() {
+                        @Override public void onProgress(final String m) {
+                            ui.post(new Runnable() { public void run() { appendBuildLine(m); } });
+                        }
+                    }).fetch("quickjs-build.yml", "quickjs-libs", projectRoot);
+                    ui.post(new Runnable() { public void run() { toast("libquickjs.so installed"); } });
+                } catch (final Throwable t) {
+                    ui.post(new Runnable() { public void run() { toast("Failed: " + t.getMessage()); } });
+                }
+            }}).start();
+            return true;
+        }
         if (id == R.id.menu_about)        { showAbout(); return true; }
         if (id == R.id.menu_run_js)      { if (isJsFile()) runJs(); else toast("Open a .js file first"); return true; }
 

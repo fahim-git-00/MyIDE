@@ -18,4 +18,6 @@
     <item android:id="@+id/menu_run_python" android:title="Run Python (Remote)" />
     <item android:id="@+id/menu_about" android:title="@string/action_about" />
 
+    <item android:id="@+id/menu_fetch_lua"     android:title="Fetch liblua.so (remote)" />
+    <item android:id="@+id/menu_fetch_quickjs" android:title="Fetch libquickjs.so (remote)" />
 </menu>

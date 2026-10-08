@@ -69,8 +69,9 @@ jobs:
           curl -sSL -o scala.tgz https://github.com/scala/scala/releases/download/v2.13.14/scala-2.13.14.tgz
           file scala.tgz
           tar xzf scala.tgz
-          ls -la scala-2.13.14/bin/
+          chmod +x scala-2.13.14/bin/*
           echo "$PWD/scala-2.13.14/bin" >> $GITHUB_PATH
+          scala-2.13.14/bin/scalac -version
 
       - name: Compile
         run: |
