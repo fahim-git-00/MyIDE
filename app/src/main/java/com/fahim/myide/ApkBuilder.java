@@ -303,6 +303,14 @@ public class ApkBuilder {
                         + groovyRuntime.length() + " bytes");
             }
 
+            // If Scala was compiled, add its runtime jar
+            File scalaRuntime = new File(classesDir, "scala-runtime.jar");
+            if (scalaRuntime.isFile() && scalaRuntime.length() > 0) {
+                jarDeps.add(scalaRuntime);
+                say("Scala runtime jar added to dex input: "
+                        + scalaRuntime.length() + " bytes");
+            }
+
             say("Compiling Java (ECJ)...");
             compileJava(androidJar, ecjFull, ecjResDir, sourceRoots, genDir,
                     classesDir, jarDeps);

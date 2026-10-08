@@ -84,6 +84,9 @@ jobs:
       - name: Pack
         run: |
           cp -r classes/* scala-classes/ 2>/dev/null || true
+          # Bundle scala-library.jar for APK runtime
+          curl -sSL -o scala-classes/scala-runtime.jar \
+            https://repo1.maven.org/maven2/org/scala-lang/scala-library/2.13.14/scala-library-2.13.14.jar
           find scala-classes -type f | head -20
 
       - name: Upload

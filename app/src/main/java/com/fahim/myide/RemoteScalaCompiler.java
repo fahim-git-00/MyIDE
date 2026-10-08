@@ -84,11 +84,38 @@ public class RemoteScalaCompiler {
         if (!classesDir.exists()) classesDir.mkdirs();
         unzipTo(zip, classesDir);
 
+        // Extract scala-runtime.jar into classesDir (for APK dex)
+        File scalaRuntime = new File(classesDir, "scala-runtime.jar");
+        extractRuntimeJar(zip, scalaRuntime);
+
         File cacheOut = CompileCache.outDir(ctx, "scala", hash);
         int saved = CompileCache.copyDirContents(classesDir, cacheOut);
         CompileCache.markDone(ctx, "scala", hash);
         say("Cached " + saved + " class(es)");
         say("Scala compile done");
+    }
+
+    private void extractRuntimeJar(File zip, File out) {
+        try {
+            java.util.zip.ZipInputStream zin = new java.util.zip.ZipInputStream(
+                    new java.io.FileInputStream(zip));
+            java.util.zip.ZipEntry e;
+            byte[] buf = new byte[8192];
+            while ((e = zin.getNextEntry()) != null) {
+                String name = e.getName();
+                if (name.endsWith("scala-runtime.jar")) {
+                    java.io.FileOutputStream fos = new java.io.FileOutputStream(out);
+                    int n;
+                    while ((n = zin.read(buf)) > 0) fos.write(buf, 0, n);
+                    fos.close();
+                    say("  extracted scala-runtime.jar");
+                    break;
+                }
+            }
+            zin.close();
+        } catch (Throwable t) {
+            say("  scala runtime jar extract failed: " + t.getMessage());
+        }
     }
 
     private void collect(File dir, List<File> out) {
