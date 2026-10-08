@@ -674,6 +674,39 @@ public class ApkBuilder {
 
     private void compileDex(File androidJar, File d8Zip, File classesDir,
                             File outputDir, List<File> extraJars, int minSdk) throws Exception {
+
+        // ---- Dex cache ----
+        List<File> dexInputs = new ArrayList<File>();
+        findClassFiles(classesDir, dexInputs);
+        for (File j : extraJars) {
+            if (j != null && j.isFile() && j.getName().endsWith(".jar")) dexInputs.add(j);
+        }
+        String dexHash = CompileCache.hashFiles(dexInputs);
+        say("Dex hash: " + dexHash.substring(0, 12) + "...");
+
+        File dexCacheDir = CompileCache.outDir(ctx, "dex", dexHash);
+        File[] cachedDex = dexCacheDir.listFiles();
+        boolean cachedHit = CompileCache.isHit(ctx, "dex", dexHash)
+                && cachedDex != null && cachedDex.length > 0;
+
+        if (cachedHit) {
+            say("Dex cache hit - restoring cached .dex");
+            int n = CompileCache.copyDirContents(dexCacheDir, outputDir);
+            say("Restored " + n + " dex file(s)");
+            return;
+        }
+        say("Dex cache miss - running D8");
+
+        doCompileDex(androidJar, d8Zip, classesDir, outputDir, extraJars, minSdk);
+
+        // Save dex output to cache
+        int saved = CompileCache.copyDirContents(outputDir, dexCacheDir);
+        CompileCache.markDone(ctx, "dex", dexHash);
+        say("Cached " + saved + " dex file(s)");
+    }
+
+    private void doCompileDex(File androidJar, File d8Zip, File classesDir,
+                            File outputDir, List<File> extraJars, int minSdk) throws Exception {
         List<File> classFiles = new ArrayList<File>();
         findClassFiles(classesDir, classFiles);
         if (classFiles.isEmpty()) throw new RuntimeException("No .class files to dex");
