@@ -45,13 +45,15 @@ public class RemoteLuaCompiler {
 
     /** Any jni/*.c or jni/*.cpp? */
     public static boolean hasLuaSources(File projectRoot) {
+        // Only trigger if project has a lua_jni.c-style wrapper explicitly.
+        // Plain .c/.cpp files belong to the C/C++ remote compiler.
         File jni = new File(projectRoot, "jni");
         if (!jni.isDirectory()) return false;
         File[] kids = jni.listFiles();
         if (kids == null) return false;
         for (File f : kids) {
             String n = f.getName().toLowerCase();
-            if (n.endsWith(".c") || n.endsWith(".cpp")) return true;
+            if (n.equals("lua_jni.c") || n.equals("luajit_jni.c")) return true;
         }
         return false;
     }
