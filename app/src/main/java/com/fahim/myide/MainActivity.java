@@ -2661,4 +2661,28 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         }).start();
     }
 
+
+    private void showCompileMode() {
+        final String[] labels = {
+            "Java \u2014 ECJ 3.16 (local)",
+            "Java 21 \u2014 GitHub Actions (remote)"
+        };
+        final String[] values = { "local", "remote" };
+        SharedPreferences prefs = ThemeHelper.prefs(this);
+        String cur = prefs.getString("java_mode", "local");
+        int checked = "remote".equals(cur) ? 1 : 0;
+
+        new AlertDialog.Builder(this, R.style.AppDialogTheme)
+            .setTitle("Compile Mode \u2014 Java")
+            .setSingleChoiceItems(labels, checked, new DialogInterface.OnClickListener() {
+                @Override public void onClick(DialogInterface d, int w) {
+                    ThemeHelper.prefs(MainActivity.this).edit()
+                        .putString("java_mode", values[w]).apply();
+                    toast("Java compile: " + values[w]);
+                    d.dismiss();
+                }
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
 }
