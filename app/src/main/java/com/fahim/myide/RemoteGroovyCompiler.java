@@ -39,9 +39,18 @@ public class RemoteGroovyCompiler {
     public boolean hasToken() { String t = token(); return t != null && t.length() > 0; }
 
     public static boolean hasGroovySources(File projectRoot) {
-        File jni = new File(projectRoot, "jni");
-        if (!jni.isDirectory()) return false;
-        return hasGroovy(jni);
+        if (projectRoot == null) return false;
+        File[] roots = {
+            new File(projectRoot, "src"),
+            new File(projectRoot, "java"),
+            new File(projectRoot, "app/src/main/java"),
+            new File(projectRoot, "app/src/main/kotlin"),
+            new File(projectRoot, "src/main/java")
+        };
+        for (File r : roots) {
+            if (r.isDirectory() && hasGroovy(r)) return true;
+        }
+        return hasGroovy(projectRoot);
     }
     private static boolean hasGroovy(File dir) {
         File[] kids = dir.listFiles(); if (kids == null) return false;
