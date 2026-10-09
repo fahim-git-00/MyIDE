@@ -263,19 +263,17 @@ public class ApkBuilder {
                         classesDir, jarDeps);
             }
 
-            // If Groovy was compiled, add its runtime jar so D8 dexes it too
+            // Groovy/Scala runtime jars: do NOT add to jarDeps (D8 ignores
+            // jars inside jarDeps when a sibling all-classes.jar is the input).
+            // They are expanded into all-classes.jar inside doCompileDex().
             File groovyRuntime = new File(classesDir, "groovy-runtime.jar");
             if (groovyRuntime.isFile() && groovyRuntime.length() > 0) {
-                jarDeps.add(groovyRuntime);
-                say("Groovy runtime jar added to dex input: "
+                say("Groovy runtime jar will be expanded into dex: "
                         + groovyRuntime.length() + " bytes");
             }
-
-            // If Scala was compiled, add its runtime jar
             File scalaRuntime = new File(classesDir, "scala-runtime.jar");
             if (scalaRuntime.isFile() && scalaRuntime.length() > 0) {
-                jarDeps.add(scalaRuntime);
-                say("Scala runtime jar added to dex input: "
+                say("Scala runtime jar will be expanded into dex: "
                         + scalaRuntime.length() + " bytes");
             }
 
@@ -707,6 +705,31 @@ public class ApkBuilder {
             while ((n = fin.read(copyBuf)) > 0) jarOut.write(copyBuf, 0, n);
             fin.close();
             jarOut.closeEntry();
+        }
+        // Expand Groovy/Scala runtime jars' .class files into all-classes.jar
+        String[] runtimeJars = { "groovy-runtime.jar", "scala-runtime.jar" };
+        for (String rj : runtimeJars) {
+            File jar = new File(classesDir, rj);
+            if (!jar.isFile()) continue;
+            int added = 0;
+            java.util.zip.ZipInputStream zin = new java.util.zip.ZipInputStream(
+                    new FileInputStream(jar));
+            java.util.zip.ZipEntry ze;
+            while ((ze = zin.getNextEntry()) != null) {
+                String nm = ze.getName();
+                if (ze.isDirectory() || !nm.endsWith(".class")) continue;
+                // Skip module-info and META-INF classes
+                if (nm.startsWith("META-INF/")) continue;
+                if (nm.endsWith("module-info.class")) continue;
+                jarOut.putNextEntry(new ZipEntry(nm));
+                int n;
+                while ((n = zin.read(copyBuf)) > 0) jarOut.write(copyBuf, 0, n);
+                jarOut.closeEntry();
+                added++;
+            }
+            zin.close();
+            System.out.println("[all-classes] expanded " + added
+                    + " classes from " + rj);
         }
         jarOut.close();
 
