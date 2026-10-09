@@ -49,6 +49,7 @@ public final class SettingsDialog {
         // Advanced
         final EditText token = root.findViewById(R.id.prefGithubToken);
         final EditText repoEt = root.findViewById(R.id.prefCompileRepo);
+        final EditText buildRepoEt = root.findViewById(R.id.prefBuildRepo);
 
         // ---- initial values ----
         int fs = ThemeHelper.getFontSize(ctx);
@@ -89,6 +90,10 @@ public final class SettingsDialog {
         String cr = prefs.getString("compile_repo", "fahim-git-00/MyIDE");
         if (cr == null || cr.isEmpty()) cr = "fahim-git-00/MyIDE";
         repoEt.setText(cr);
+
+        String br = prefs.getString("github_build_repo", "");
+        if (br == null) br = "";
+        buildRepoEt.setText(br);
 
         // ---- actions ----
         root.findViewById(R.id.btnSettingsClose).setOnClickListener(new View.OnClickListener() {
@@ -155,6 +160,9 @@ public final class SettingsDialog {
                 String rv = repoEt.getText().toString().trim();
                 if (rv.isEmpty()) rv = "fahim-git-00/MyIDE";
                 prefs.edit().putString("compile_repo", rv).apply();
+
+                String bv = buildRepoEt.getText().toString().trim();
+                prefs.edit().putString("github_build_repo", bv).apply();
 
                 Toast.makeText(ctx, "Settings saved", Toast.LENGTH_SHORT).show();
                 dlg.dismiss();

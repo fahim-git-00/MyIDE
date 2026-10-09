@@ -1864,6 +1864,11 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         if (id == R.id.menu_about)        { showAbout(); return true; }
         if (id == R.id.menu_compile_mode)   { showCompileMode(); return true; }
         if (id == R.id.menu_cache_manager) { CacheManager.show(this); return true; }
+        if (id == R.id.menu_full_build) {
+            if (projectRoot == null) { toast("Open a project first"); return true; }
+            runFullGithubBuild();
+            return true;
+        }
 
         return false;
     }
@@ -2662,6 +2667,43 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         }).start();
     }
 
+
+    private void runFullGithubBuild() {
+        final File root = projectRoot;
+        showPanel(PANEL_BUILD);
+        buildOutput.setText("");
+        buildStatus.setText("Full build on GitHub…");
+        buildProgress.setVisibility(View.VISIBLE);
+        new Thread(new Runnable() {
+            @Override public void run() {
+                try {
+                    new FullGithubBuilder(MainActivity.this, new FullGithubBuilder.Progress() {
+                        @Override public void onProgress(final String msg) {
+                            ui.post(new Runnable() {
+                                @Override public void run() { appendBuildLine(msg); }
+                            });
+                        }
+                    }).build(root);
+                    ui.post(new Runnable() {
+                        @Override public void run() {
+                            buildProgress.setVisibility(View.GONE);
+                            buildStatus.setText("Full build done");
+                            toast("APK saved in /sdcard/MyIDE/builds/");
+                        }
+                    });
+                } catch (final Throwable t) {
+                    ui.post(new Runnable() {
+                        @Override public void run() {
+                            buildProgress.setVisibility(View.GONE);
+                            buildStatus.setText("Full build failed");
+                            appendBuildLine("ERROR: " + t.getMessage());
+                            toast("Failed: " + t.getMessage());
+                        }
+                    });
+                }
+            }
+        }).start();
+    }
 
     private void showCompileMode() {
         final String[] labels = {
