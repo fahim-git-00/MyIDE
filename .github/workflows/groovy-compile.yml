@@ -83,15 +83,20 @@ jobs:
           java -cp "$CP" org.codehaus.groovy.tools.FileSystemCompiler \
             --classpath "$AJ" -d classes $(find src -name '*.groovy')
 
-      - name: Pack
+      - name: Pack runtime as flat class jar
         run: |
-          cp -r classes/* groovy-classes/ 2>/dev/null || true
-          cd libs
-          zip -q -9 ../groovy-classes/groovy-runtime.jar \
-            groovy-4.0.26.jar \
-            groovy-xml-4.0.26.jar \
-            groovy-json-4.0.26.jar
+          mkdir -p runtime_extract
+          cd runtime_extract
+          for j in ../libs/groovy-4.0.26.jar ../libs/groovy-xml-4.0.26.jar ../libs/groovy-json-4.0.26.jar; do
+            [ -f "$j" ] && unzip -oq "$j" || true
+          done
+          find . -name "module-info.class" -delete
+          rm -rf META-INF
+          zip -q -r ../groovy-classes/groovy-runtime.jar .
           cd ..
+          cp -r classes/* groovy-classes/ 2>/dev/null || true
+          echo "groovy-runtime.jar has flat classes:"
+          unzip -l groovy-classes/groovy-runtime.jar | head -20
 
       - name: Upload
         uses: actions/upload-artifact@v4
