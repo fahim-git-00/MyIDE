@@ -195,9 +195,37 @@ public class ApkBuilder {
                 }
             }
 
+            // ---- Multi-language remote compile (single GitHub Actions run) ----
+            File multiLibs = new File(projectRoot, "libs/arm64-v8a");
+            if (!multiLibs.exists()) multiLibs.mkdirs();
+            try {
+                String _jmode = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                        .getString("java_mode", "local");
+                boolean _useMulti = "remote".equals(_jmode);
+                if (_useMulti) {
+                    new RemoteMultiCompiler(ctx, new RemoteMultiCompiler.Progress() {
+                        @Override public void onProgress(String m) { say(m); }
+                    }).compileAll(projectRoot, classesDir, multiLibs);
+                    say("Multi-compile finished; skipping individual remote triggers");
+                }
+            } catch (Throwable me) {
+                say("Multi-compile failed, falling back to per-language: " + causeChain(me));
+            }
+
+            // ---- Legacy per-language remote compile (only if multi was skipped) ----
+            if (!"remote".equals(ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                    .getString("java_mode", "local"))) {
+                // multi already ran; skip all individual remote triggers
+            } else {
+                // fall through to existing individual remote blocks
+            }
+
             // ---- Remote C/C++ compile (GitHub Actions) ----
             try {
-                if (RemoteCCompiler.hasNativeSources(projectRoot)) {
+                if (!"remote".equals(ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                        .getString("java_mode", "local"))) {
+                    // handled by multi compiler
+                } else if (RemoteCCompiler.hasNativeSources(projectRoot)) {
                     say("C/C++ sources detected — remote compile");
                     new RemoteCCompiler(ctx, new RemoteCCompiler.Progress() {
                         @Override public void onProgress(String m) { say(m); }
