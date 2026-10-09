@@ -27,13 +27,10 @@ jobs:
 
       - name: Fetch android.jar
         run: |
-          mkdir -p $HOME/sdk/cmdline-tools
-          cd $HOME/sdk/cmdline-tools
-          curl -sSL -o cmdline.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-          unzip -q cmdline.zip
-          mv cmdline-tools latest || true
-          yes | $HOME/sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
-          $HOME/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" > /dev/null
+          # Direct download of android.jar (no sdkmanager, no licenses, no 500 MB SDK)
+          curl -sSL -o android.jar https://github.com/Sable/android-platforms/raw/master/android-34/android.jar
+          ls -la android.jar
+          echo "AJ=$PWD/android.jar" >> $GITHUB_ENV
 
       - name: Decode payload
         env:
@@ -78,7 +75,7 @@ jobs:
 
       - name: Compile Groovy
         run: |
-          AJ=$HOME/sdk/platforms/android-35/android.jar
+          AJ=$AJ
           CP=$(ls libs/*.jar | tr '\n' ':')
           if [ -n "$(find src -name '*.groovy')" ]; then
             java -cp "$CP" org.codehaus.groovy.tools.FileSystemCompiler \
@@ -97,7 +94,7 @@ jobs:
 
       - name: Compile Java (sees Groovy classes)
         run: |
-          AJ=$HOME/sdk/platforms/android-35/android.jar
+          AJ=$AJ
           JAVAS=$(find src -name '*.java')
           if [ -n "$JAVAS" ]; then
             mkdir -p java-classes
