@@ -710,7 +710,7 @@ public class ApkBuilder {
         String[] runtimeJars = { "groovy-runtime.jar", "scala-runtime.jar" };
         for (String rj : runtimeJars) {
             File jar = new File(classesDir, rj);
-            System.out.println("[all-classes] looking for " + jar.getAbsolutePath()
+            say("[all-classes] looking for " + jar.getAbsolutePath()
                     + " exists=" + jar.exists());
             if (!jar.isFile()) continue;
             int added = 0;
