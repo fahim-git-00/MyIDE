@@ -98,7 +98,7 @@ jobs:
           JAVAS=$(find src -name '*.java')
           if [ -n "$JAVAS" ]; then
             mkdir -p java-classes
-            javac -d java-classes -classpath "$AJ:out" --release 17 -nowarn $JAVAS
+            javac -d java-classes -classpath "$AJ:out:out/groovy-runtime.jar" --release 17 -nowarn $JAVAS
             cp -r java-classes/* out/
           fi
 
