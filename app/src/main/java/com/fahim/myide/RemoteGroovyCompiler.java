@@ -82,6 +82,16 @@ public class RemoteGroovyCompiler {
         say("Downloading classes...");
         File zip = downloadArtifact(runId, "groovy-classes");
         if (!classesDir.exists()) classesDir.mkdirs();
+        say("Zip contents:");
+        try {
+            java.util.zip.ZipInputStream zi =
+                new java.util.zip.ZipInputStream(new java.io.FileInputStream(zip));
+            java.util.zip.ZipEntry ze;
+            while ((ze = zi.getNextEntry()) != null) {
+                say("  " + ze.getName() + "  (" + ze.getSize() + " bytes)");
+            }
+            zi.close();
+        } catch (Throwable t) { say("  zip list failed: " + t); }
         unzipTo(zip, classesDir);
 
         // Extract bundled groovy-runtime.jar into classesDir (as groovy-runtime.jar)
