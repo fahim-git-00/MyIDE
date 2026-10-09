@@ -46,17 +46,6 @@ jobs:
           grep -v "aapt2FromMavenOverride" gradle.properties > gradle.properties.new || true
           mv gradle.properties.new gradle.properties
 
-      - name: Verify groovy-runtime.jar
-        run: |
-          F=app/src/main/assets/groovy-runtime.jar
-          if [ -f "$F" ]; then
-            echo "OK: $F ($(stat -c%s "$F") bytes)"
-            unzip -l "$F" | tail -1
-          else
-            echo "::warning::Missing $F — Groovy will fail at runtime"
-            ls -la app/src/main/assets/ 2>/dev/null || echo "(no assets dir)"
-          fi
-
       - name: Build Debug APK
         run: gradle assembleDebug --stacktrace
 
