@@ -59,14 +59,10 @@ public class RemoteJavaCompiler {
         // Also include runtime jars (groovy-runtime.jar, scala-runtime.jar) so
         // javac can resolve GroovyObject / scala.AnyRef / etc.
         List<File> depJars = new ArrayList<File>();
-        if (classesDir != null && classesDir.isDirectory()) {
-            File gr = new File(classesDir, "groovy-runtime.jar");
-            if (gr.isFile() && gr.length() > 0) depJars.add(gr);
-            File sr = new File(classesDir, "scala-runtime.jar");
-            if (sr.isFile() && sr.length() > 0) depJars.add(sr);
-        }
-        say("Bundling " + depClasses.size() + " dependency .class file(s), "
-                + depJars.size() + " runtime jar(s)");
+        // NOTE: do NOT add groovy-runtime.jar / scala-runtime.jar here.
+        // They exceed the workflow_dispatch input size limit.
+        // The workflow fetches them from Maven Central instead.
+        say("Bundling " + depClasses.size() + " dependency .class file(s)");
 
         String hash = CompileCache.hashFiles(files) + "-d" + depClasses.size()
                 + "-r" + depJars.size();

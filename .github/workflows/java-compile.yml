@@ -77,12 +77,26 @@ jobs:
           print("java files:", len(list(pathlib.Path("src").rglob("*.java"))))
           PY
 
+      - name: Fetch Groovy runtime (only when deps/ has Groovy classes)
+        run: |
+          mkdir -p deps
+          if unzip -l deps/deps.jar 2>/dev/null | grep -q "GroovyObject\|groovy/lang"; then
+            echo "Groovy classes detected — fetching groovy runtime"
+            BASE=https://repo1.maven.org/maven2/org/apache/groovy
+            V=4.0.26
+            for J in groovy groovy-xml groovy-json; do
+              curl -sSL -f -o deps/$J-$V.jar $BASE/$J/$V/$J-$V.jar || true
+            done
+          fi
+          ls -la deps/
+
       - name: Compile with javac 21
         run: |
           AJ=$HOME/sdk/platforms/android-35/android.jar
           CP="$AJ"
           if [ -f deps/deps.jar ]; then CP="$CP:deps/deps.jar"; fi
           if [ -f deps/runtimes.jar ]; then CP="$CP:deps/runtimes.jar"; fi
+          for j in deps/groovy-*.jar; do [ -f "$j" ] && CP="$CP:$j"; done
           mkdir -p classes
           javac -d classes -classpath "$CP" --release 21 -nowarn \
             $(find src -name '*.java')
