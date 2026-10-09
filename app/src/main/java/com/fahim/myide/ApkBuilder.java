@@ -690,6 +690,7 @@ public class ApkBuilder {
                             File outputDir, List<File> extraJars, int minSdk) throws Exception {
         List<File> classFiles = new ArrayList<File>();
         findClassFiles(classesDir, classFiles);
+        say("[all-classes] " + classFiles.size() + " class file(s) from " + classesDir);
         if (classFiles.isEmpty()) throw new RuntimeException("No .class files to dex");
         if (!outputDir.exists()) outputDir.mkdirs();
 
