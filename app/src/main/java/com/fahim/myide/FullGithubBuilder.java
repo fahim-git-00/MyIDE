@@ -113,36 +113,90 @@ public class FullGithubBuilder {
     // ============================================================
 
     private void ensureGradleFiles(File root, String projectName) throws Exception {
-        File settings = new File(root, "settings.gradle");
-        File build = new File(root, "build.gradle");
-        File props = new File(root, "gradle.properties");
+        // Detect if this is already a real Gradle project
+        if (new File(root, "settings.gradle").isFile()
+                && new File(root, "app/build.gradle").isFile()) {
+            return;
+        }
 
-        if (!settings.exists()) {
-            settings.createNewFile();
-            writeFile(settings,
-                "rootProject.name = '" + projectName + "'\n" +
-                "include ':app'\n");
+        // Minimal wrapper project. Real files stay at root; sourceSets point there.
+        writeIfMissing(new File(root, "settings.gradle"),
+            "rootProject.name = '" + projectName + "'\n" +
+            "include ':app'\n");
+
+        writeIfMissing(new File(root, "build.gradle"),
+            "buildscript {\n" +
+            "    repositories { google(); mavenCentral() }\n" +
+            "    dependencies {\n" +
+            "        classpath 'com.android.tools.build:gradle:8.7.2'\n" +
+            "    }\n" +
+            "}\n" +
+            "allprojects {\n" +
+            "    repositories { google(); mavenCentral() }\n" +
+            "}\n");
+
+        writeIfMissing(new File(root, "gradle.properties"),
+            "org.gradle.jvmargs=-Xmx2048m\n" +
+            "android.useAndroidX=true\n" +
+            "android.nonTransitiveRClass=true\n");
+
+        // Read package from AndroidManifest.xml
+        String pkg = readPackage(root);
+
+        File appDir = new File(root, "app");
+        appDir.mkdirs();
+
+        writeIfMissing(new File(appDir, "build.gradle"),
+            "apply plugin: 'com.android.application'\n\n" +
+            "android {\n" +
+            "    namespace '" + pkg + "'\n" +
+            "    compileSdk 34\n\n" +
+            "    defaultConfig {\n" +
+            "        applicationId \"" + pkg + "\"\n" +
+            "        minSdk 24\n" +
+            "        targetSdk 34\n" +
+            "        versionCode 1\n" +
+            "        versionName \"1.0\"\n" +
+            "    }\n\n" +
+            "    sourceSets {\n" +
+            "        main {\n" +
+            "            manifest.srcFile '../AndroidManifest.xml'\n" +
+            "            java.srcDirs = ['../src']\n" +
+            "            res.srcDirs = ['../res']\n" +
+            "            assets.srcDirs = ['../assets']\n" +
+            "        }\n" +
+            "    }\n\n" +
+            "    compileOptions {\n" +
+            "        sourceCompatibility JavaVersion.VERSION_17\n" +
+            "        targetCompatibility JavaVersion.VERSION_17\n" +
+            "    }\n" +
+            "}\n\n" +
+            "dependencies {\n" +
+            "    implementation fileTree(dir: '../libs', include: ['*.jar'])\n" +
+            "}\n");
+    }
+
+    private String readPackage(File root) {
+        try {
+            File mf = new File(root, "AndroidManifest.xml");
+            if (!mf.isFile()) return "com.example.app";
+            String xml = new String(readAll(mf), "UTF-8");
+            int i = xml.indexOf("package=\"");
+            if (i < 0) return "com.example.app";
+            int s = i + 9;
+            int e = xml.indexOf('"', s);
+            if (e <= s) return "com.example.app";
+            return xml.substring(s, e);
+        } catch (Throwable t) {
+            return "com.example.app";
         }
-        if (!build.exists()) {
-            build.createNewFile();
-            writeFile(build,
-                "buildscript {\n" +
-                "    repositories { google(); mavenCentral() }\n" +
-                "    dependencies {\n" +
-                "        classpath 'com.android.tools.build:gradle:8.7.2'\n" +
-                "    }\n" +
-                "}\n" +
-                "allprojects {\n" +
-                "    repositories { google(); mavenCentral() }\n" +
-                "}\n");
-        }
-        if (!props.exists()) {
-            props.createNewFile();
-            writeFile(props,
-                "org.gradle.jvmargs=-Xmx2048m\n" +
-                "android.useAndroidX=true\n" +
-                "android.nonTransitiveRClass=true\n");
-        }
+    }
+
+    private void writeIfMissing(File f, String content) throws Exception {
+        if (f.exists()) return;
+        File p = f.getParentFile();
+        if (p != null && !p.exists()) p.mkdirs();
+        writeFile(f, content);
     }
 
     // ============================================================
