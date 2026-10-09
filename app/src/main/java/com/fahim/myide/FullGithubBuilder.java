@@ -147,7 +147,8 @@ public class FullGithubBuilder {
         appDir.mkdirs();
 
         writeIfMissing(new File(appDir, "build.gradle"),
-            "apply plugin: 'com.android.application'\n\n" +
+            "apply plugin: 'com.android.application'\n" +
+            "apply plugin: 'groovy'\n\n" +
             "android {\n" +
             "    namespace '" + pkg + "'\n" +
             "    compileSdk 34\n\n" +
@@ -162,6 +163,7 @@ public class FullGithubBuilder {
             "        main {\n" +
             "            manifest.srcFile '../AndroidManifest.xml'\n" +
             "            java.srcDirs = ['../src']\n" +
+            "            groovy.srcDirs = ['../src']\n" +
             "            res.srcDirs = ['../res']\n" +
             "            assets.srcDirs = ['../assets']\n" +
             "        }\n" +
@@ -173,6 +175,7 @@ public class FullGithubBuilder {
             "}\n\n" +
             "dependencies {\n" +
             "    implementation fileTree(dir: '../libs', include: ['*.jar'])\n" +
+            "    implementation 'org.codehaus.groovy:groovy:3.0.19'\n" +
             "}\n");
     }
 
