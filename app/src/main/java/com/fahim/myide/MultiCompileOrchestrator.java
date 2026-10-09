@@ -109,22 +109,6 @@ public class MultiCompileOrchestrator {
             });
         }
 
-        // Java remote — only when java_mode=remote
-        String javaMode = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                .getString("java_mode", "local");
-        if ("remote".equals(javaMode)) {
-            final List<File> roots = listSourceRoots(projectRoot);
-            final File aj = new File(ctx.getFilesDir(), "android.jar");
-            jobs.add(new Callable<Void>() {
-                @Override public Void call() throws Exception {
-                    say("[Java 21] remote compile");
-                    new RemoteJavaCompiler(ctx, new RemoteJavaCompiler.Progress() {
-                        @Override public void onProgress(String m) { say("[Java 21] " + m); }
-                    }).compile(roots, classesDir, aj);
-                    return null;
-                }
-            });
-        }
 
         if (jobs.isEmpty()) {
             say("No remote jobs to run");
@@ -150,6 +134,26 @@ public class MultiCompileOrchestrator {
         }
 
         say("All " + jobs.size() + " remote jobs finished");
+
+        // ---- Java runs LAST so it can see Groovy/Scala/Kotlin classes ----
+        String javaMode = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                .getString("java_mode", "local");
+        if ("remote".equals(javaMode)) {
+            final List<File> roots = listSourceRoots(projectRoot);
+            boolean needsJava = false;
+            for (File s : roots) {
+                if (hasExt(s, ".java")) { needsJava = true; break; }
+            }
+            if (needsJava) {
+                final File aj = new File(ctx.getFilesDir(), "android.jar");
+                say("[Java 21] remote compile (after Groovy/Scala/Kotlin)");
+                new RemoteJavaCompiler(ctx, new RemoteJavaCompiler.Progress() {
+                    @Override public void onProgress(String m) { say("[Java 21] " + m); }
+                }).compile(roots, classesDir, aj);
+                say("[Java 21] done");
+            }
+        }
+
         if (failed && firstError != null) throw firstError;
     }
 
