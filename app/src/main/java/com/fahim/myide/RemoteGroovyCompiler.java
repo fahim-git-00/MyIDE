@@ -103,6 +103,10 @@ public class RemoteGroovyCompiler {
         } catch (Throwable t) { say("  zip list failed: " + t); }
         unzipTo(zip, classesDir);
 
+        // Debug: list what's actually on disk after unzip
+        say("[Groovy] classesDir contents after unzip:");
+        listTree(classesDir, "", 0);
+
         // Extract bundled groovy-runtime.jar into classesDir (as groovy-runtime.jar)
         File runtimeJar = new File(classesDir, "groovy-runtime.jar");
         extractRuntimeJar(zip, runtimeJar);
@@ -292,6 +296,20 @@ public class RemoteGroovyCompiler {
         while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
         in.close(); return out.toString("UTF-8");
     }
+    private void listTree(File dir, String prefix, int depth) {
+        if (dir == null || depth > 5) return;
+        File[] kids = dir.listFiles();
+        if (kids == null) { say("  " + prefix + "(unreadable)"); return; }
+        for (File f : kids) {
+            if (f.isDirectory()) {
+                say("  " + prefix + f.getName() + "/");
+                listTree(f, prefix + "  ", depth + 1);
+            } else {
+                say("  " + prefix + f.getName() + " (" + f.length() + " B)");
+            }
+        }
+    }
+
     private String readError(HttpURLConnection c) {
         try { return readAll(c); } catch (Exception e) { return ""; }
     }
