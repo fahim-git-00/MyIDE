@@ -272,5 +272,6 @@
     <string name="perm_grant">Grant</string>
 
     <string name="action_signing_key">Signing Key\u2026</string>
+    <string name="action_cache_manager">Cache Manager\u2026</string>
 
 </resources>

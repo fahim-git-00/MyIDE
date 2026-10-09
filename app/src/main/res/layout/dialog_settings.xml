@@ -395,6 +395,17 @@
             </LinearLayout>
 
             <TextView
+                android:id="@+id/btnOpenCacheManager"
+                style="@style/GhostButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="16dp"
+                android:layout_marginRight="16dp"
+                android:layout_marginTop="8dp"
+                android:text="@string/action_cache_manager"
+                android:textColor="@color/accent_light" />
+
+            <TextView
                 android:id="@+id/btnClearRecent"
                 style="@style/GhostButton"
                 android:layout_width="match_parent"

@@ -19,4 +19,5 @@
 
     <item android:id="@+id/menu_fetch_lua"     android:title="Fetch liblua.so (remote)" />
     <item android:id="@+id/menu_compile_mode" android:title="Compile Mode…" />
+    <item android:id="@+id/menu_cache_manager" android:title="@string/action_cache_manager" />
 </menu>

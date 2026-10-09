@@ -1863,6 +1863,7 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
         }
         if (id == R.id.menu_about)        { showAbout(); return true; }
         if (id == R.id.menu_compile_mode)   { showCompileMode(); return true; }
+        if (id == R.id.menu_cache_manager) { CacheManager.show(this); return true; }
 
         return false;
     }

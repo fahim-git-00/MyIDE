@@ -104,6 +104,14 @@ public final class SettingsDialog {
             }
         });
 
+        root.findViewById(R.id.btnOpenCacheManager).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                if (ctx instanceof android.app.Activity) {
+                    CacheManager.show((android.app.Activity) ctx);
+                }
+            }
+        });
+
         root.findViewById(R.id.btnClearRecent).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 RecentProjects.clear(ctx);
