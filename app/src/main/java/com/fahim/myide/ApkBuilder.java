@@ -658,7 +658,8 @@ public class ApkBuilder {
         }
         String dexHash = CompileCache.hashFiles(hashInputs)
                 + (hasGroovyRuntime(dexInputs) ? "-gr" : "");
-        say("Dex hash: " + dexHash.substring(0, 12) + "...");
+        say("Dex hash: " + dexHash.substring(0, 12) + " (v2)...");
+            dexHash = dexHash + "-v2";
 
         File dexCacheDir = CompileCache.outDir(ctx, "dex", dexHash);
         File[] cachedDex = dexCacheDir.listFiles();
