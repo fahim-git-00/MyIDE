@@ -31,17 +31,17 @@ jobs:
         id: ndk-cache
         uses: actions/cache@v4
         with:
-          path: android-ndk-r27c
-          key: ndk-r27c-linux
+          path: android-ndk-r28
+          key: ndk-r28-linux
 
       - name: Setup NDK
         if: steps.ndk-cache.outputs.cache-hit != 'true'
         run: |
-          curl -sSL -o ndk.zip https://dl.google.com/android/repository/android-ndk-r27c-linux.zip
+          curl -sSL -o ndk.zip https://dl.google.com/android/repository/android-ndk-r28-linux.zip
           unzip -q ndk.zip
 
       - name: Export NDK
-        run: echo "NDK=$PWD/android-ndk-r27c" >> $GITHUB_ENV
+        run: echo "NDK=$PWD/android-ndk-r28" >> $GITHUB_ENV
 
       - name: Download Lua 5.4.7
         run: |

@@ -33,8 +33,8 @@ jobs:
           unzip -q cmdline.zip
           mv cmdline-tools latest || true
           yes | $HOME/sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
-          $HOME/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" > /dev/null
-          ls -la $HOME/sdk/platforms/android-34/android.jar
+          $HOME/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" > /dev/null
+          ls -la $HOME/sdk/platforms/android-35/android.jar
 
       - name: Decode payload
         env:
@@ -66,17 +66,17 @@ jobs:
 
       - name: Install Scala
         run: |
-          curl -sSL -o scala.tgz https://github.com/scala/scala/releases/download/v2.13.14/scala-2.13.14.tgz
+          curl -sSL -o scala.tgz https://github.com/scala/scala/releases/download/v2.13.15/scala-2.13.15.tgz
           file scala.tgz
           tar xzf scala.tgz
-          chmod +x scala-2.13.14/bin/*
-          echo "$PWD/scala-2.13.14/bin" >> $GITHUB_PATH
-          scala-2.13.14/bin/scalac -version
+          chmod +x scala-2.13.15/bin/*
+          echo "$PWD/scala-2.13.15/bin" >> $GITHUB_PATH
+          scala-2.13.15/bin/scalac -version
 
       - name: Compile
         run: |
-          AJ=$HOME/sdk/platforms/android-34/android.jar
-          SCALA_LIB=$PWD/scala-2.13.14/lib/scala-library.jar
+          AJ=$HOME/sdk/platforms/android-35/android.jar
+          SCALA_LIB=$PWD/scala-2.13.15/lib/scala-library.jar
           echo "android.jar: $AJ"
           echo "scala-library.jar: $SCALA_LIB"
           scalac -classpath "$AJ:$SCALA_LIB" -d classes $(find src -name '*.scala')
@@ -86,7 +86,7 @@ jobs:
           cp -r classes/* scala-classes/ 2>/dev/null || true
           # Bundle scala-library.jar for APK runtime
           curl -sSL -o scala-classes/scala-runtime.jar \
-            https://repo1.maven.org/maven2/org/scala-lang/scala-library/2.13.14/scala-library-2.13.14.jar
+            https://repo1.maven.org/maven2/org/scala-lang/scala-library/2.13.15/scala-library-2.13.15.jar
           find scala-classes -type f | head -20
 
       - name: Upload

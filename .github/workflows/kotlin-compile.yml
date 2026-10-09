@@ -27,9 +27,9 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install Kotlin 1.9.24
+      - name: Install Kotlin 2.1.0
         run: |
-          curl -sSL -o k.zip https://github.com/JetBrains/kotlin/releases/download/v1.9.24/kotlin-compiler-1.9.24.zip
+          curl -sSL -o k.zip https://github.com/JetBrains/kotlin/releases/download/v2.1.0/kotlin-compiler-2.1.0.zip
           unzip -q k.zip
           echo "$PWD/kotlinc/bin" >> $GITHUB_PATH
 
@@ -41,8 +41,8 @@ jobs:
           unzip -q cmdline.zip
           mv cmdline-tools latest || true
           yes | $HOME/sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
-          $HOME/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" > /dev/null
-          ls -la $HOME/sdk/platforms/android-34/android.jar
+          $HOME/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" > /dev/null
+          ls -la $HOME/sdk/platforms/android-35/android.jar
 
       - name: Decode payload
         env:
@@ -74,7 +74,7 @@ jobs:
 
       - name: Compile
         run: |
-          AJ=$HOME/sdk/platforms/android-34/android.jar
+          AJ=$HOME/sdk/platforms/android-35/android.jar
           echo "using $AJ"
           kotlinc src -d classes -jvm-target 1.8 -classpath "$AJ"
 
