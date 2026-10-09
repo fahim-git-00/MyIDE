@@ -57,7 +57,7 @@ jobs:
           for entry in payload.split("~"):
               if not entry: continue
               rel, _, b64 = entry.partition("|")
-              p = pathlib.Path("src") / rel
+              p = pathlib.Path(rel)
               p.parent.mkdir(parents=True, exist_ok=True)
               p.write_bytes(base64.b64decode(b64))
           PY
@@ -91,6 +91,11 @@ jobs:
           find . -name "module-info.class" -delete
           rm -rf META-INF
           zip -q -r ../out/groovy-runtime.jar .
+          # ALSO copy flat .class files into out/ so javac can see them
+          find . -name "*.class" | while read f; do
+            mkdir -p "../out/$(dirname "$f")"
+            cp "$f" "../out/$f"
+          done
           cd ..
           cp -r classes/* out/ 2>/dev/null || true
 
@@ -100,9 +105,7 @@ jobs:
           JAVAS=$(find src -name '*.java')
           if [ -n "$JAVAS" ]; then
             mkdir -p java-classes
-            javac -d java-classes -classpath "$AJ:out" --release 21 -nowarn $JAVAS || \
-            javac -d java-classes -classpath "$AJ:out" --release 17 -nowarn $JAVAS || \
-            javac -d java-classes -classpath "$AJ:out" --release 11 -nowarn $JAVAS
+            javac -d java-classes -classpath "$AJ:out" --release 17 -nowarn $JAVAS
             cp -r java-classes/* out/
           fi
 
