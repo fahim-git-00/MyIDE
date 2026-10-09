@@ -34,7 +34,6 @@ jobs:
           mv cmdline-tools latest || true
           yes | $HOME/sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
           $HOME/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" > /dev/null
-          ls -la $HOME/sdk/platforms/android-35/android.jar
 
       - name: Decode payload
         env:
@@ -61,44 +60,38 @@ jobs:
               p = pathlib.Path("src") / rel
               p.parent.mkdir(parents=True, exist_ok=True)
               p.write_bytes(base64.b64decode(b64))
-          print("groovy files:", len(list(pathlib.Path("src").rglob("*.groovy"))))
           PY
 
-      - name: Fetch Groovy 4.0.26 (from Maven Central, fast)
+      - name: Fetch Groovy 4.0.26
         run: |
           cd libs
           BASE=https://repo1.maven.org/maven2/org/apache/groovy
           VER=4.0.26
           for J in groovy groovy-xml groovy-json groovy-nio groovy-macro groovy-templates groovy-sql groovy-ant groovy-groovydoc groovy-dateutil groovy-datetime groovy-jmx groovy-test groovy-console groovy-cli-picocli groovy-cli-commons; do
-            curl -sSL -f -o $J-$VER.jar $BASE/$J/$VER/$J-$VER.jar || echo "skip $J"
+            curl -sSL -f -o $J-$VER.jar $BASE/$J/$VER/$J-$VER.jar || true
           done
-          # core deps
           curl -sSL -f -o asm-9.7.jar          https://repo1.maven.org/maven2/org/ow2/asm/asm/9.7/asm-9.7.jar
           curl -sSL -f -o asm-tree-9.7.jar     https://repo1.maven.org/maven2/org/ow2/asm/asm-tree/9.7/asm-tree-9.7.jar
           curl -sSL -f -o asm-analysis-9.7.jar https://repo1.maven.org/maven2/org/ow2/asm/asm-analysis/9.7/asm-analysis-9.7.jar
           curl -sSL -f -o asm-util-9.7.jar     https://repo1.maven.org/maven2/org/ow2/asm/asm-util/9.7/asm-util-9.7.jar
           curl -sSL -f -o asm-commons-9.7.jar  https://repo1.maven.org/maven2/org/ow2/asm/asm-commons/9.7/asm-commons-9.7.jar
-          ls -la
 
-      - name: Compile (direct FileSystemCompiler, no startGroovy)
+      - name: Compile
         run: |
           AJ=$HOME/sdk/platforms/android-35/android.jar
           CP=$(ls libs/*.jar | tr '\n' ':')
-          echo "cp entries: $(ls libs/*.jar | wc -l)"
           java -cp "$CP" org.codehaus.groovy.tools.FileSystemCompiler \
-            --classpath "$AJ" \
-            -d classes \
-            $(find src -name '*.groovy')
+            --classpath "$AJ" -d classes $(find src -name '*.groovy')
 
       - name: Pack
         run: |
           cp -r classes/* groovy-classes/ 2>/dev/null || true
           cd libs
-          zip -q -0 ../groovy-classes/groovy-runtime.jar *.jar
+          zip -q -9 ../groovy-classes/groovy-runtime.jar \
+            groovy-4.0.26.jar \
+            groovy-xml-4.0.26.jar \
+            groovy-json-4.0.26.jar
           cd ..
-          echo "groovy-runtime.jar contents:"
-          unzip -l groovy-classes/groovy-runtime.jar | head -30
-          find groovy-classes -type f | head -20
 
       - name: Upload
         uses: actions/upload-artifact@v4
