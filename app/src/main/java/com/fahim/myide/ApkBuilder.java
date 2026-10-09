@@ -252,12 +252,16 @@ public class ApkBuilder {
 
             jarDeps.add(lambdaStubs);
 
-            // Java is always compiled remotely by MultiCompileOrchestrator.
-            // Local ECJ is no longer used.
-            say("Java mode: remote only (compiled in MultiCompileOrchestrator)");
-            // (ensure it's actually enabled in the orchestrator)
-            ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                    .edit().putString("java_mode", "remote").apply();
+            // Java compile mode: local ECJ or remote Java 21
+            String javaMode = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                    .getString("java_mode", "local");
+            if ("remote".equals(javaMode)) {
+                say("Java 21 remote compile already handled by MultiCompileOrchestrator");
+            } else {
+                say("Java mode: local (ECJ 3.16)");
+                compileJava(androidJar, ecjFull, ecjResDir, sourceRoots, genDir,
+                        classesDir, jarDeps);
+            }
 
             // If Groovy was compiled, add its runtime jar so D8 dexes it too
             File groovyRuntime = new File(classesDir, "groovy-runtime.jar");

@@ -40,7 +40,7 @@ public class MyIdeApp extends Application {
                 .putInt("min_sdk", 24)
                 .putInt("target_sdk", 35)
                 .putString("kotlin_mode", "remote")
-                .putString("java_mode", "remote")
+                .putString("java_mode", "local")
                 .putInt("theme_mode", 0)
                 .apply();
         }

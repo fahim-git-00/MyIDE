@@ -2664,12 +2664,13 @@ public class MainActivity extends Activity implements EditorEnhancer.Host {
 
     private void showCompileMode() {
         final String[] labels = {
+            "Java \u2014 ECJ 3.16 (local)",
             "Java 21 \u2014 GitHub Actions (remote)"
         };
-        final String[] values = { "remote" };
+        final String[] values = { "local", "remote" };
         SharedPreferences prefs = ThemeHelper.prefs(this);
-        String cur = prefs.getString("java_mode", "remote");
-        int checked = 0;
+        String cur = prefs.getString("java_mode", "local");
+        int checked = "remote".equals(cur) ? 1 : 0;
 
         new AlertDialog.Builder(this, R.style.AppDialogTheme)
             .setTitle("Compile Mode \u2014 Java")
