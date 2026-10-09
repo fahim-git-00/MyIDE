@@ -295,6 +295,25 @@ public class ApkBuilder {
 
             jarDeps.add(lambdaStubs);
 
+            // Decide Java compile mode (local ECJ 3.16 vs remote Java 21)
+            String javaMode = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                    .getString("java_mode", "local");
+            if ("remote".equals(javaMode)) {
+                try {
+                    say("Java mode: remote (GitHub Actions, Java 21)");
+                    new RemoteJavaCompiler(ctx, new RemoteJavaCompiler.Progress() {
+                        @Override public void onProgress(String m) { say(m); }
+                    }).compile(sourceRoots, classesDir, androidJar);
+                } catch (Throwable je) {
+                    say("Remote Java compile failed: " + causeChain(je));
+                    throw new RuntimeException("Java remote compile failed", je);
+                }
+            } else {
+                say("Java mode: local (ECJ 3.16)");
+                compileJava(androidJar, ecjFull, ecjResDir, sourceRoots, genDir,
+                        classesDir, jarDeps);
+            }
+
             // If Groovy was compiled, add its runtime jar so D8 dexes it too
             File groovyRuntime = new File(classesDir, "groovy-runtime.jar");
             if (groovyRuntime.isFile() && groovyRuntime.length() > 0) {
@@ -311,9 +330,7 @@ public class ApkBuilder {
                         + scalaRuntime.length() + " bytes");
             }
 
-            say("Compiling Java (ECJ)...");
-            compileJava(androidJar, ecjFull, ecjResDir, sourceRoots, genDir,
-                    classesDir, jarDeps);
+            // (Java compiled above via local or remote path)
 
             say("Dexing (D8)...");
             File dexDir = new File(workDir, "dex");

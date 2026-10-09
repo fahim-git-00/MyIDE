@@ -62,4 +62,5 @@
     <item android:id="@+id/menu_github_token" android:title="@string/action_github_token" />
     <item android:id="@+id/menu_about" android:title="@string/action_about" />
 
+    <item android:id="@+id/menu_compile_mode" android:title="Compile Mode…" />
 </menu>
