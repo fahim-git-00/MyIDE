@@ -195,60 +195,21 @@ public class ApkBuilder {
                 }
             }
 
-            // ---- Multi-language remote compile (single GitHub Actions run) ----
+
+
+                        // ---- Multi-language remote compile (parallel) ----
             File multiLibs = new File(projectRoot, "libs/arm64-v8a");
             if (!multiLibs.exists()) multiLibs.mkdirs();
+            File classesDirEarly = new File(workDir, "classes");
+            classesDirEarly.mkdirs();
             try {
-                String _jmode = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                        .getString("java_mode", "local");
-                boolean _useMulti = "remote".equals(_jmode);
-                if (_useMulti) {
-                    new RemoteMultiCompiler(ctx, new RemoteMultiCompiler.Progress() {
-                        @Override public void onProgress(String m) { say(m); }
-                    }).compileAll(projectRoot, classesDir, multiLibs);
-                    say("Multi-compile finished; skipping individual remote triggers");
-                }
+                new MultiCompileOrchestrator(ctx, new MultiCompileOrchestrator.Progress() {
+                    @Override public void onProgress(String m) { say(m); }
+                }).compileAll(projectRoot, classesDirEarly, multiLibs);
             } catch (Throwable me) {
-                say("Multi-compile failed, falling back to per-language: " + causeChain(me));
+                say("Multi-compile failed: " + causeChain(me));
+                throw new RuntimeException("Multi-compile failed", me);
             }
-
-            // ---- Legacy per-language remote compile (only if multi was skipped) ----
-            if (!"remote".equals(ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                    .getString("java_mode", "local"))) {
-                // multi already ran; skip all individual remote triggers
-            } else {
-                // fall through to existing individual remote blocks
-            }
-
-            // ---- Remote C/C++ compile (GitHub Actions) ----
-            try {
-                if (!"remote".equals(ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                        .getString("java_mode", "local"))) {
-                    // handled by multi compiler
-                } else if (RemoteCCompiler.hasNativeSources(projectRoot)) {
-                    say("C/C++ sources detected — remote compile");
-                    new RemoteCCompiler(ctx, new RemoteCCompiler.Progress() {
-                        @Override public void onProgress(String m) { say(m); }
-                    }).compile(projectRoot);
-                }
-            } catch (Throwable ce) {
-                say("Remote C compile failed: " + causeChain(ce));
-                throw new RuntimeException("C compile failed", ce);
-            }
-
-            // ---- Remote Rust compile (GitHub Actions) ----
-            try {
-                if (RemoteRustCompiler.hasRustSources(projectRoot)) {
-                    say("Rust sources detected \u2014 remote compile");
-                    new RemoteRustCompiler(ctx, new RemoteRustCompiler.Progress() {
-                        @Override public void onProgress(String m) { say(m); }
-                    }).compile(projectRoot);
-                }
-            } catch (Throwable re) {
-                say("Remote Rust compile failed: " + causeChain(re));
-                throw new RuntimeException("Rust compile failed", re);
-            }
-
 
             File patchedManifest = new File(workDir, "AndroidManifest.xml");
             patchManifest(appManifest, patchedManifest, minSdk, targetSdk);
@@ -284,42 +245,10 @@ public class ApkBuilder {
             }
             runAapt2(linkArgs.toArray(new String[0]));
 
-            File classesDir = new File(workDir, "classes");
-            classesDir.mkdirs();
+            // classesDir already declared above as classesDirEarly
+            File classesDir = classesDirEarly;
 
-            boolean hasKt = false;
-            for (File src : sourceRoots) if (hasKtFiles(src)) { hasKt = true; break; }
-            if (hasKt) {
-                compileKotlin(sourceRoots, classesDir, androidJar);
-            }
-
-            boolean hasScala = false;
-            for (File src : sourceRoots) if (hasScalaFiles(src)) { hasScala = true; break; }
-            if (hasScala) {
-                say("Scala mode: remote (GitHub Actions)");
-                try {
-                    new RemoteScalaCompiler(ctx, new RemoteScalaCompiler.Progress() {
-                        @Override public void onProgress(String m) { say(m); }
-                    }).compile(sourceRoots, classesDir);
-                } catch (Throwable se) {
-                    say("Scala compile failed: " + causeChain(se));
-                    throw new RuntimeException("Scala compile failed", se);
-                }
-            }
-
-            boolean hasGroovy = false;
-            for (File src : sourceRoots) if (hasGroovyFiles(src)) { hasGroovy = true; break; }
-            if (hasGroovy) {
-                say("Groovy mode: remote (GitHub Actions)");
-                try {
-                    new RemoteGroovyCompiler(ctx, new RemoteGroovyCompiler.Progress() {
-                        @Override public void onProgress(String m) { say(m); }
-                    }).compile(sourceRoots, classesDir);
-                } catch (Throwable gre) {
-                    say("Groovy compile failed: " + causeChain(gre));
-                    throw new RuntimeException("Groovy compile failed", gre);
-                }
-            }
+            // Kotlin, Scala, Groovy already handled by MultiCompileOrchestrator
 
             jarDeps.add(lambdaStubs);
 
@@ -327,15 +256,7 @@ public class ApkBuilder {
             String javaMode = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
                     .getString("java_mode", "local");
             if ("remote".equals(javaMode)) {
-                try {
-                    say("Java mode: remote (GitHub Actions, Java 21)");
-                    new RemoteJavaCompiler(ctx, new RemoteJavaCompiler.Progress() {
-                        @Override public void onProgress(String m) { say(m); }
-                    }).compile(sourceRoots, classesDir, androidJar);
-                } catch (Throwable je) {
-                    say("Remote Java compile failed: " + causeChain(je));
-                    throw new RuntimeException("Java remote compile failed", je);
-                }
+                say("Java 21 remote compile already handled by MultiCompileOrchestrator");
             } else {
                 say("Java mode: local (ECJ 3.16)");
                 compileJava(androidJar, ecjFull, ecjResDir, sourceRoots, genDir,
