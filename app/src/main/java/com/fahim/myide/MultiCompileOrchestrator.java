@@ -109,10 +109,8 @@ public class MultiCompileOrchestrator {
             });
         }
 
-        // Java remote (only if java_mode=remote)
-        String javaMode = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                .getString("java_mode", "local");
-        if ("remote".equals(javaMode)) {
+        // Java remote — always on (no local ECJ path anymore)
+        {
             final List<File> roots = listSourceRoots(projectRoot);
             final File aj = new File(ctx.getFilesDir(), "android.jar");
             jobs.add(new Callable<Void>() {
