@@ -16,26 +16,40 @@ on:
       chunk_9: { required: false, default: '' }
 
 jobs:
-  decode:
+  build:
     runs-on: ubuntu-latest
-    outputs:
-      has_java:   ${{ steps.detect.outputs.has_java }}
-      has_kotlin: ${{ steps.detect.outputs.has_kotlin }}
-      has_scala:  ${{ steps.detect.outputs.has_scala }}
-      has_groovy: ${{ steps.detect.outputs.has_groovy }}
-      has_cpp:    ${{ steps.detect.outputs.has_cpp }}
-      has_rust:   ${{ steps.detect.outputs.has_rust }}
     steps:
-      - name: Decode
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Fetch android.jar
+        run: |
+          mkdir -p $HOME/sdk/cmdline-tools
+          cd $HOME/sdk/cmdline-tools
+          curl -sSL -o cmdline.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q cmdline.zip
+          mv cmdline-tools latest || true
+          yes | $HOME/sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
+          $HOME/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" > /dev/null
+
+      - name: Decode payload
         env:
           CNT: ${{ inputs.chunk_count }}
-          C0: ${{ inputs.chunk_0 }}  C1: ${{ inputs.chunk_1 }}
-          C2: ${{ inputs.chunk_2 }}  C3: ${{ inputs.chunk_3 }}
-          C4: ${{ inputs.chunk_4 }}  C5: ${{ inputs.chunk_5 }}
-          C6: ${{ inputs.chunk_6 }}  C7: ${{ inputs.chunk_7 }}
-          C8: ${{ inputs.chunk_8 }}  C9: ${{ inputs.chunk_9 }}
+          C0: ${{ inputs.chunk_0 }}
+          C1: ${{ inputs.chunk_1 }}
+          C2: ${{ inputs.chunk_2 }}
+          C3: ${{ inputs.chunk_3 }}
+          C4: ${{ inputs.chunk_4 }}
+          C5: ${{ inputs.chunk_5 }}
+          C6: ${{ inputs.chunk_6 }}
+          C7: ${{ inputs.chunk_7 }}
+          C8: ${{ inputs.chunk_8 }}
+          C9: ${{ inputs.chunk_9 }}
         run: |
-          mkdir -p payload
+          mkdir -p src classes out libs groovy-runtime-extract
           python3 - "$CNT" "$C0" "$C1" "$C2" "$C3" "$C4" "$C5" "$C6" "$C7" "$C8" "$C9" << 'PY'
           import sys, base64, pathlib
           cnt = int(sys.argv[1])
@@ -43,206 +57,64 @@ jobs:
           for entry in payload.split("~"):
               if not entry: continue
               rel, _, b64 = entry.partition("|")
-              p = pathlib.Path("payload") / rel
+              p = pathlib.Path("src") / rel
               p.parent.mkdir(parents=True, exist_ok=True)
               p.write_bytes(base64.b64decode(b64))
           PY
-          echo "decoded $(find payload -type f | wc -l) files"
 
-      - name: Detect
-        id: detect
+      - name: Fetch Groovy 4.0.26
         run: |
-          cd payload
-          [ -n "$(find . -name '*.java')"   ] && echo "has_java=true"   >> $GITHUB_OUTPUT || echo "has_java=false"   >> $GITHUB_OUTPUT
-          [ -n "$(find . -name '*.kt')"     ] && echo "has_kotlin=true" >> $GITHUB_OUTPUT || echo "has_kotlin=false" >> $GITHUB_OUTPUT
-          [ -n "$(find . -name '*.scala')"  ] && echo "has_scala=true"  >> $GITHUB_OUTPUT || echo "has_scala=false"  >> $GITHUB_OUTPUT
-          [ -n "$(find . -name '*.groovy')" ] && echo "has_groovy=true" >> $GITHUB_OUTPUT || echo "has_groovy=false" >> $GITHUB_OUTPUT
-          [ -n "$(find . -name '*.c' -o -name '*.cpp')" ] && echo "has_cpp=true" >> $GITHUB_OUTPUT || echo "has_cpp=false" >> $GITHUB_OUTPUT
-          [ -n "$(find . -name '*.rs')"     ] && echo "has_rust=true"   >> $GITHUB_OUTPUT || echo "has_rust=false"   >> $GITHUB_OUTPUT
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: payload
-          path: payload/
-          retention-days: 1
-
-  java:
-    needs: decode
-    if: needs.decode.outputs.has_java == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with: { name: payload }
-      - uses: actions/setup-java@v4
-        with: { distribution: temurin, java-version: '21' }
-      - name: android.jar
-        run: |
-          mkdir -p sdk/cmdline-tools
-          cd sdk/cmdline-tools
-          curl -sSL -o c.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-          unzip -q c.zip
-          mv cmdline-tools latest || true
-          yes | ./latest/bin/sdkmanager --licenses > /dev/null
-          ./latest/bin/sdkmanager "platforms;android-35" > /dev/null
-          echo "AJ=$PWD/latest/platforms/android-35/android.jar" >> $GITHUB_ENV
-      - run: |
-          mkdir -p out
-          javac -d out -classpath "$AJ" --release 21 -nowarn $(find payload -name '*.java')
-      - uses: actions/upload-artifact@v4
-        with:
-          name: part-java
-          path: out/
-
-  kotlin:
-    needs: decode
-    if: needs.decode.outputs.has_kotlin == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with: { name: payload }
-      - uses: actions/setup-java@v4
-        with: { distribution: temurin, java-version: '17' }
-      - run: |
-          curl -sSL -o k.zip https://github.com/JetBrains/kotlin/releases/download/v2.1.0/kotlin-compiler-2.1.0.zip
-          unzip -q k.zip
-          echo "$PWD/kotlinc/bin" >> $GITHUB_PATH
-      - name: android.jar
-        run: |
-          mkdir -p sdk/cmdline-tools
-          cd sdk/cmdline-tools
-          curl -sSL -o c.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-          unzip -q c.zip
-          mv cmdline-tools latest || true
-          yes | ./latest/bin/sdkmanager --licenses > /dev/null
-          ./latest/bin/sdkmanager "platforms;android-35" > /dev/null
-          echo "AJ=$PWD/latest/platforms/android-35/android.jar" >> $GITHUB_ENV
-      - run: |
-          mkdir -p out
-          kotlinc payload -d out -jvm-target 1.8 -classpath "$AJ"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: part-kotlin
-          path: out/
-
-  scala-groovy:
-    needs: decode
-    if: needs.decode.outputs.has_scala == 'true' || needs.decode.outputs.has_groovy == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with: { name: payload }
-      - uses: actions/setup-java@v4
-        with: { distribution: temurin, java-version: '17' }
-      - if: needs.decode.outputs.has_scala == 'true'
-        run: |
-          curl -sSL -o scala.tgz https://github.com/scala/scala/releases/download/v2.13.15/scala-2.13.15.tgz
-          tar xzf scala.tgz
-          chmod +x scala-2.13.15/bin/*
-          echo "$PWD/scala-2.13.15/bin" >> $GITHUB_PATH
-      - if: needs.decode.outputs.has_groovy == 'true'
-        run: |
-          mkdir -p /tmp/groovy-libs
-          cd /tmp/groovy-libs
+          cd libs
           BASE=https://repo1.maven.org/maven2/org/apache/groovy
-          V=4.0.26
+          VER=4.0.26
           for J in groovy groovy-xml groovy-json groovy-nio groovy-macro groovy-templates groovy-sql groovy-ant groovy-groovydoc groovy-dateutil groovy-datetime groovy-jmx groovy-test groovy-console groovy-cli-picocli groovy-cli-commons; do
-            curl -sSL -f -o $J-$V.jar $BASE/$J/$V/$J-$V.jar || true
+            curl -sSL -f -o $J-$VER.jar $BASE/$J/$VER/$J-$VER.jar || true
           done
-          curl -sSL -o asm-9.7.jar         https://repo1.maven.org/maven2/org/ow2/asm/asm/9.7/asm-9.7.jar
-          curl -sSL -o asm-tree-9.7.jar    https://repo1.maven.org/maven2/org/ow2/asm/asm-tree/9.7/asm-tree-9.7.jar
-          curl -sSL -o asm-commons-9.7.jar https://repo1.maven.org/maven2/org/ow2/asm/asm-commons/9.7/asm-commons-9.7.jar
-      - name: android.jar
-        run: |
-          mkdir -p sdk/cmdline-tools
-          cd sdk/cmdline-tools
-          curl -sSL -o c.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-          unzip -q c.zip
-          mv cmdline-tools latest || true
-          yes | ./latest/bin/sdkmanager --licenses > /dev/null
-          ./latest/bin/sdkmanager "platforms;android-35" > /dev/null
-          echo "AJ=$PWD/latest/platforms/android-35/android.jar" >> $GITHUB_ENV
-      - name: Scala
-        if: needs.decode.outputs.has_scala == 'true'
-        run: |
-          mkdir -p out
-          scalac -classpath "$AJ" -d out $(find payload -name '*.scala')
-          curl -sSL -o out/scala-runtime.jar https://repo1.maven.org/maven2/org/scala-lang/scala-library/2.13.15/scala-library-2.13.15.jar
-      - name: Groovy
-        if: needs.decode.outputs.has_groovy == 'true'
-        run: |
-          mkdir -p out
-          CP=$(ls /tmp/groovy-libs/*.jar | tr '\n' ':')
-          java -cp "$CP" org.codehaus.groovy.tools.FileSystemCompiler \
-            --classpath "$AJ" -d out $(find payload -name '*.groovy')
-          cp /tmp/groovy-libs/groovy-4.0.26.jar out/groovy-runtime.jar
-      - uses: actions/upload-artifact@v4
-        with:
-          name: part-scala-groovy
-          path: out/
+          curl -sSL -f -o asm-9.7.jar          https://repo1.maven.org/maven2/org/ow2/asm/asm/9.7/asm-9.7.jar
+          curl -sSL -f -o asm-tree-9.7.jar     https://repo1.maven.org/maven2/org/ow2/asm/asm-tree/9.7/asm-tree-9.7.jar
+          curl -sSL -f -o asm-analysis-9.7.jar https://repo1.maven.org/maven2/org/ow2/asm/asm-analysis/9.7/asm-analysis-9.7.jar
+          curl -sSL -f -o asm-util-9.7.jar     https://repo1.maven.org/maven2/org/ow2/asm/asm-util/9.7/asm-util-9.7.jar
+          curl -sSL -f -o asm-commons-9.7.jar  https://repo1.maven.org/maven2/org/ow2/asm/asm-commons/9.7/asm-commons-9.7.jar
 
-  native:
-    needs: decode
-    if: needs.decode.outputs.has_cpp == 'true' || needs.decode.outputs.has_rust == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with: { name: payload }
-      - name: Cache NDK
-        id: ndk
-        uses: actions/cache@v4
-        with:
-          path: android-ndk-r28
-          key: ndk-r28-linux
-      - if: steps.ndk.outputs.cache-hit != 'true'
+      - name: Compile Groovy
         run: |
-          curl -sSL -o ndk.zip https://dl.google.com/android/repository/android-ndk-r28-linux.zip
-          unzip -q ndk.zip
-      - if: needs.decode.outputs.has_rust == 'true'
-        uses: dtolnay/rust-toolchain@stable
-        with: { targets: aarch64-linux-android }
-      - if: needs.decode.outputs.has_rust == 'true'
-        uses: actions/cache@v4
-        with: { path: ~/.cargo/bin/cargo-ndk, key: cargo-ndk-${{ runner.os }} }
-      - if: needs.decode.outputs.has_rust == 'true'
-        run: command -v cargo-ndk || cargo install cargo-ndk --locked
-      - name: C/C++
-        if: needs.decode.outputs.has_cpp == 'true'
-        run: |
-          mkdir -p proj/jni proj/libs out/arm64-v8a
-          cp -r payload/* proj/jni/
-          export NDK=$PWD/android-ndk-r28
-          cd proj
-          $NDK/ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./jni/Android.mk NDK_LIBS_OUT=./libs
-          cp libs/arm64-v8a/*.so ../out/arm64-v8a/ 2>/dev/null || true
-      - name: Rust
-        if: needs.decode.outputs.has_rust == 'true'
-        run: |
-          mkdir -p out/arm64-v8a
-          for toml in $(find payload -name Cargo.toml); do
-            D=$(dirname "$toml")
-            (cd "$D" && cargo ndk -t arm64-v8a -o $GITHUB_WORKSPACE/out/arm64-v8a build --release) || echo "rust fail: $D"
+          AJ=$HOME/sdk/platforms/android-35/android.jar
+          CP=$(ls libs/*.jar | tr '\n' ':')
+          if [ -n "$(find src -name '*.groovy')" ]; then
+            java -cp "$CP" org.codehaus.groovy.tools.FileSystemCompiler \
+              --classpath "$AJ" -d classes $(find src -name '*.groovy')
+          fi
+          cd groovy-runtime-extract
+          for j in ../libs/groovy-4.0.26.jar ../libs/groovy-xml-4.0.26.jar ../libs/groovy-json-4.0.26.jar; do
+            [ -f "$j" ] && unzip -oq "$j" || true
           done
-      - uses: actions/upload-artifact@v4
-        with:
-          name: part-native
-          path: out/
+          find . -name "module-info.class" -delete
+          rm -rf META-INF
+          zip -q -r ../out/groovy-runtime.jar .
+          cd ..
+          cp -r classes/* out/ 2>/dev/null || true
 
-  combine:
-    needs: [java, kotlin, scala-groovy, native]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: part-*
-          merge-multiple: true
-          path: merged/
-      - run: |
-          mkdir -p final
-          [ -d merged ] && cp -r merged/* final/ 2>/dev/null || true
-          find final -type f | wc -l
-      - uses: actions/upload-artifact@v4
+      - name: Compile Java (sees Groovy classes)
+        run: |
+          AJ=$HOME/sdk/platforms/android-35/android.jar
+          JAVAS=$(find src -name '*.java')
+          if [ -n "$JAVAS" ]; then
+            mkdir -p java-classes
+            javac -d java-classes -classpath "$AJ:out" --release 21 -nowarn $JAVAS || \
+            javac -d java-classes -classpath "$AJ:out" --release 17 -nowarn $JAVAS || \
+            javac -d java-classes -classpath "$AJ:out" --release 11 -nowarn $JAVAS
+            cp -r java-classes/* out/
+          fi
+
+      - name: Pack artifact
+        run: |
+          mkdir -p combined
+          cp -r out/* combined/ 2>/dev/null || true
+          find combined -type f | head -30
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
         with:
           name: combined-output
-          path: final/
+          path: combined/
           if-no-files-found: error

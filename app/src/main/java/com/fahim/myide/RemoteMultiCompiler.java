@@ -20,6 +20,10 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+/**
+ * One GitHub Action for Groovy + Java (+ Scala/Kotlin/C/Rust if present).
+ * Replaces the old per-language workflows.
+ */
 public class RemoteMultiCompiler {
 
     public interface Progress { void onProgress(String message); }
@@ -33,26 +37,24 @@ public class RemoteMultiCompiler {
     public RemoteMultiCompiler(Context ctx, Progress p) { this.ctx = ctx; this.progress = p; }
 
     private void say(String s) { if (progress != null) progress.onProgress(s); }
+
     private String repo() {
         SharedPreferences sp = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE);
         String r = sp.getString("compile_repo", "fahim-git-00/MyIDE");
         return (r == null || r.isEmpty()) ? "fahim-git-00/MyIDE" : r;
     }
+
     private String token() {
         return ctx.getSharedPreferences("github", Context.MODE_PRIVATE).getString("token", "");
     }
+
     public boolean hasToken() { String t = token(); return t != null && !t.isEmpty(); }
 
-    /**
-     * Compiles every remote-supported language in one GitHub Actions run.
-     * Extracts combined output into classesDir (for .class + runtime jars)
-     * and libsDir (for .so files).
-     */
-    public void compileAll(File projectRoot, File classesDir, File libsDir) throws Exception {
+    public void compileAll(File projectRoot, File classesDir) throws Exception {
         if (!hasToken()) throw new RuntimeException("GitHub token not set");
 
         List<File> files = new ArrayList<File>();
-        collectSources(projectRoot, files);
+        collect(projectRoot, files);
         if (files.isEmpty()) { say("No remote sources"); return; }
 
         String hash = CompileCache.hashFiles(files);
@@ -62,39 +64,29 @@ public class RemoteMultiCompiler {
             say("Cache hit — reusing compiled output");
             File co = CompileCache.outDir(ctx, "multi", hash);
             int n = CompileCache.restoreTo(co, classesDir);
-            say("Restored " + n + " class file(s)");
-            File[] kids = co.listFiles();
-            if (kids != null) for (File f : kids) {
-                if (f.getName().endsWith(".so")) {
-                    try { CompileCache.copyDirContents(co, libsDir); break; } catch (Throwable ignored) {}
-                }
-            }
+            say("Restored " + n + " file(s)");
             say("Multi compile done (cached)");
             return;
         }
-        say("Cache miss — remote multi-compile");
+        say("Cache miss — remote compile");
 
         String payload = buildPayload(projectRoot, files);
         long runId = trigger(payload);
-        say("Waiting for combined run " + runId + "...");
+        say("Waiting for run " + runId + "...");
         waitForRun(runId);
 
-        say("Downloading combined output...");
+        say("Downloading output...");
         File zip = downloadArtifact(runId, "combined-output");
-
-        say("Extracting...");
         if (!classesDir.exists()) classesDir.mkdirs();
-        if (!libsDir.exists()) libsDir.mkdirs();
-        extractCombined(zip, classesDir, libsDir);
+        unzipTo(zip, classesDir);
 
         File cacheOut = CompileCache.outDir(ctx, "multi", hash);
         CompileCache.copyDirContents(classesDir, cacheOut);
-        CompileCache.copyDirContents(libsDir, cacheOut);
         CompileCache.markDone(ctx, "multi", hash);
         say("Multi compile done");
     }
 
-    private void collectSources(File root, List<File> out) {
+    private void collect(File root, List<File> out) {
         File[] kids = root.listFiles();
         if (kids == null) return;
         for (File f : kids) {
@@ -102,13 +94,10 @@ public class RemoteMultiCompiler {
             if (f.isDirectory()) {
                 if (n.equals("build") || n.equals(".git") || n.equals(".myide")
                         || n.equals("libs") || n.equals("bin") || n.equals("obj")) continue;
-                collectSources(f, out);
+                collect(f, out);
             } else {
                 if (n.endsWith(".java") || n.endsWith(".kt") || n.endsWith(".scala")
-                        || n.endsWith(".groovy") || n.endsWith(".c") || n.endsWith(".cpp")
-                        || n.endsWith(".cc") || n.endsWith(".h") || n.endsWith(".hpp")
-                        || n.endsWith(".rs") || n.equals("Android.mk") || n.equals("Application.mk")
-                        || n.equals("Cargo.toml") || n.equals("Cargo.lock")) {
+                        || n.endsWith(".groovy")) {
                     out.add(f);
                 }
             }
@@ -230,24 +219,17 @@ public class RemoteMultiCompiler {
         return out;
     }
 
-    private void extractCombined(File zip, File classesDir, File libsDir) throws Exception {
+    private void unzipTo(File zip, File destDir) throws Exception {
         ZipInputStream zin = new ZipInputStream(new FileInputStream(zip));
         ZipEntry e; byte[] buf = new byte[8192];
         while ((e = zin.getNextEntry()) != null) {
             String name = e.getName();
             if (name.endsWith("/")) continue;
-
-            File dst;
-            if (name.endsWith(".so")) {
-                String base = new File(name).getName();
-                dst = new File(libsDir, base);
-                say("  native: " + base);
-            } else {
-                dst = new File(classesDir, name);
-            }
-            File p = dst.getParentFile();
+            File out = new File(destDir, name);
+            if (!out.getCanonicalPath().startsWith(destDir.getCanonicalPath())) continue;
+            File p = out.getParentFile();
             if (p != null && !p.exists()) p.mkdirs();
-            FileOutputStream fos = new FileOutputStream(dst);
+            FileOutputStream fos = new FileOutputStream(out);
             int n; while ((n = zin.read(buf)) > 0) fos.write(buf, 0, n);
             fos.close();
         }
@@ -262,6 +244,7 @@ public class RemoteMultiCompiler {
         while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
         in.close(); return out.toString("UTF-8");
     }
+
     private String readError(HttpURLConnection c) {
         try { return readAll(c); } catch (Exception e) { return ""; }
     }
