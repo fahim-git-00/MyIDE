@@ -67,28 +67,37 @@ jobs:
           for entry in payload.split("~"):
               if not entry: continue
               rel, _, b64 = entry.partition("|")
-              pp = pathlib.Path("crate") / rel
-              if pp.suffix == ".rs" and pp.parent == pathlib.Path("crate"):
-                  pp = pathlib.Path("crate/src") / pp.name
+              name = pathlib.Path(rel).name
+              if name.endswith(".rs"):
+                  pp = pathlib.Path("crate/src") / name
+              elif name in ("Cargo.toml", "Cargo.lock"):
+                  pp = pathlib.Path("crate") / name
+              else:
+                  pp = pathlib.Path("crate") / rel
               pp.parent.mkdir(parents=True, exist_ok=True)
               pp.write_bytes(base64.b64decode(b64))
           print("files:", sum(1 for _ in pathlib.Path("crate").rglob("*") if _.is_file()))
           PY
-
       - name: Build
         env:
           LIB_NAME: ${{ inputs.lib_name }}
         run: |
           cd crate
-          if [ ! -f Cargo.toml ]; then
-            cat > Cargo.toml <<CFG
-          [package]
-          name = "rustnative"
-          version = "0.1.0"
-          edition = "2021"
+          # Strip any [lib] section from uploaded Cargo.toml so we can set it ourselves
+          if [ -f Cargo.toml ]; then
+            python3 - <<'PY'
+          import re, pathlib
+          p = pathlib.Path("Cargo.toml")
+          t = p.read_text()
+          t = re.sub(r"\[lib\][^\[]*", "", t, flags=re.S)
+          p.write_text(t)
+          PY
+          fi
+          cat >> Cargo.toml <<CFG
 
           [lib]
           name = "${LIB_NAME}"
+          path = "src/lib.rs"
           crate-type = ["cdylib"]
 
           [profile.release]
@@ -96,9 +105,7 @@ jobs:
           opt-level = "z"
           strip = true
           CFG
-          fi
           cargo ndk -t arm64-v8a -o ../out build --release
-
       - name: Pack
         run: find out -type f -name "*.so" || true
 
