@@ -77,17 +77,14 @@ jobs:
           print("java files:", len(list(pathlib.Path("src").rglob("*.java"))))
           PY
 
-      - name: Fetch Groovy runtime (only when deps/ has Groovy classes)
+      - name: Fetch Groovy runtime
         run: |
           mkdir -p deps
-          if unzip -l deps/deps.jar 2>/dev/null | grep -q "GroovyObject\|groovy/lang"; then
-            echo "Groovy classes detected — fetching groovy runtime"
-            BASE=https://repo1.maven.org/maven2/org/apache/groovy
-            V=4.0.26
-            for J in groovy groovy-xml groovy-json; do
-              curl -sSL -f -o deps/$J-$V.jar $BASE/$J/$V/$J-$V.jar || true
-            done
-          fi
+          BASE=https://repo1.maven.org/maven2/org/apache/groovy
+          V=4.0.26
+          for J in groovy groovy-xml groovy-json; do
+            curl -sSL -f -o deps/$J-$V.jar $BASE/$J/$V/$J-$V.jar || true
+          done
           ls -la deps/
 
       - name: Compile with javac 21
