@@ -63,4 +63,5 @@
     <item android:id="@+id/menu_about" android:title="@string/action_about" />
 
     <item android:id="@+id/menu_compile_mode" android:title="Compile Mode…" />
+    <item android:id="@+id/menu_full_build" android:title="Full Build (GitHub)" />
 </menu>
