@@ -56,9 +56,20 @@ public class RemoteJavaCompiler {
         if (classesDir != null && classesDir.isDirectory()) {
             findClassFiles(classesDir, depClasses);
         }
-        say("Bundling " + depClasses.size() + " dependency .class file(s)");
+        // Also include runtime jars (groovy-runtime.jar, scala-runtime.jar) so
+        // javac can resolve GroovyObject / scala.AnyRef / etc.
+        List<File> depJars = new ArrayList<File>();
+        if (classesDir != null && classesDir.isDirectory()) {
+            File gr = new File(classesDir, "groovy-runtime.jar");
+            if (gr.isFile() && gr.length() > 0) depJars.add(gr);
+            File sr = new File(classesDir, "scala-runtime.jar");
+            if (sr.isFile() && sr.length() > 0) depJars.add(sr);
+        }
+        say("Bundling " + depClasses.size() + " dependency .class file(s), "
+                + depJars.size() + " runtime jar(s)");
 
-        String hash = CompileCache.hashFiles(files) + "-d" + depClasses.size();
+        String hash = CompileCache.hashFiles(files) + "-d" + depClasses.size()
+                + "-r" + depJars.size();
         say("Hash: " + hash.substring(0, 12) + "...");
 
         if (CompileCache.isHit(ctx, "java21", hash)) {
@@ -72,7 +83,7 @@ public class RemoteJavaCompiler {
         }
         say("Cache miss — remote compile required");
 
-        String payload = buildPayload(sourceRoots, files, depClasses);
+        String payload = buildPayload(sourceRoots, files, depClasses, depJars);
         long runId = trigger(payload);
         say("Waiting for run " + runId + "...");
         waitForRun(runId);
@@ -104,6 +115,11 @@ public class RemoteJavaCompiler {
     }
 
     private String buildPayload(List<File> roots, List<File> files, List<File> depClasses) throws Exception {
+        return buildPayload(roots, files, depClasses, null);
+    }
+
+    private String buildPayload(List<File> roots, List<File> files, List<File> depClasses,
+                                List<File> depJars) throws Exception {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < files.size(); i++) {
             File f = files.get(i);
@@ -145,6 +161,23 @@ public class RemoteJavaCompiler {
             zos.close();
             sb.append("##CLASSJAR##");
             sb.append(android.util.Base64.encodeToString(readAll(tmpJar), android.util.Base64.NO_WRAP));
+        }
+        if (depJars != null && !depJars.isEmpty()) {
+            // Bundle all runtime jars into one combined "runtimes" jar
+            java.io.File tmp2 = new java.io.File(ctx.getCacheDir(), "java-runtimes.jar");
+            java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(
+                    new java.io.FileOutputStream(tmp2));
+            for (File j : depJars) {
+                zos.putNextEntry(new java.util.zip.ZipEntry(j.getName()));
+                java.io.FileInputStream fin = new java.io.FileInputStream(j);
+                byte[] buf = new byte[8192]; int n;
+                while ((n = fin.read(buf)) > 0) zos.write(buf, 0, n);
+                fin.close();
+                zos.closeEntry();
+            }
+            zos.close();
+            sb.append("##RUNTIMES##");
+            sb.append(android.util.Base64.encodeToString(readAll(tmp2), android.util.Base64.NO_WRAP));
         }
         return sb.toString();
     }

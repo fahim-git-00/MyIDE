@@ -54,14 +54,20 @@ jobs:
           import sys, base64, pathlib
           cnt = int(sys.argv[1])
           payload = "".join(sys.argv[2:2+cnt])
-          # Split off optional dep jar
+          # Split off optional sections: ##RUNTIMES## then ##CLASSJAR##
+          runtimes_b64 = None
+          if "##RUNTIMES##" in payload:
+              payload, runtimes_b64 = payload.split("##RUNTIMES##", 1)
+          classjar_b64 = None
           if "##CLASSJAR##" in payload:
-              srcpart, jarb64 = payload.split("##CLASSJAR##", 1)
-              pathlib.Path("deps/deps.jar").write_bytes(base64.b64decode(jarb64))
-              print("dep jar written:", pathlib.Path("deps/deps.jar").stat().st_size, "bytes")
-          else:
-              srcpart = payload
-              print("no dep jar")
+              payload, classjar_b64 = payload.split("##CLASSJAR##", 1)
+          srcpart = payload
+          if classjar_b64 is not None:
+              pathlib.Path("deps/deps.jar").write_bytes(base64.b64decode(classjar_b64))
+              print("dep jar:", pathlib.Path("deps/deps.jar").stat().st_size, "bytes")
+          if runtimes_b64 is not None:
+              pathlib.Path("deps/runtimes.jar").write_bytes(base64.b64decode(runtimes_b64))
+              print("runtimes jar:", pathlib.Path("deps/runtimes.jar").stat().st_size, "bytes")
           for entry in srcpart.split("~"):
               if not entry: continue
               rel, _, b64 = entry.partition("|")
@@ -76,6 +82,7 @@ jobs:
           AJ=$HOME/sdk/platforms/android-35/android.jar
           CP="$AJ"
           if [ -f deps/deps.jar ]; then CP="$CP:deps/deps.jar"; fi
+          if [ -f deps/runtimes.jar ]; then CP="$CP:deps/runtimes.jar"; fi
           mkdir -p classes
           javac -d classes -classpath "$CP" --release 21 -nowarn \
             $(find src -name '*.java')
