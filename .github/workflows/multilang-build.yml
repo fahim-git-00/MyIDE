@@ -84,20 +84,16 @@ jobs:
             java -cp "$CP" org.codehaus.groovy.tools.FileSystemCompiler \
               --classpath "$AJ" -d classes $(find src -name '*.groovy')
           fi
+          # Only extract core Groovy jar — sub-jars contain duplicates
           cd groovy-runtime-extract
-          for j in ../libs/groovy-4.0.26.jar ../libs/groovy-xml-4.0.26.jar ../libs/groovy-json-4.0.26.jar; do
-            [ -f "$j" ] && unzip -oq "$j" || true
-          done
+          unzip -oq ../libs/groovy-4.0.26.jar
           find . -name "module-info.class" -delete
           rm -rf META-INF
-          zip -q -r ../out/groovy-runtime.jar .
-          # ALSO copy flat .class files into out/ so javac can see them
-          find . -name "*.class" | while read f; do
-            mkdir -p "../out/$(dirname "$f")"
-            cp "$f" "../out/$f"
-          done
           cd ..
           cp -r classes/* out/ 2>/dev/null || true
+          # Ship the runtime jar alongside. Java compile needs it on classpath;
+          # D8 will pull it in as an extra jar.
+          cp groovy-runtime-extract/../libs/groovy-4.0.26.jar out/groovy-runtime.jar
 
       - name: Compile Java (sees Groovy classes)
         run: |
