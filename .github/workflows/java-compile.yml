@@ -34,7 +34,6 @@ jobs:
           mv cmdline-tools latest || true
           yes | $HOME/sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
           $HOME/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" > /dev/null
-          ls -la $HOME/sdk/platforms/android-35/android.jar
 
       - name: Decode payload
         env:
@@ -50,12 +49,20 @@ jobs:
           C8: ${{ inputs.chunk_8 }}
           C9: ${{ inputs.chunk_9 }}
         run: |
-          mkdir -p src classes java-classes
+          mkdir -p src classes java-classes deps
           python3 - "$CNT" "$C0" "$C1" "$C2" "$C3" "$C4" "$C5" "$C6" "$C7" "$C8" "$C9" << 'PY'
           import sys, base64, pathlib
           cnt = int(sys.argv[1])
           payload = "".join(sys.argv[2:2+cnt])
-          for entry in payload.split("~"):
+          # Split off optional dep jar
+          if "##CLASSJAR##" in payload:
+              srcpart, jarb64 = payload.split("##CLASSJAR##", 1)
+              pathlib.Path("deps/deps.jar").write_bytes(base64.b64decode(jarb64))
+              print("dep jar written:", pathlib.Path("deps/deps.jar").stat().st_size, "bytes")
+          else:
+              srcpart = payload
+              print("no dep jar")
+          for entry in srcpart.split("~"):
               if not entry: continue
               rel, _, b64 = entry.partition("|")
               p = pathlib.Path("src") / rel
@@ -64,11 +71,13 @@ jobs:
           print("java files:", len(list(pathlib.Path("src").rglob("*.java"))))
           PY
 
-      - name: Compile with javac 21 (release 21)
+      - name: Compile with javac 21
         run: |
           AJ=$HOME/sdk/platforms/android-35/android.jar
+          CP="$AJ"
+          if [ -f deps/deps.jar ]; then CP="$CP:deps/deps.jar"; fi
           mkdir -p classes
-          javac -d classes -classpath "$AJ" --release 21 -nowarn \
+          javac -d classes -classpath "$CP" --release 21 -nowarn \
             $(find src -name '*.java')
           find classes -type f | head -20
 
@@ -76,6 +85,10 @@ jobs:
         run: |
           mkdir -p dexout d8
           curl -sSL -o d8.jar https://maven.google.com/com/android/tools/r8/9.5.23/r8-9.5.23.jar
+          java -cp d8.jar com.android.tools.r8.D8 \
+            --release --min-api 26 --output dexout \
+            --lib $HOME/sdk/platforms/android-35/android.jar \
+            $(find classes -name '*.class') deps/deps.jar 2>/dev/null || \
           java -cp d8.jar com.android.tools.r8.D8 \
             --release --min-api 26 --output dexout \
             --lib $HOME/sdk/platforms/android-35/android.jar \

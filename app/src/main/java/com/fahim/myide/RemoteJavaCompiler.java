@@ -50,7 +50,15 @@ public class RemoteJavaCompiler {
         for (File src : sourceRoots) findJavaFiles(src, files);
         if (files.isEmpty()) { say("No .java files"); return; }
 
-        String hash = CompileCache.hashFiles(files);
+        // Bundle every .class already present in classesDir (from Groovy/Scala/Kotlin
+        // remote compilers) so javac on the runner can resolve them.
+        List<File> depClasses = new ArrayList<File>();
+        if (classesDir != null && classesDir.isDirectory()) {
+            findClassFiles(classesDir, depClasses);
+        }
+        say("Bundling " + depClasses.size() + " dependency .class file(s)");
+
+        String hash = CompileCache.hashFiles(files) + "-d" + depClasses.size();
         say("Hash: " + hash.substring(0, 12) + "...");
 
         if (CompileCache.isHit(ctx, "java21", hash)) {
@@ -64,7 +72,7 @@ public class RemoteJavaCompiler {
         }
         say("Cache miss — remote compile required");
 
-        String payload = buildPayload(sourceRoots, files);
+        String payload = buildPayload(sourceRoots, files, depClasses);
         long runId = trigger(payload);
         say("Waiting for run " + runId + "...");
         waitForRun(runId);
@@ -92,12 +100,51 @@ public class RemoteJavaCompiler {
     }
 
     private String buildPayload(List<File> roots, List<File> files) throws Exception {
+        return buildPayload(roots, files, null);
+    }
+
+    private String buildPayload(List<File> roots, List<File> files, List<File> depClasses) throws Exception {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < files.size(); i++) {
             File f = files.get(i);
             if (i > 0) sb.append('~');
             sb.append(relativePath(roots, f)).append('|');
             sb.append(android.util.Base64.encodeToString(readAll(f), android.util.Base64.NO_WRAP));
+        }
+        // Dependency .class files, bundled as a jar, base64'd after "##CLASSJAR##"
+        if (depClasses != null && !depClasses.isEmpty()) {
+            java.io.File tmpJar = new java.io.File(ctx.getCacheDir(), "java-deps.jar");
+            java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(
+                    new java.io.FileOutputStream(tmpJar));
+            byte[] buf = new byte[8192];
+            for (File cf : depClasses) {
+                // Path relative to classesDir root; strip directory name prefix
+                String rel = cf.getName();
+                java.io.File parent = cf.getParentFile();
+                if (parent != null) {
+                    // Try to build package-like path from last segment up to "classes"
+                    java.util.List<String> parts = new java.util.ArrayList<String>();
+                    java.io.File cur = parent;
+                    while (cur != null && !"classes".equals(cur.getName())) {
+                        parts.add(0, cur.getName());
+                        cur = cur.getParentFile();
+                    }
+                    if (!parts.isEmpty()) {
+                        StringBuilder pp = new StringBuilder();
+                        for (String s : parts) pp.append(s).append('/');
+                        rel = pp.toString() + cf.getName();
+                    }
+                }
+                zos.putNextEntry(new java.util.zip.ZipEntry(rel));
+                java.io.FileInputStream fin = new java.io.FileInputStream(cf);
+                int n;
+                while ((n = fin.read(buf)) > 0) zos.write(buf, 0, n);
+                fin.close();
+                zos.closeEntry();
+            }
+            zos.close();
+            sb.append("##CLASSJAR##");
+            sb.append(android.util.Base64.encodeToString(readAll(tmpJar), android.util.Base64.NO_WRAP));
         }
         return sb.toString();
     }
@@ -236,6 +283,17 @@ public class RemoteJavaCompiler {
             zin.closeEntry();
         }
         zin.close();
+    }
+
+
+    private void findClassFiles(File dir, List<File> out) {
+        if (dir == null || !dir.isDirectory()) return;
+        File[] kids = dir.listFiles();
+        if (kids == null) return;
+        for (File f : kids) {
+            if (f.isDirectory()) findClassFiles(f, out);
+            else if (f.getName().endsWith(".class")) out.add(f);
+        }
     }
 
     private String readAll(HttpURLConnection c) throws Exception {
